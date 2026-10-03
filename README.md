@@ -41,6 +41,13 @@ the `create-staff-user` function returns for new staff). Signed-in users can cha
 and `https://YOUR-APP.vercel.app` under Redirect URLs (also add `http://localhost:5173/**` for local testing).
 For real emails at volume, add your own SMTP provider in Supabase → Auth → SMTP (the built-in sender is heavily rate limited).
 
+## Sign-up, passwords and email verification
+- Every password field has a show/hide toggle. New passwords (sign-up, reset, profile) show a live checklist and strength meter, plus a "Suggest a strong password" button (16 characters, generated with the Web Crypto API).
+- After sign-up (or signing in with an unconfirmed email) users land on `/verify-email`: inbox shortcut, resend with a 60s cooldown, expired-link handling, and a "you're verified" screen once confirmed.
+- Supabase → Auth → Providers → Email: set the minimum password length to 8 (or higher) so the server is never looser than the checklist.
+- The confirmation link redirects to the site root, which is already in your Redirect URLs.
+- Header: notification bell + hamburger menu. Theme (light/dark/system), photo and sign out live on the Profile page.
+
 ## Before going live
 - Regenerate the resized icons in `public/` if you change `favicon.png`.
 - Enable email confirmation settings and add your Vercel URL in Supabase Auth → URL Configuration.

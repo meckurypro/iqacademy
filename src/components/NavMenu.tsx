@@ -1,0 +1,67 @@
+// src/components/NavMenu.tsx
+import { useCallback, useEffect, useRef, useState } from "react";
+import { NavLink } from "react-router-dom";
+import { Avatar, cx } from "./ui";
+import { primaryRole, roleLabel, useAuth } from "../lib/auth";
+
+export type NavItem = [to: string, label: string, icon: string];
+
+// Menu shown to everyone, plus role-specific shortcuts.
+const EXTRA: Record<string, NavItem[]> = {
+  student: [["/enrol", "Enrol in a course", "🎓"]],
+  centre_director: [["/team", "My team", "🤝"]],
+};
+
+export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
+  const { name, avatar, roles } = useAuth();
+  const role = primaryRole(roles);
+  const [open, setOpen] = useState(false); const [closing, setClosing] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const items: NavItem[] = [...(tabs ?? [["/", "Home", "🏠"]]), ...(EXTRA[role] ?? []), ["/profile", "Profile & settings", "👤"]];
+
+  const close = useCallback(() => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 200); }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && close();
+    addEventListener("keydown", k); document.body.style.overflow = "hidden"; closeRef.current?.focus();
+    return () => { removeEventListener("keydown", k); document.body.style.overflow = ""; };
+  }, [open, close]);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} className="group grid h-10 w-10 place-items-center rounded-full transition hover:bg-sunken active:scale-95">
+        <span className="flex w-[18px] flex-col items-end gap-[5px]" aria-hidden="true">
+          <span className="h-[2px] w-full rounded-full bg-current" />
+          <span className="h-[2px] w-3/4 rounded-full bg-current transition-all group-hover:w-full" />
+          <span className="h-[2px] w-1/2 rounded-full bg-current transition-all group-hover:w-full" />
+        </span>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu">
+          <div className={cx("absolute inset-0 bg-black/50 backdrop-blur-sm", closing ? "anim-fade-out" : "anim-fade")} onClick={close} />
+          <aside className={cx("absolute inset-y-0 right-0 flex w-[85%] max-w-xs flex-col rounded-l-3xl bg-surface p-4 shadow-2xl ring-1 ring-line", closing ? "anim-slide-out" : "anim-slide")}
+            style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))", paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
+            <div className="mb-4 flex items-center justify-between">
+              <span className="px-1 text-sm font-medium text-muted">Menu</span>
+              <button ref={closeRef} onClick={close} aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-sunken active:scale-95">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
+            <NavLink to="/profile" onClick={close} className="mb-4 flex items-center gap-3 rounded-2xl bg-sunken p-3 transition active:scale-[.98]">
+              <Avatar name={name || "?"} url={avatar} size={44} />
+              <div className="min-w-0 flex-1 leading-tight"><p className="truncate font-medium">{name}</p><p className="text-xs text-muted">{roleLabel[role]}</p></div>
+              <span className="text-muted" aria-hidden="true">›</span>
+            </NavLink>
+            <nav className="flex-1 space-y-1 overflow-y-auto">
+              {items.map(([to, label, icon]) => (
+                <NavLink key={to} to={to} end onClick={close}
+                  className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition active:scale-[.98]", isActive ? "bg-accent/10 font-semibold text-accent" : "hover:bg-sunken")}>
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-sunken text-base" aria-hidden="true">{icon}</span>{label}
+                </NavLink>))}
+            </nav>
+          </aside>
+        </div>)}
+    </>
+  );
+}

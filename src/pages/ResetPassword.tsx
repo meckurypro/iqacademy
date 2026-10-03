@@ -3,7 +3,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Button, Card, Err, Field, Skeleton } from "../components/ui";
+import { Button, Card, Err, Skeleton } from "../components/ui";
+import { isStrong } from "../lib/password";
+import { MatchHint, PasswordCreator, PasswordField } from "../components/PasswordFields";
 
 // Opened from the link in the reset email (also used for the one-time link given to new staff).
 export default function ResetPassword() {
@@ -14,6 +16,7 @@ export default function ResetPassword() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr("");
+    if (!isStrong(pw)) return setErr("Your password needs to meet every item on the checklist.");
     if (pw !== pw2) return setErr("The two passwords don't match.");
     setBusy(true); const { error } = await supabase.auth.updateUser({ password: pw }); setBusy(false);
     if (error) return setErr(error.message.includes("different") ? "Choose a password you haven't used before." : error.message);
@@ -29,12 +32,13 @@ export default function ResetPassword() {
     </div>);
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
-      <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">At least 8 characters.</p></div>
+      <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">Follow the checklist to keep your account safe.</p></div>
       <Card className="p-5">{done ? <div className="space-y-3 py-4 text-center"><div className="anim-pop mx-auto grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-2xl text-ok">✓</div><p className="font-medium">Password updated</p></div> :
         <form onSubmit={submit} className="space-y-4">
-          <Field label="New password" type="password" required minLength={8} autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
-          <Field label="Confirm password" type="password" required minLength={8} autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />
-          <Err>{err}</Err><Button type="submit" loading={busy} className="w-full">Update password</Button></form>}</Card>
+          <PasswordCreator label="New password" required value={pw} onValue={setPw} onGenerate={setPw2} />
+          <PasswordField label="Confirm password" required autoComplete="new-password" value={pw2} onValue={setPw2} />
+          <MatchHint a={pw} b={pw2} />
+          <Err>{err}</Err><Button type="submit" loading={busy} disabled={!isStrong(pw) || pw !== pw2} className="w-full">Update password</Button></form>}</Card>
     </div>
   );
 }

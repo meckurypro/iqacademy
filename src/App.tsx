@@ -1,9 +1,12 @@
 // src/App.tsx
 import { useCallback, useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes, Link } from "react-router-dom";
-import { useAuth, primaryRole, roleLabel } from "./lib/auth";
+import { Navigate, NavLink, Route, Routes, Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth, primaryRole } from "./lib/auth";
+import { getPending, clearPending } from "./lib/verify";
 import { supabase } from "./lib/supabase";
-import { Avatar, Button, Sheet, Skeleton } from "./components/ui";
+import { Sheet, Skeleton } from "./components/ui";
+import NavMenu from "./components/NavMenu";
+import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Enrol from "./pages/Enrol";
 import StudentHome from "./pages/StudentHome";
@@ -95,22 +98,14 @@ function TabBar({ role }: { role: string }) {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  const { name, avatar, roles } = useAuth();
-  const [dark, setDark] = useState(document.documentElement.dataset.theme === "dark");
-  const toggle = () => {
-    const t = dark ? "light" : "dark";
-    document.documentElement.dataset.theme = t; localStorage.setItem("theme", t); setDark(!dark);
-  };
+  const { roles } = useAuth();
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24">
-      <header className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-3 bg-bg/80 px-4 py-3 backdrop-blur-md">
+      <header className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-1 bg-bg/80 px-4 py-3 backdrop-blur-md">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-8 w-8 rounded-lg" />IQ Academy</Link>
         <div className="flex-1" />
-        <button onClick={toggle} aria-label="Toggle theme" className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken">{dark ? "☀️" : "🌙"}</button>
         <Bell />
-        <Link to="/profile" className="flex items-center gap-2"><Avatar name={name || "?"} url={avatar} size={36} />
-          <div className="hidden text-sm leading-tight sm:block"><p className="font-medium">{name}</p><p className="text-xs text-muted">{roleLabel[primaryRole(roles)]}</p></div></Link>
-        <Button variant="ghost" className="h-10 px-3 text-sm" onClick={() => supabase.auth.signOut()}>Sign out</Button>
+        <NavMenu tabs={NAV[primaryRole(roles)]} />
       </header>
       {children}
       <TabBar role={primaryRole(roles)} />
@@ -118,15 +113,30 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Right after a new user confirms their email (in this tab or another), show the "you're verified" screen once.
+function VerifyRedirect() {
+  const { session } = useAuth(); const nav = useNavigate(); const { pathname } = useLocation();
+  useEffect(() => {
+    const p = getPending(); if (!p || !session) return;
+    if (p.email !== session.user.email?.toLowerCase()) return clearPending();
+    if (pathname !== "/verify-email") nav("/verify-email", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+  return null;
+}
+
 export default function App() {
   const { session, loading, roles } = useAuth();
   if (loading) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
-  if (!session) return <Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="*" element={<Login />} /></Routes>;
+  if (!session) return <Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="*" element={<Login />} /></Routes>;
   const role = primaryRole(roles);
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
   return (
+    <>
+    <VerifyRedirect />
     <Routes>
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="*" element={
     <Shell>
       <Routes>
@@ -151,5 +161,6 @@ export default function App() {
     </Shell>
       } />
     </Routes>
+    </>
   );
 }
