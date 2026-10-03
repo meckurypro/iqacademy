@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes, Link } from "react-router-dom";
 import { useAuth, primaryRole, roleLabel } from "./lib/auth";
@@ -103,7 +104,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24">
       <header className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-3 bg-bg/80 px-4 py-3 backdrop-blur-md">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight"><img src="/icon.svg" alt="" className="h-8 w-8 rounded-lg" />IQ Academy</Link>
+        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-8 w-8 rounded-lg" />IQ Academy</Link>
         <div className="flex-1" />
         <button onClick={toggle} aria-label="Toggle theme" className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken">{dark ? "☀️" : "🌙"}</button>
         <Bell />

@@ -16,7 +16,7 @@ npm run dev
 4. Set the same site URL as `SITE_URL` in the Supabase Edge Function secrets, and under Supabase → Auth → URL Configuration.
 
 ## Your icon
-Replace `public/icon.svg` (placeholder) with your icon, and add `public/icon-192.png` / `icon-512.png` and point `public/manifest.webmanifest` at them.
+The app icon is `public/favicon.png`; `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` and `favicon-32.png` are resized from it.
 The accent colour lives in `src/index.css` (`--accent`, light and dark): set it to a colour from your icon.
 
 ## What's in phase 1
@@ -42,6 +42,6 @@ and `https://YOUR-APP.vercel.app` under Redirect URLs (also add `http://localhos
 For real emails at volume, add your own SMTP provider in Supabase → Auth → SMTP (the built-in sender is heavily rate limited).
 
 ## Before going live
-- Replace `public/icon.svg` with your icon (add 192/512 PNGs to the manifest) and set `--accent` in `src/index.css` from it.
+- Regenerate the resized icons in `public/` if you change `favicon.png`.
 - Enable email confirmation settings and add your Vercel URL in Supabase Auth → URL Configuration.
 - "Register a student on their behalf" (coordinator) needs a backend lookup function and is not included.

@@ -1,11 +1,12 @@
+/* src/index.css */
 @tailwind base; @tailwind components; @tailwind utilities;
 :root, [data-theme="light"] {
-  --bg: 250 249 247; --surface: 255 255 255; --sunken: 243 241 237; --ink: 22 21 15; --muted: 107 106 99;
-  --line: 232 230 225; --accent: 79 70 229; --accent-ink: 255 255 255; --ok: 22 163 74; --warn: 217 119 6; --bad: 220 38 38;
+  --bg: 250 249 246; --surface: 255 255 255; --sunken: 243 240 234; --ink: 22 19 13; --muted: 107 103 94;
+  --line: 232 228 220; --accent: 161 98 7; --accent-ink: 255 255 255; --ok: 22 163 74; --warn: 217 119 6; --bad: 220 38 38;
 }
 [data-theme="dark"] {
-  --bg: 15 15 18; --surface: 24 24 28; --sunken: 33 33 38; --ink: 242 241 236; --muted: 150 149 142;
-  --line: 44 44 50; --accent: 129 140 248; --accent-ink: 15 15 18; --ok: 74 222 128; --warn: 251 191 36; --bad: 248 113 113;
+  --bg: 13 11 8; --surface: 23 20 16; --sunken: 33 29 23; --ink: 242 240 248; --muted: 156 151 140;
+  --line: 46 41 33; --accent: 255 197 107; --accent-ink: 13 11 8; --ok: 74 222 128; --warn: 251 191 36; --bad: 248 113 113;
 }
 html { color-scheme: light dark; -webkit-tap-highlight-color: transparent; }
 body { @apply bg-bg text-ink font-sans antialiased; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }

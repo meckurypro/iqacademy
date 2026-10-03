@@ -1,3 +1,4 @@
+// src/pages/Login.tsx
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Button, Card, Err, Field } from "../components/ui";
@@ -29,7 +30,7 @@ export default function Login() {
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
       <div className="text-center">
-        <img src="/icon.svg" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" />
+        <img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" />
         <h1 className="text-2xl">{{ in: "Welcome back", up: "Join IQ Academy", forgot: "Reset your password" }[mode]}</h1>
         <p className="mt-1 text-muted">{mode === "forgot" ? "We'll email you a link to choose a new one." : "Understand. Design. Build. Automate."}</p>
       </div>

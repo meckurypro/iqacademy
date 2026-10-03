@@ -1,3 +1,4 @@
+// src/pages/ResetPassword.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -28,7 +29,7 @@ export default function ResetPassword() {
     </div>);
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
-      <div className="text-center"><img src="/icon.svg" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">At least 8 characters.</p></div>
+      <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">At least 8 characters.</p></div>
       <Card className="p-5">{done ? <div className="space-y-3 py-4 text-center"><div className="anim-pop mx-auto grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-2xl text-ok">✓</div><p className="font-medium">Password updated</p></div> :
         <form onSubmit={submit} className="space-y-4">
           <Field label="New password" type="password" required minLength={8} autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
