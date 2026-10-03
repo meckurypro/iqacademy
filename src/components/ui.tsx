@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
@@ -41,7 +42,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     return () => { removeEventListener("keydown", k); document.body.style.overflow = ""; };
   }, [open, onClose]);
   if (!open) return null;
-  return (
+  // Portalled to <body>: the sticky header's backdrop-blur would otherwise become the containing block for "fixed" and clip the overlay.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
       <div className="anim-fade absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="anim-rise relative w-full max-w-md rounded-t-3xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
@@ -49,7 +51,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
         {title && <h2 className="mb-3 text-lg">{title}</h2>}
         {children}
       </div>
-    </div>
+    </div>, document.body
   );
 }
 

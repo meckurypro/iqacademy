@@ -1,5 +1,6 @@
 // src/components/NavMenu.tsx
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
 import { Avatar, cx } from "./ui";
 import { primaryRole, roleLabel, useAuth } from "../lib/auth";
@@ -37,7 +38,7 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
           <span className="h-[2px] w-1/2 rounded-full bg-current transition-all group-hover:w-full" />
         </span>
       </button>
-      {open && (
+      {open && createPortal(
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu">
           <div className={cx("absolute inset-0 bg-black/50 backdrop-blur-sm", closing ? "anim-fade-out" : "anim-fade")} onClick={close} />
           <aside className={cx("absolute inset-y-0 right-0 flex w-[85%] max-w-xs flex-col rounded-l-3xl bg-surface p-4 shadow-2xl ring-1 ring-line", closing ? "anim-slide-out" : "anim-slide")}
@@ -61,7 +62,7 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
                 </NavLink>))}
             </nav>
           </aside>
-        </div>)}
+        </div>, document.body)}
     </>
   );
 }
