@@ -18,7 +18,7 @@ export default function Cohorts() {
     load();
     supabase.from("centres").select("id,name").eq("is_active", true).order("name").then((r) => setCentres(r.data ?? []));
     supabase.from("courses").select("id,title").order("sort_order").then((r) => setCourses(r.data ?? []));
-    supabase.from("user_roles").select("user_id,profiles(full_name)").eq("role", "instructor").eq("is_active", true).then((r) => setInstr(r.data ?? []));
+    supabase.from("user_roles").select("user_id,profiles!user_roles_user_id_fkey(full_name)").eq("role", "instructor").eq("is_active", true).then((r) => setInstr(r.data ?? []));
   }, [load]);
 
   const createCohort = async () => {
