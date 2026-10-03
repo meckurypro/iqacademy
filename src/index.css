@@ -1,0 +1,21 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+:root, [data-theme="light"] {
+  --bg: 250 249 247; --surface: 255 255 255; --sunken: 243 241 237; --ink: 22 21 15; --muted: 107 106 99;
+  --line: 232 230 225; --accent: 79 70 229; --accent-ink: 255 255 255; --ok: 22 163 74; --warn: 217 119 6; --bad: 220 38 38;
+}
+[data-theme="dark"] {
+  --bg: 15 15 18; --surface: 24 24 28; --sunken: 33 33 38; --ink: 242 241 236; --muted: 150 149 142;
+  --line: 44 44 50; --accent: 129 140 248; --accent-ink: 15 15 18; --ok: 74 222 128; --warn: 251 191 36; --bad: 248 113 113;
+}
+html { color-scheme: light dark; -webkit-tap-highlight-color: transparent; }
+body { @apply bg-bg text-ink font-sans antialiased; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+h1, h2, h3 { @apply font-semibold tracking-tight; }
+.num { font-variant-numeric: tabular-nums; }
+.skeleton { @apply rounded-xl bg-sunken; background-image: linear-gradient(90deg, transparent, rgb(var(--surface) / .6), transparent);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.98) } to { opacity: 1; transform: none } }
+@keyframes pop { 0% { transform: scale(.6); opacity: 0 } 70% { transform: scale(1.08) } 100% { transform: scale(1); opacity: 1 } }
+.anim-fade { animation: fade .18s ease-out } .anim-rise { animation: rise .26s cubic-bezier(.2,.8,.2,1) } .anim-pop { animation: pop .4s cubic-bezier(.2,.8,.2,1) }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }
