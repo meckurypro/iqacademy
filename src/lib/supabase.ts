@@ -1,5 +1,10 @@
+// src/lib/supabase.ts
 import { createClient } from "@supabase/supabase-js";
-export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, {
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Without these, createClient throws on import and the whole app renders blank.
+export const supabaseConfigured = Boolean(url && key);
+export const supabase = createClient(url || "http://localhost:54321", key || "missing-anon-key", {
   auth: { persistSession: true, autoRefreshToken: true },
 });
 const MESSAGES: Record<string, string> = {
