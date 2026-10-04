@@ -127,10 +127,20 @@ function VerifyRedirect() {
   return null;
 }
 
+// Signing out leaves the address bar on whatever page you were on (usually /profile), so the next sign-in would land
+// there. Send signed-out visitors back to the root so a fresh sign-in always opens the dashboard.
+function SignedOutReset() {
+  const nav = useNavigate(); const { pathname } = useLocation();
+  useEffect(() => {
+    if (pathname !== "/" && pathname !== "/reset-password" && pathname !== "/verify-email") nav("/", { replace: true });
+  }, [pathname, nav]);
+  return null;
+}
+
 export default function App() {
   const { session, loading, roles } = useAuth();
   if (loading) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
-  if (!session) return <Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="*" element={<Login />} /></Routes>;
+  if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="*" element={<Login />} /></Routes></>;
   const role = primaryRole(roles);
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
   return (
