@@ -1,5 +1,5 @@
 // src/pages/Landing.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -10,7 +10,50 @@ const LINES = [
   "Practical AI skills, taught by people who build with AI.",
   "Understand. Design. Build. Automate.",
   "Affordable training, online and at a centre near you.",
+  "Learn online, in a workshop, or one-on-one.",
+  "Start from zero and leave with something you built.",
+  "Join a cohort. Show up. Ship real work.",
 ];
+
+// People trained before online payments existed; every paying student is added on top.
+const BASE_TRAINED = 100;
+type Stats = { centres: number; courses: number; paid: number };
+
+/** 100 → "100+", 110 → "110+" (tens); from 1,000 up → "1k+", "1.2k+" (hundreds); millions → "1.2M+". */
+const people = (n: number) => {
+  if (n < 1000) return `${Math.floor(n / 10) * 10}+`;
+  if (n < 1e6) return `${Math.floor(n / 100) / 10}k+`;
+  return `${Math.floor(n / 1e5) / 10}M+`;
+};
+
+function useInView<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setSeen(true); io.disconnect(); } }, { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, seen] as const;
+}
+
+function useCountUp(target: number, run: boolean) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!run) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { setV(target); return; }
+    let raf = 0; const t0 = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - t0) / 1600);
+      setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, run]);
+  return v;
+}
 
 function Typewriter({ lines }: { lines: string[] }) {
   const reduce = useMemo(() => matchMedia("(prefers-reduced-motion: reduce)").matches, []);
@@ -48,9 +91,14 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
+function CountStat({ target, label, run, format = String }: { target: number; label: string; run: boolean; format?: (n: number) => string }) {
+  return <Stat value={format(useCountUp(target, run))} label={label} />;
+}
+
 export default function Landing() {
   const nav = useNavigate();
-  const [centres, setCentres] = useState<number | null>(null);
+  const [stats, setStats] = useState<Stats | null | "failed">(null);
+  const [gridRef, inView] = useInView<HTMLDivElement>();
 
   // A failed email-confirmation link redirects to the site root with the error in the hash.
   useEffect(() => {
@@ -58,8 +106,12 @@ export default function Landing() {
   }, [nav]);
 
   useEffect(() => {
-    supabase.rpc("public_centre_count").then((r) => { if (!r.error && typeof r.data === "number") setCentres(r.data); });
+    supabase.rpc("public_landing_stats").then((r) => setStats(r.error || !r.data ? "failed" : (r.data as Stats)));
   }, []);
+
+  const ready = stats !== null;
+  const st = stats && stats !== "failed" ? stats : null;
+  const run = ready && inView;
 
   const btn = "inline-flex h-12 items-center justify-center rounded-full px-7 text-[15px] font-medium transition active:scale-[.98]";
 
@@ -78,8 +130,8 @@ export default function Landing() {
           <div className="flex flex-1 flex-col justify-center pb-24">
             <Typewriter lines={LINES} />
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link to="/login" className={`${btn} bg-accent text-accent-ink hover:opacity-90`}>Continue on PC</Link>
               <a href={APP_URL} className={`${btn} border border-line hover:bg-sunken`}>On mobile? Get the app</a>
+              <Link to="/login" className={`${btn} bg-accent text-accent-ink hover:opacity-90`}>Continue on PC</Link>
             </div>
           </div>
         </section>
@@ -89,17 +141,18 @@ export default function Landing() {
             IQ Academy is the educational wing of PromptIQ AI Agency, offering affordable training in AI skills.
           </p>
           <p className="mt-6 max-w-2xl text-muted">
-            PromptIQ builds AI-powered apps and solutions, and media and entertainment that leverage AI. Since 2024, through IQ Academy,
-            we've trained over 100 people, directly and indirectly: online cohorts, tutorials, physical workshops, creator internships and one-on-one mentorship.
+            PromptIQ builds AI-powered apps, solutions, and media and entertainment. Since 2024, IQ Academy has trained people through
+            online cohorts, tutorials, workshops, creator internships and one-on-one mentorship.
           </p>
-          <div className="mt-16 grid grid-cols-2 gap-10 sm:grid-cols-3">
-            {centres !== null && <Stat value={String(centres)} label={centres === 1 ? "Physical training centre" : "Physical training centres"} />}
-            <Stat value="100+" label="People trained" />
+          <div ref={gridRef} className={`mt-16 grid grid-cols-2 gap-10 transition-opacity duration-500 sm:grid-cols-4 ${ready ? "opacity-100" : "opacity-0"}`}>
+            {st && <CountStat target={st.centres} run={run} label={st.centres === 1 ? "Physical training centre" : "Physical training centres"} />}
+            {st && <CountStat target={st.courses} run={run} label={st.courses === 1 ? "AI skill taught" : "AI skills taught"} />}
+            <CountStat target={BASE_TRAINED + (st?.paid ?? 0)} run={run} format={people} label="People trained" />
             <Stat value="2024" label="Building since" />
           </div>
         </section>
 
-        <footer className="border-t border-line py-8 text-sm text-muted">© {new Date().getFullYear()} IQ Academy · A subsidiary of PromptIQ AI Agency</footer>
+        <footer className="border-t border-line py-8 text-sm text-muted">© {new Date().getFullYear()} IQ Academy</footer>
       </div>
     </div>
   );
