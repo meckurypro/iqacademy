@@ -43,6 +43,13 @@ const MESSAGES: Record<string, string> = {
   topic_too_long: "Keep each topic under 120 characters.",
   description_too_long: "Keep each description under 1,000 characters.",
   lesson_has_materials: "A class you removed has materials attached. Delete those first, or keep the class.",
+  makeup_not_open: "Make-up classes open once your classes have ended, and last two months.",
+  not_a_missed_class: "That's not a class you missed, so there's nothing to make up.",
+  makeup_limit_reached: "You've used all your make-up classes.",
+  not_eligible_for_solo: "You can buy a single course once you've fully paid for a course pack.",
+  solo_price_not_set: "This course can't be bought on its own yet.",
+  course_not_available: "That course isn't available right now.",
+  prices_invalid: "Something is wrong with those prices. Please check and try again.",
   forbidden: "You don't have permission to do that.",
 };
 export const friendly = (e: unknown) => {

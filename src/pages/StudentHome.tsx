@@ -6,6 +6,8 @@ import { Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
+import MakeupCard from "../components/MakeupCard";
+import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
 
 type Inst = { id: string; number: number; amount: number; status: string; label: string };
@@ -83,6 +85,10 @@ export default function StudentHome() {
                 </li>))}</ol>}
             </Card>; })}
         </section>)}
+
+      <MakeupCard />
+
+      {enr.length > 0 && <SoloCourses />}
 
       {refunds.length > 0 && <section className="space-y-2"><h2 className="text-lg">Refunds</h2>
         {refunds.map((r) => <Card key={r.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(r.amount)}</p><p className="text-sm text-muted">{new Date(r.created_at).toLocaleDateString()}</p></div>
