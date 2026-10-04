@@ -21,6 +21,22 @@ const MESSAGES: Record<string, string> = {
   course_count_mismatch: "Choose the right number of courses for this pack.",
   timetable_no_: "That time clashes with another class for the same instructor or room.",
   pay_earlier_instalment_first: "Please pay the earlier instalment first.",
+  price_must_be_positive: "Set a full price above ₦0.",
+  package_name_required: "Give the package a name.",
+  course_count_invalid: "Choose a valid number of courses for this pack.",
+  duration_invalid: "Weeks must be at least 1.",
+  too_many_instalments: "A package can have at most 6 instalments.",
+  instalment_amount_invalid: "Every instalment needs an amount above ₦0.",
+  instalment_label_required: "Give every instalment a name.",
+  first_instalment_must_be_before_start: "The first instalment is always due before classes start.",
+  instalment_rule_beyond_courses: "An instalment can't be due before a course this pack doesn't have.",
+  instalments_out_of_order: "Put the instalments in the order they fall due.",
+  package_code_taken: "That package code is already used.",
+  package_code_invalid: "Use 2–20 letters, numbers, - or _ for the code.",
+  package_not_found: "That package no longer exists.",
+  instalment_plan_unavailable: "Instalments aren't available for this pack. Please pay in full.",
+  package_not_available: "This pack isn't available any more.",
+  forbidden: "You don't have permission to do that.",
 };
 export const friendly = (e: unknown) => {
   const m = String((e as { message?: string })?.message ?? e ?? "");
