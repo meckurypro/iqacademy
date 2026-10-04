@@ -8,6 +8,7 @@ import { Sheet, Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
 import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import Enrol from "./pages/Enrol";
 import StudentHome from "./pages/StudentHome";
 import StaffHome from "./pages/StaffHome";
@@ -132,7 +133,7 @@ function VerifyRedirect() {
 function SignedOutReset() {
   const nav = useNavigate(); const { pathname } = useLocation();
   useEffect(() => {
-    if (pathname !== "/" && pathname !== "/reset-password" && pathname !== "/verify-email") nav("/", { replace: true });
+    if (pathname !== "/" && pathname !== "/login" && pathname !== "/reset-password" && pathname !== "/verify-email") nav("/", { replace: true });
   }, [pathname, nav]);
   return null;
 }
@@ -140,7 +141,7 @@ function SignedOutReset() {
 export default function App() {
   const { session, loading, roles } = useAuth();
   if (loading) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
-  if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="*" element={<Login />} /></Routes></>;
+  if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="/login" element={<Login />} /><Route path="/" element={<Landing />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></>;
   const role = primaryRole(roles);
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
   return (

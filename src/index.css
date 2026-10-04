@@ -24,3 +24,5 @@ h1, h2, h3 { @apply font-semibold tracking-tight; }
 @keyframes slide-out { from { transform: none } to { transform: translateX(100%) } }
 @keyframes fade-out { from { opacity: 1 } to { opacity: 0 } }
 .anim-slide { animation: slide-in .28s cubic-bezier(.2,.8,.2,1) } .anim-slide-out { animation: slide-out .2s ease-in forwards } .anim-fade-out { animation: fade-out .2s ease-in forwards }
+.caret { display: inline-block; width: .075em; height: .9em; margin-left: .08em; vertical-align: -.08em; background: rgb(var(--accent)); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0 } }
