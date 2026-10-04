@@ -122,10 +122,10 @@ export default function StudentHome() {
 
       {next && (
         <Card className="anim-rise space-y-3 bg-accent text-accent-ink ring-0">
-          <p className="text-sm opacity-80">Next class · {new Date(next.start_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}</p>
-          <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-80">{next.lesson_title}</p>}</div>
-          <p className="text-sm opacity-90">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
-          <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-white/20 font-medium backdrop-blur transition active:scale-[.98]">Check in</button>
+          <p className="text-sm font-medium opacity-95">Next class · {new Date(next.start_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}</p>
+          <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-95">{next.lesson_title}</p>}</div>
+          <p className="text-sm opacity-95">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
+          <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-accent-ink font-semibold text-accent shadow-card transition active:scale-[.98]">Check in</button>
         </Card>)}
 
       {prog.length > 0 && (
