@@ -5,9 +5,9 @@ import { Button, Card, Err, Field, cx } from "../components/ui";
 import { useUserSearch } from "./Users";
 
 type Opt = { id: string; name: string };
-type Rule = { who: string; centres: string[]; courses: string[]; cohorts: string[]; users: Opt[] };
+type Rule = { who: string; centres: string[]; courses: string[]; users: Opt[] };
 const WHO = [["students", "Students"], ["instructors", "Instructors"], ["centre_directors", "Centre directors"], ["coordinators", "Coordinators"], ["admins", "Admins"], ["users", "Specific people"], ["everyone", "Everyone"]];
-const blank = (): Rule => ({ who: "students", centres: [], courses: [], cohorts: [], users: [] });
+const blank = (): Rule => ({ who: "students", centres: [], courses: [], users: [] });
 
 const Chips = ({ items, on, toggle }: { items: Opt[]; on: string[]; toggle: (id: string) => void }) => (
   <div className="flex flex-wrap gap-2">{items.map((i) => (
@@ -17,7 +17,7 @@ const Chips = ({ items, on, toggle }: { items: Opt[]; on: string[]; toggle: (id:
 export default function Announce() {
   const { run, confirm } = useFeedback();
   const [rules, setRules] = useState<Rule[]>([blank()]);
-  const [centres, setCentres] = useState<Opt[]>([]); const [courses, setCourses] = useState<Opt[]>([]); const [cohorts, setCohorts] = useState<(Opt & { centre_id: string })[]>([]);
+  const [centres, setCentres] = useState<Opt[]>([]); const [courses, setCourses] = useState<Opt[]>([]);
   const [title, setTitle] = useState(""); const [body, setBody] = useState("");
   const [preview, setPreview] = useState<{ count: number; sample: { full_name: string }[] } | null>(null);
   const [err, setErr] = useState(""); const [sent, setSent] = useState<number | null>(null);
@@ -26,12 +26,11 @@ export default function Announce() {
   useEffect(() => {
     supabase.from("centres").select("id,name").order("name").then((r) => setCentres(r.data ?? []));
     supabase.from("courses").select("id,name:title").order("sort_order").then((r) => setCourses((r.data as Opt[]) ?? []));
-    supabase.from("cohorts").select("id,name,centre_id").neq("status", "cancelled").order("start_date", { ascending: false }).then((r) => setCohorts((r.data as (Opt & { centre_id: string })[]) ?? []));
   }, []);
 
   const audience = useMemo(() => ({ rules: rules.map((r) => {
     const o: Record<string, unknown> = { who: r.who };
-    if (["students", "instructors"].includes(r.who)) { if (r.courses.length) o.course_ids = r.courses; if (r.cohorts.length) o.cohort_ids = r.cohorts; }
+    if (["students", "instructors"].includes(r.who)) { if (r.courses.length) o.course_ids = r.courses }
     if (["students", "instructors", "centre_directors", "coordinators"].includes(r.who) && r.centres.length) o.centre_ids = r.centres;
     if (r.who === "users") o.user_ids = r.users.map((u) => u.id);
     return o; }) }), [rules]);
@@ -75,8 +74,7 @@ export default function Announce() {
             {rules.length > 1 && <button className="text-sm text-bad" onClick={() => setRules(rules.filter((_, k) => k !== i))}>Remove</button>}</div>
           <select value={r.who} onChange={(e) => patch(i, { ...blank(), who: e.target.value })} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{WHO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           {["students", "instructors", "centre_directors", "coordinators"].includes(r.who) && <><p className="text-sm text-muted">Only at these centres (leave empty for all)</p><Chips items={centres} on={r.centres} toggle={(id) => patch(i, { centres: flip(r.centres, id) })} /></>}
-          {["students", "instructors"].includes(r.who) && <><p className="text-sm text-muted">Only in these courses</p><Chips items={courses} on={r.courses} toggle={(id) => patch(i, { courses: flip(r.courses, id) })} />
-            <p className="text-sm text-muted">Only in these cohorts</p><Chips items={cohorts.filter((c) => !r.centres.length || r.centres.includes(c.centre_id))} on={r.cohorts} toggle={(id) => patch(i, { cohorts: flip(r.cohorts, id) })} /></>}
+          {["students", "instructors"].includes(r.who) && <><p className="text-sm text-muted">Only in these courses</p><Chips items={courses} on={r.courses} toggle={(id) => patch(i, { courses: flip(r.courses, id) })} /></>}
           {r.who === "users" && <div className="space-y-2">
             <div className="flex flex-wrap gap-2">{r.users.map((u) => <button key={u.id} onClick={() => patch(i, { users: r.users.filter((x) => x.id !== u.id) })} className="rounded-full bg-accent px-3 py-1.5 text-sm text-accent-ink">{u.name} ✕</button>)}</div>
             <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search people to add…" className="h-12 w-full rounded-xl bg-sunken px-4 outline-none" />

@@ -25,7 +25,7 @@ import CoordinatorHome from "./pages/CoordinatorHome";
 import DirectorHome from "./pages/DirectorHome";
 import Manage from "./pages/Manage";
 import Centres from "./pages/Centres";
-import Cohorts from "./pages/Cohorts";
+import Schedule from "./pages/Schedule";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
 import CourseBuilder from "./pages/CourseBuilder";
@@ -68,7 +68,7 @@ function UnreadDot() {
 
 const NAV: Record<string, [string, string, string][]> = {
   student: [["/", "Home", "🏠"], ["/messages", "Messages", "💬"]],
-  instructor: [["/", "Today", "📅"], ["/history", "History", "🕘"]],
+  instructor: [["/", "Today", "📅"], ["/schedule", "Schedule", "🗓️"], ["/history", "History", "🕘"]],
   admin: [["/", "Overview", "📊"], ["/users", "Users", "👥"], ["/announce", "Announce", "📣"], ["/manage", "Manage", "⚙️"]],
 };
 NAV.super_admin = NAV.admin;
@@ -152,7 +152,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />
-        <Route path="/cohorts" element={<Cohorts />} />
+        <Route path="/schedule" element={role === "student" ? <Navigate to="/" replace /> : <Schedule />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/prices" element={<Prices />} />
         <Route path="/courses" element={<CourseBuilder />} />
