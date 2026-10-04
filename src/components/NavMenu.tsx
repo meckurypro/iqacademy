@@ -18,7 +18,7 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
   const role = primaryRole(roles);
   const [open, setOpen] = useState(false); const [closing, setClosing] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const items: NavItem[] = [...(tabs ?? [["/", "Home", "🏠"]]), ...(EXTRA[role] ?? []), ["/profile", "Profile & settings", "👤"]];
+  const items: NavItem[] = [...(tabs ?? [["/", "Home", "🏠"]]), ...(EXTRA[role] ?? [])]; // Profile is reached through the user card above
 
   const close = useCallback(() => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 200); }, []);
 
@@ -61,6 +61,11 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-sunken text-base" aria-hidden="true">{icon}</span>{label}
                 </NavLink>))}
             </nav>
+            <p className="mt-3 px-1 text-xs leading-relaxed text-muted/80">
+              IQ Academy is the education arm of{" "}
+              <a href="https://promptiq.com.ng?utm_source=academy_app&utm_medium=menu" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 transition hover:text-ink">PromptIQ</a>
+              , an AI creative agency for film, brands and skills.
+            </p>
           </aside>
         </div>, document.body)}
     </>

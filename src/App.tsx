@@ -102,7 +102,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24">
       <header className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-1 bg-bg/80 px-4 py-3 backdrop-blur-md">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-8 w-8 rounded-lg" />IQ Academy</Link>
+        <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-8 w-8 rounded-lg" /><span className="text-[37px] leading-8 relative -top-[3px]">Academy</span></Link>
         <div className="flex-1" />
         <Bell />
         <NavMenu tabs={NAV[primaryRole(roles)]} />

@@ -46,7 +46,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
       <div className="anim-fade absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="anim-rise relative w-full max-w-md rounded-t-3xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
+      <div className="anim-rise relative max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden" />
         {title && <h2 className="mb-3 text-lg">{title}</h2>}
         {children}
