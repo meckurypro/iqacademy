@@ -36,6 +36,13 @@ const MESSAGES: Record<string, string> = {
   package_not_found: "That package no longer exists.",
   instalment_plan_unavailable: "Instalments aren't available for this pack. Please pay in full.",
   package_not_available: "This pack isn't available any more.",
+  course_not_found: "That course no longer exists.",
+  outline_invalid: "Something is wrong with the outline. Please try again.",
+  class_count_invalid: "A course needs between 1 and 40 classes.",
+  topic_required: "Every class needs a topic.",
+  topic_too_long: "Keep each topic under 120 characters.",
+  description_too_long: "Keep each description under 1,000 characters.",
+  lesson_has_materials: "A class you removed has materials attached. Delete those first, or keep the class.",
   forbidden: "You don't have permission to do that.",
 };
 export const friendly = (e: unknown) => {

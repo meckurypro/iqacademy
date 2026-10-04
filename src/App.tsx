@@ -27,6 +27,7 @@ import Centres from "./pages/Centres";
 import Cohorts from "./pages/Cohorts";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
+import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
@@ -152,6 +153,8 @@ export default function App() {
         <Route path="/cohorts" element={<Cohorts />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/prices" element={<Prices />} />
+        <Route path="/courses" element={<CourseBuilder />} />
+        <Route path="/courses/:id" element={<CourseBuilder />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/team" element={<Team />} />
         <Route path="/team/:centreId" element={<Team />} />

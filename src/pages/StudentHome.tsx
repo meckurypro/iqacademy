@@ -12,22 +12,24 @@ type Inst = { id: string; number: number; amount: number; status: string; label:
 type Enr = { id: string; status: string; balance: number; total_amount: number; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; course_title: string; lesson_title: string | null; room: string | null };
 type Ref = { id: string; amount: number; status: string; created_at: string };
-type Prog = { enrolment_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
+type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; title: string; summary: string | null; state: "attended" | "missed" | "upcoming" };
+type Prog = { enrolment_id: string; course_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
 
 export default function StudentHome() {
   const { name } = useAuth();
-  const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]);
+  const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
   const [scan, setScan] = useState(false); const [busy, setBusy] = useState(""); const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
 
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
-    const [e, s, p] = await Promise.all([
+    const [e, s, p, ls] = await Promise.all([
       supabase.from("enrolments").select("id,status,balance,total_amount,centres(name,city,address),enrolment_instalments(id,number,amount,status,label)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_session_details").select("id,start_at,end_at,centre_name,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
-      supabase.from("v_student_progress").select("enrolment_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
+      supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
+      supabase.from("v_lesson_progress").select("enrolment_id,course_id,lesson_no,title,summary,state").eq("enrolment_status", "active").order("lesson_no"),
     ]);
-    setEnr((e.data as unknown as Enr[]) ?? []); setNext((s.data?.[0] as Sess) ?? null); setProg((p.data as Prog[]) ?? []);
+    setEnr((e.data as unknown as Enr[]) ?? []); setNext((s.data?.[0] as Sess) ?? null); setProg((p.data as Prog[]) ?? []); setLessons((ls.data as Lesson[]) ?? []);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -70,8 +72,16 @@ export default function StudentHome() {
       {prog.length > 0 && (
         <section className="space-y-2"><h2 className="text-lg">Your progress</h2>
           {prog.map((p, k) => { const pct = Math.min(100, Math.round((p.sessions_attended / Math.max(p.sessions_needed, 1)) * 100));
+            const key = `${p.enrolment_id}:${p.course_id}`; const list = lessons.filter((l) => l.enrolment_id === p.enrolment_id && l.course_id === p.course_id); const isOpen = openCourse === key;
             return <Card key={k} className="space-y-2"><div className="flex justify-between"><p className="font-medium">{p.course_title}</p><span className="num text-sm text-muted">{p.sessions_attended}/{p.sessions_needed} classes</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-sunken"><div className="h-full rounded-full bg-accent transition-all duration-700" style={{ width: `${pct}%` }} /></div></Card>; })}
+              <div className="h-2 overflow-hidden rounded-full bg-sunken"><div className="h-full rounded-full bg-accent transition-all duration-700" style={{ width: `${pct}%` }} /></div>
+              {list.length > 0 && <button onClick={() => setOpenCourse(isOpen ? "" : key)} className="text-sm text-accent">{isOpen ? "Hide classes" : `See all ${list.length} classes`}</button>}
+              {isOpen && <ol className="space-y-2 pt-1">{list.map((l) => (
+                <li key={l.lesson_no} className="flex gap-3">
+                  <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${l.state === "attended" ? "bg-ok/15 text-ok" : l.state === "missed" ? "bg-bad/15 text-bad" : "bg-sunken text-muted"}`}>{l.state === "attended" ? "✓" : l.state === "missed" ? "✕" : l.lesson_no}</span>
+                  <div className="min-w-0"><p className="text-sm font-medium">{l.title}{l.state === "missed" && <span className="ml-2 text-xs font-normal text-bad">Missed</span>}</p>{l.summary && <p className="text-sm text-muted">{l.summary}</p>}</div>
+                </li>))}</ol>}
+            </Card>; })}
         </section>)}
 
       {refunds.length > 0 && <section className="space-y-2"><h2 className="text-lg">Refunds</h2>

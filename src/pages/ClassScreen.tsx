@@ -5,7 +5,7 @@ import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
-type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; course_title: string; lesson_title: string | null; room: string | null };
+type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 
 export default function ClassScreen() {
@@ -16,7 +16,7 @@ export default function ClassScreen() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,course_title,lesson_title,room").eq("id", id!).single(),
+      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
       supabase.rpc("session_attendance_roster", { p_session_id: id }),
     ]);
     setS(a.data as Sess); setRoster((b.data as Row[]) ?? []);
@@ -47,6 +47,12 @@ export default function ClassScreen() {
       <button onClick={() => nav(-1)} className="text-sm text-muted">← Back</button>
       <div><h1 className="text-2xl">{s.course_title}</h1>
         <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · {s.centre_name}{s.room ? ` · ${s.room}` : ""}</p></div>
+
+      {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
+        <p className="text-sm text-muted">Today's topic</p>
+        <p className="font-medium">{s.lesson_title ?? "No topic set for this class"}</p>
+        {s.lesson_summary && <p className="text-sm text-muted">{s.lesson_summary}</p>}
+      </Card>}
 
       <Card className="flex items-center gap-4">
         <div className="relative grid h-20 w-20 place-items-center rounded-full" style={{ background: `conic-gradient(rgb(var(--accent)) ${roster.length ? (present / roster.length) * 360 : 0}deg, rgb(var(--sunken)) 0)` }}>
