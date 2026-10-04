@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
@@ -11,6 +11,7 @@ import CourseOutline from "../components/CourseOutline";
 import MakeupCard from "../components/MakeupCard";
 import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
+import type { MyOffline } from "../lib/offline";
 
 type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
 type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
@@ -20,13 +21,15 @@ type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; titl
 type Prog = { enrolment_id: string; course_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
 
 export default function StudentHome() {
-  const { name } = useAuth(); const { run } = useFeedback();
+  const { name } = useAuth(); const { run, confirm } = useFeedback();
   const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
+  const [claims, setClaims] = useState<MyOffline[]>([]); const nav = useNavigate();
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
   const [scan, setScan] = useState(false); const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
 
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
+    supabase.rpc("my_offline_payments").then((r) => setClaims((r.data as MyOffline[]) ?? []));
     const [e, s, p, ls] = await Promise.all([
       supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
@@ -52,6 +55,27 @@ export default function StudentHome() {
     const r = await run("Opening secure payment…", async () => { await startPayment(id); await sleep(10000); }, { quiet: true });
     if (!r.ok) setErr(r.message);
   };
+  // Switching to Paystack closes the offline request first, so the same instalment can't be paid twice.
+  const payOnlineInstead = async (claimId: string, instalmentId: string) => {
+    const ok = await confirm({ title: "Pay online instead?", message: "Your offline request will be cancelled and you'll go to secure online payment.", confirmLabel: "Pay online" });
+    if (!ok) return;
+    setErr("");
+    const r = await run("Opening secure payment…", async () => {
+      const { error } = await supabase.rpc("cancel_offline_request", { p_payment_id: claimId }); if (error) throw error;
+      await startPayment(instalmentId); await sleep(10000);
+    }, { quiet: true });
+    if (!r.ok) setErr(r.message);
+  };
+  const payOffline = async (instalmentId: string) => {
+    setErr("");
+    let paymentId = "";
+    const r = await run("Saving…", async () => {
+      const { data, error } = await supabase.rpc("request_offline_payment", { p_instalment_id: instalmentId }); if (error) throw error;
+      paymentId = data as string;
+    }, { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    nav(`/pay/offline/${paymentId}`);
+  };
   const closeSheet = () => { setOpen(false); setCode(""); setErr(""); setOk(false); setScan(false); };
 
   if (!enr) return <div className="space-y-4"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-28" /></div>;
@@ -73,12 +97,27 @@ export default function StudentHome() {
           <p className="text-sm text-muted">{e.enrolment_courses?.find((c) => c.sequence_no === 1)?.courses?.title}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
         </Card>))}
 
-      {owing.map(({ e, i }) => (
+      {owing.map(({ e, i }) => {
+        const claim = claims.find((c) => c.instalment_id === i.id);
+        if (claim) return (
+          <Card key={i.id} className="anim-rise space-y-3">
+            <div className="flex items-center justify-between gap-3"><p className="font-medium">Offline payment</p><Badge tone={claim.receipt ? "ok" : "warn"}>{claim.receipt ? "Awaiting confirmation" : "Receipt needed"}</Badge></div>
+            <p className="text-sm text-muted">{naira(claim.amount)} · {claim.instalment_label ?? "Payment"} · reference <span className="num font-medium text-ink">{claim.reference}</span></p>
+            <p className="text-sm text-muted">{claim.receipt ? "The team has your receipt and will confirm once the money arrives. You'll get a notification." : "Pay by cash or transfer, then send your receipt so we can confirm it."}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link to={`/pay/offline/${claim.id}`}><Button className="w-full">{claim.receipt ? "View details" : "Send receipt"}</Button></Link>
+              <Button variant="secondary" onClick={() => payOnlineInstead(claim.id, i.id)}>Pay online</Button>
+            </div>
+          </Card>);
+        return (
         <Card key={i.id} className="anim-rise space-y-3">
           <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
           <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}{e.status === "pending_payment" && e.starts_on ? ` · classes start ${d0(e.starts_on, { day: "numeric", month: "short" })}` : i.due_date && i.number > 1 ? ` · due ${d0(i.due_date, { day: "numeric", month: "short" })}` : ""}</p>
-          <Button className="w-full" onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
-        </Card>))}
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={() => pay(i.id)}>Pay online</Button>
+            <Button variant="secondary" onClick={() => payOffline(i.id)}>Pay offline</Button>
+          </div>
+        </Card>); })}
       <Err>{!open && err}</Err>
 
       {next && (

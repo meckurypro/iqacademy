@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { Button, Card, Err, Skeleton, cx } from "../components/ui";
+import type { MyOffline } from "../lib/offline";
 import { place, placeSub } from "../lib/centre";
 
 type Centre = { id: string; name: string; address: string | null; city: string | null };
@@ -57,8 +58,11 @@ export default function Enrol() {
   const [pres, setPres] = useState<Pre[]>([]);
   const [done, setDone] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState({ pack: "", courses: [] as string[], centre: "", plan: "full" as "full" | "instalment" });
+  const [method, setMethod] = useState<"online" | "offline">("online");
+  const [claims, setClaims] = useState<MyOffline[]>();
   const [err, setErr] = useState("");
 
+  useEffect(() => { supabase.rpc("my_offline_payments").then((r) => setClaims(((r.data as MyOffline[]) ?? []).filter((c) => c.enrolment_status === "pending_payment"))); }, []);
   useEffect(() => {
     supabase.from("centres").select("id,name,address,city").eq("is_active", true).order("name").then((r) => setCentres((r.data as Centre[]) ?? []));
     supabase.from("packages").select("id,name,description,course_count,price_full,package_instalments(number,label,amount,due_rule)").eq("is_active", true).order("sort_order").then((r) => setPacks((r.data as Pack[]) ?? []));
@@ -94,20 +98,44 @@ export default function Enrol() {
 
   const pay = async () => {
     setErr("");
-    const r = await run("Setting up your payment…", async () => {
+    let offlineId: string | null = null;
+    const r = await run(method === "offline" ? "Saving your registration…" : "Setting up your payment…", async () => {
       const { data: id, error } = await supabase.rpc("create_enrolment", {
         p_centre_id: sel.centre, p_package_id: sel.pack, p_plan: sel.plan, p_course_ids: sel.courses });
       if (error) throw error;
       const { data: rows } = await supabase.from("enrolment_instalments").select("id").eq("enrolment_id", id).eq("number", 1).single();
+      if (method === "offline") {
+        // Saved as a pending offline payment: nothing leaves the app, the student pays and sends a receipt.
+        const o = await supabase.rpc("request_offline_payment", { p_instalment_id: rows!.id });
+        if (o.error) throw o.error;
+        offlineId = o.data as string;
+        return;
+      }
       await startPayment(rows!.id);
       await sleep(10000); // the browser is on its way to Paystack; keep the overlay up until it leaves
     }, { quiet: true });
-    if (!r.ok) setErr(r.message);
+    if (!r.ok) return setErr(r.message);
+    if (offlineId) nav(`/pay/offline/${offlineId}`, { replace: true });
   };
 
   const can = [!!sel.pack, !!pack && sel.courses.length === pack.course_count, !!sel.centre && !!starts?.has(sel.centre), true][step];
   const loading = (x: unknown) => x === undefined && <div className="space-y-3"><Skeleton className="h-20" /><Skeleton className="h-20" /></div>;
   const dueNow = sel.plan === "full" ? pack?.price_full ?? 0 : inst[0]?.amount ?? 0;
+
+  if (claims && claims.length > 0) {
+    const c = claims[0];
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl">You have a registration waiting</h1>
+        <Card className="space-y-3">
+          <p className="text-sm text-muted">{c.package}{c.courses.length ? ` · ${c.courses.join(" + ")}` : ""}</p>
+          <p className="num text-2xl font-semibold">{naira(c.amount)} <span className="text-base font-normal text-muted">offline</span></p>
+          <p className="text-sm text-muted">{c.receipt ? "Your receipt is with the team, waiting for confirmation." : "Pay and send your receipt, or cancel this registration to start a new one."}</p>
+          <Link to={`/pay/offline/${c.id}`}><Button className="w-full">Open payment details</Button></Link>
+        </Card>
+        <Button variant="secondary" className="w-full" onClick={() => nav("/")}>Back home</Button>
+      </div>);
+  }
 
   return (
     <div className="space-y-5 pb-32">
@@ -135,6 +163,9 @@ export default function Enrol() {
         {step === 3 && pack && <>
           <Option on={sel.plan === "full"} onClick={() => setSel({ ...sel, plan: "full" })} title="Pay in full" sub="One payment, all set" right={naira(pack.price_full)} />
           {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={later(inst)} right={naira(inst[0].amount)} />}
+          <p className="pt-2 text-sm font-medium text-muted">How will you pay?</p>
+          <Option on={method === "online"} onClick={() => setMethod("online")} title="Pay online" sub="Card or bank transfer through Paystack. Confirmed straight away." />
+          <Option on={method === "offline"} onClick={() => setMethod("offline")} title="Pay offline" sub="Cash or bank transfer. Send your receipt and the team confirms it once the money arrives." />
           <Card className="space-y-1 text-sm"><p className="font-medium">{pack.name}</p><p className="text-muted">{sel.courses.map(title).join(" + ")}</p></Card>
           <Err>{err}</Err>
         </>}
@@ -144,7 +175,7 @@ export default function Enrol() {
         <div className="mx-auto flex max-w-3xl gap-3">
           <Button variant="secondary" onClick={() => (step ? setStep(step - 1) : nav("/"))}>Back</Button>
           {step < 3 ? <Button className="flex-1" disabled={!can} onClick={() => setStep(step + 1)}>Continue</Button>
-            : <Button className="flex-1" onClick={pay}>Pay {naira(dueNow)} now</Button>}
+            : <Button className="flex-1" onClick={pay}>{method === "offline" ? `Continue · pay ${naira(dueNow)} offline` : `Pay ${naira(dueNow)} now`}</Button>}
         </div>
       </div>
     </div>

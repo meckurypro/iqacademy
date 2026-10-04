@@ -28,6 +28,8 @@ import Centres from "./pages/Centres";
 import Schedule from "./pages/Schedule";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
+import OfflinePayments from "./pages/OfflinePayments";
+import OfflinePay from "./pages/OfflinePay";
 import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
@@ -158,6 +160,8 @@ export default function App() {
         <Route path="/courses" element={<CourseBuilder />} />
         <Route path="/courses/:id" element={<CourseBuilder />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/offline-payments" element={<OfflinePayments />} />
+        <Route path="/pay/offline/:id" element={<OfflinePay />} />
         <Route path="/team" element={<Team />} />
         <Route path="/team/:centreId" element={<Team />} />
         <Route path="/instructors" element={<Instructors />} />
