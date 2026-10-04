@@ -1,3 +1,4 @@
+import { place, placeSub } from "../lib/centre";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
@@ -36,7 +37,7 @@ export default function Centres() {
       <div className="flex items-center justify-between"><h1 className="text-2xl">Centres</h1><Button className="h-10" onClick={() => { setErr(""); setF(empty); }}>+ New</Button></div>
       {!rows ? <Skeleton className="h-24" /> : rows.map((c) => { const t = c.centre_terms?.revenue_share_pct ?? c.centre_terms?.[0]?.revenue_share_pct; const a = c.centre_payout_accounts?.account_last4 ? c.centre_payout_accounts : c.centre_payout_accounts?.[0];
         return (
-        <Card key={c.id} className="space-y-3"><div className="flex items-start justify-between"><div><p className="font-medium">{c.name}</p><p className="text-sm text-muted">{[c.address, c.city].filter(Boolean).join(", ")}</p></div><Badge tone="ok">{t ?? 0}% share</Badge></div>
+        <Card key={c.id} className="space-y-3"><div className="flex items-start justify-between"><div><p className="font-medium">{place(c)}</p>{placeSub(c) && <p className="text-sm text-muted">{placeSub(c)}</p>}</div><Badge tone="ok">{t ?? 0}% share</Badge></div>
           <p className="text-sm text-muted">{a?.account_last4 ? `Payout: ${a.bank_name} ••${a.account_last4} (${a.account_name})` : "No payout account yet"}</p>
           <div className="flex gap-2"><Button variant="secondary" className="h-10 flex-1" onClick={() => { setErr(""); setF({ id: c.id, name: c.name, code: c.code, address: c.address ?? "", city: c.city ?? "", state: c.state ?? "", capacity: c.default_capacity ?? "", share: String(t ?? 0), contact: c.contact_name ?? "", phone: c.contact_phone ?? "", lat: c.latitude ?? "", lng: c.longitude ?? "" }); }}>Edit</Button>
             <Button variant="secondary" className="h-10 flex-1" onClick={() => openBank(c)}>Bank account</Button>

@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase, friendly, naira } from "../lib/supabase";
 import { Button, Card, Err, Skeleton, cx } from "../components/ui";
+import { place, placeSub } from "../lib/centre";
 
 type Centre = { id: string; name: string; address: string | null; city: string | null };
 type Cohort = { id: string; name: string; start_date: string };
-type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; package_instalments: { number: number; label: string; amount: number }[] };
+type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; package_instalments: { number: number; label: string; amount: number; due_rule: string }[] };
 type Course = { id: string; title: string; summary: string | null; sort_order: number };
 type Pre = { course_id: string; prerequisite_id: string; group_no: number };
 const STEPS = ["Centre", "Cohort", "Pack", "Courses", "Payment"];
@@ -17,6 +18,13 @@ export async function startPayment(instalmentId: string) {
   if (error || !data?.authorization_url) throw new Error(data?.error ?? error?.message ?? "payment_failed");
   location.href = data.authorization_url;
 }
+
+// "Then ₦40,000 before course 2": the first instalment is the amount due now, so only the rest need spelling out.
+const when = (i: { amount: number; label: string; due_rule: string }) => {
+  const m = /^before_course_(\d)$/.exec(i.due_rule);
+  return m ? `${naira(i.amount)} before course ${m[1]}` : `${naira(i.amount)} (${i.label})`;
+};
+const later = (inst: { amount: number; label: string; due_rule: string }[]) => (inst.length > 1 ? `Then ${inst.slice(1).map(when).join(" · ")}` : undefined);
 
 function Option({ on, onClick, title, sub, right, locked }: { on?: boolean; onClick: () => void; title: string; sub?: string | null; right?: string; locked?: string }) {
   return (
@@ -45,7 +53,7 @@ export default function Enrol() {
 
   useEffect(() => {
     supabase.from("centres").select("id,name,address,city").eq("is_active", true).order("name").then((r) => setCentres((r.data as Centre[]) ?? []));
-    supabase.from("packages").select("id,name,description,course_count,price_full,package_instalments(number,label,amount)").eq("is_active", true).order("sort_order").then((r) => setPacks((r.data as Pack[]) ?? []));
+    supabase.from("packages").select("id,name,description,course_count,price_full,package_instalments(number,label,amount,due_rule)").eq("is_active", true).order("sort_order").then((r) => setPacks((r.data as Pack[]) ?? []));
     supabase.from("courses").select("id,title,summary,sort_order").eq("is_active", true).order("sort_order").then((r) => setCourses((r.data as Course[]) ?? []));
     supabase.from("course_prerequisites").select("course_id,prerequisite_id,group_no").then((r) => setPres((r.data as Pre[]) ?? []));
     supabase.from("v_student_progress").select("course_id").eq("course_status", "completed").then((r) => setDone(new Set((r.data ?? []).map((x: { course_id: string }) => x.course_id))));
@@ -97,7 +105,7 @@ export default function Enrol() {
       </div>
 
       <div key={step} className="space-y-3">
-        {step === 0 && (loading(centres) || (centres!.length ? centres!.map((c) => <Option key={c.id} on={sel.centre === c.id} onClick={() => setSel({ ...sel, centre: c.id, cohort: "" })} title={c.name} sub={[c.address, c.city].filter(Boolean).join(", ")} />) : <p className="text-muted">No centres are open yet.</p>))}
+        {step === 0 && (loading(centres) || (centres!.length ? centres!.map((c) => <Option key={c.id} on={sel.centre === c.id} onClick={() => setSel({ ...sel, centre: c.id, cohort: "" })} title={place(c)} sub={placeSub(c)} />) : <p className="text-muted">No centres are open yet.</p>))}
         {step === 1 && (loading(cohorts) || (cohorts!.length ? cohorts!.map((c) => <Option key={c.id} on={sel.cohort === c.id} onClick={() => setSel({ ...sel, cohort: c.id })} title={c.name} sub={`Starts ${new Date(c.start_date).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`} />) : <p className="text-muted">No cohorts are open at this centre right now. Try another centre.</p>))}
         {step === 2 && (loading(packs) || packs!.map((p) => <Option key={p.id} on={sel.pack === p.id} onClick={() => setSel({ ...sel, pack: p.id, courses: [] })} title={p.name} sub={p.description} right={naira(p.price_full)} />))}
         {step === 3 && (loading(courses) || courses!.map((c) => {
@@ -107,7 +115,7 @@ export default function Enrol() {
         }))}
         {step === 4 && pack && <>
           <Option on={sel.plan === "full"} onClick={() => setSel({ ...sel, plan: "full" })} title="Pay in full" sub="One payment, all set" right={naira(pack.price_full)} />
-          {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={inst.map((i) => `${naira(i.amount)} — ${i.label}`).join("  •  ")} right={naira(inst[0].amount)} />}
+          {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={later(inst)} right={naira(inst[0].amount)} />}
           <Card className="space-y-1 text-sm"><p className="font-medium">{pack.name}</p><p className="text-muted">{sel.courses.map(title).join(" + ")}</p></Card>
           <Err>{err}</Err>
         </>}

@@ -5,9 +5,11 @@ import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
+import CourseOutline from "../components/CourseOutline";
+import { place } from "../lib/centre";
 
 type Inst = { id: string; number: number; amount: number; status: string; label: string };
-type Enr = { id: string; status: string; balance: number; total_amount: number; centres: { name: string } | null; enrolment_instalments: Inst[] };
+type Enr = { id: string; status: string; balance: number; total_amount: number; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; course_title: string; lesson_title: string | null; room: string | null };
 type Ref = { id: string; amount: number; status: string; created_at: string };
 type Prog = { enrolment_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
@@ -21,7 +23,7 @@ export default function StudentHome() {
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
     const [e, s, p] = await Promise.all([
-      supabase.from("enrolments").select("id,status,balance,total_amount,centres(name),enrolment_instalments(id,number,amount,status,label)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
+      supabase.from("enrolments").select("id,status,balance,total_amount,centres(name,city,address),enrolment_instalments(id,number,amount,status,label)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_session_details").select("id,start_at,end_at,centre_name,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
       supabase.from("v_student_progress").select("enrolment_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
     ]);
@@ -47,15 +49,12 @@ export default function StudentHome() {
     <div className="space-y-5">
       <h1 className="text-2xl">Hi {name.split(" ")[0]} 👋</h1>
 
-      {enr.length === 0 && (
-        <Card className="anim-rise space-y-3 p-6 text-center"><h2 className="text-lg">Start learning</h2>
-          <p className="text-muted">Pick a centre, choose your courses and you're in.</p>
-          <Link to="/enrol"><Button className="w-full">Enrol now</Button></Link></Card>)}
+      {enr.length === 0 && <CourseOutline />}
 
       {owing.map(({ e, i }) => (
         <Card key={i.id} className="anim-rise space-y-3">
           <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
-          <p className="text-sm text-muted">{i.label}{e.centres ? ` · ${e.centres.name}` : ""}</p>
+          <p className="text-sm text-muted">{i.label}{e.centres ? ` · ${place(e.centres)}` : ""}</p>
           <Button className="w-full" loading={busy === i.id} onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
         </Card>))}
       <Err>{!open && err}</Err>

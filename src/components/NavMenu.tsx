@@ -62,9 +62,9 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
                 </NavLink>))}
             </nav>
             <p className="mt-3 px-1 text-xs leading-relaxed text-muted/80">
-              IQ Academy is the education arm of{" "}
+              IQ Academy is{" "}
               <a href="https://promptiq.com.ng?utm_source=academy_app&utm_medium=menu" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 transition hover:text-ink">PromptIQ</a>
-              , an AI creative agency for film, brands and skills.
+              's school. Learn AI from the team that builds with it.
             </p>
           </aside>
         </div>, document.body)}
