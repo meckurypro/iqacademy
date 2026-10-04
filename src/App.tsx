@@ -4,7 +4,7 @@ import { Navigate, NavLink, Route, Routes, Link, useLocation, useNavigate } from
 import { useAuth, primaryRole } from "./lib/auth";
 import { getPending, clearPending } from "./lib/verify";
 import { supabase } from "./lib/supabase";
-import { Sheet, Skeleton } from "./components/ui";
+import { Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
 import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
@@ -32,54 +32,42 @@ import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
+import Notifications from "./pages/Notifications";
+import Messages from "./pages/Messages";
+import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
+import { useUnreadMessages } from "./lib/messages";
 
-type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string };
-
+// The bell only shows the unread count; the list itself lives on the /notifications page.
 function Bell() {
   const { session } = useAuth();
-  const [open, setOpen] = useState(false);
   const [count, setCount] = useState(0);
-  const [notes, setNotes] = useState<Note[] | null>(null);
-
-  const load = useCallback(async () => {
-    const [c, n] = await Promise.all([
-      supabase.rpc("unread_notification_count"),
-      supabase.from("notifications").select("id,title,body,read_at,created_at").order("created_at", { ascending: false }).limit(25),
-    ]);
-    setCount((c.data as number) ?? 0); setNotes((n.data as Note[]) ?? []);
-  }, []);
+  const load = useCallback(() => { supabase.rpc("unread_notification_count").then((c) => setCount((c.data as number) ?? 0)); }, []);
 
   useEffect(() => {
     if (!session) return;
     load();
     const ch = supabase.channel("my-notes")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [session, load]);
 
-  const show = async () => { setOpen(true); await supabase.rpc("mark_notifications_read"); setCount(0); };
   return (
-    <>
-      <button onClick={show} aria-label="Notifications" className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-sunken">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0" /></svg>
-        {count > 0 && <span className="anim-pop absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{count}</span>}
-      </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Notifications">
-        <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-          {notes === null ? <Skeleton className="h-16" /> : notes.length === 0 ? <p className="py-8 text-center text-muted">You're all caught up.</p> :
-            notes.map((n) => (
-              <div key={n.id} className="rounded-xl bg-sunken p-3">
-                <p className="font-medium">{n.title}</p>{n.body && <p className="mt-0.5 text-sm text-muted">{n.body}</p>}
-                <p className="mt-1 text-xs text-muted">{new Date(n.created_at).toLocaleString()}</p>
-              </div>))}
-        </div>
-      </Sheet>
-    </>
+    <NavLink to="/notifications" aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
+      className={({ isActive }) => `relative grid h-10 w-10 place-items-center rounded-full hover:bg-sunken ${isActive ? "bg-sunken" : ""}`}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0" /></svg>
+      {count > 0 && <span className="anim-pop absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{count > 99 ? "99+" : count}</span>}
+    </NavLink>
   );
 }
 
+function UnreadDot() {
+  const n = useUnreadMessages();
+  return n > 0 ? <span className="anim-pop absolute -right-2.5 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{n > 99 ? "99+" : n}</span> : null;
+}
+
 const NAV: Record<string, [string, string, string][]> = {
+  student: [["/", "Home", "🏠"], ["/messages", "Messages", "💬"]],
   instructor: [["/", "Today", "📅"], ["/history", "History", "🕘"]],
   admin: [["/", "Overview", "📊"], ["/users", "Users", "👥"], ["/announce", "Announce", "📣"], ["/manage", "Manage", "⚙️"]],
 };
@@ -93,7 +81,7 @@ function TabBar({ role }: { role: string }) {
       <div className="mx-auto flex max-w-3xl">
         {items.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end className={({ isActive }) => `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs transition ${isActive ? "font-semibold text-accent" : "text-muted"}`}>
-            <span className="text-lg leading-none">{icon}</span>{label}
+            <span className="relative text-lg leading-none">{icon}{to === "/messages" && <UnreadDot />}</span>{label}
           </NavLink>))}
       </div>
     </nav>
@@ -158,6 +146,9 @@ export default function App() {
         <Route path="/class/:id" element={<ClassScreen />} />
         <Route path="/users" element={<Users />} />
         <Route path="/announce" element={<Announce />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/class-messages" element={<ClassMessagesAdmin />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />

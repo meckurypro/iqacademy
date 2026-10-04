@@ -10,7 +10,9 @@ export type NavItem = [to: string, label: string, icon: string];
 // Menu shown to everyone, plus role-specific shortcuts.
 const EXTRA: Record<string, NavItem[]> = {
   student: [["/enrol", "Enrol in a course", "🎓"]],
-  centre_director: [["/team", "My team", "🤝"]],
+  instructor: [["/messages", "Messages", "💬"]],
+  coordinator: [["/messages", "Messages", "💬"]],
+  centre_director: [["/team", "My team", "🤝"], ["/messages", "Messages", "💬"]],
 };
 
 export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {

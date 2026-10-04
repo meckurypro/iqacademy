@@ -110,7 +110,7 @@ export default function Enrol() {
   const dueNow = sel.plan === "full" ? pack?.price_full ?? 0 : inst[0]?.amount ?? 0;
 
   return (
-    <div className="space-y-5 pb-28">
+    <div className="space-y-5 pb-32">
       <div>
         <div className="mb-3 flex gap-1.5">{STEPS.map((_, i) => <div key={i} className={cx("h-1 flex-1 rounded-full transition-colors", i <= step ? "bg-accent" : "bg-line")} />)}</div>
         <p className="text-sm text-muted">Step {step + 1} of {STEPS.length}</p>
@@ -140,7 +140,7 @@ export default function Enrol() {
         </>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-bg/80 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 bg-bg/80 px-4 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl gap-3">
           <Button variant="secondary" onClick={() => (step ? setStep(step - 1) : nav("/"))}>Back</Button>
           {step < 3 ? <Button className="flex-1" disabled={!can} onClick={() => setStep(step + 1)}>Continue</Button>

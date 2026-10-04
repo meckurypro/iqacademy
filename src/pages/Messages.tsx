@@ -1,0 +1,81 @@
+// src/pages/Messages.tsx — a student's class chat. Receive-only: no composer, no delete.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/auth";
+import { Button, Card, Skeleton } from "../components/ui";
+import MessageBubble from "../components/MessageBubble";
+import { mergeMessages, type ClassMessage } from "../lib/messages";
+
+const PAGE = 40;
+const dayLabel = (d: string) => {
+  const t = new Date(d), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+  if (t.toDateString() === now.toDateString()) return "Today";
+  if (t.toDateString() === y.toDateString()) return "Yesterday";
+  return t.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: t.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+};
+
+export default function Messages() {
+  const { session } = useAuth(); const uid = session?.user.id;
+  const [msgs, setMsgs] = useState<ClassMessage[] | null>(null);
+  const [more, setMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null); const stick = useRef(true);
+
+  const markRead = useCallback(async () => { await supabase.rpc("mark_messages_read"); dispatchEvent(new Event("messages:read")); }, []);
+
+  const latest = useCallback(async () => {
+    const { data } = await supabase.rpc("class_message_feed", { p_limit: PAGE });
+    const rows = ((data as ClassMessage[]) ?? []);
+    setMore((m) => (msgs === null ? rows.length === PAGE : m));
+    setMsgs((old) => mergeMessages(old ?? [], rows));
+    markRead();
+  }, [markRead, msgs]);
+
+  useEffect(() => {
+    if (!uid) return;
+    latest();
+    const ch = supabase.channel(`messages-${uid}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "class_messages" }, latest)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "class_messages" }, () => {
+        supabase.rpc("class_message_feed", { p_limit: 100 }).then((r) => { const ids = new Set(((r.data as ClassMessage[]) ?? []).map((x) => x.id)); setMsgs((o) => (o ?? []).filter((x) => ids.has(x.id))); });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance", filter: `student_id=eq.${uid}` }, latest)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
+
+  // Open at the newest message, and follow new ones only if you were already at the bottom.
+  useEffect(() => { if (msgs && stick.current) endRef.current?.scrollIntoView({ block: "end" }); }, [msgs]);
+  useEffect(() => {
+    const onScroll = () => { stick.current = innerHeight + scrollY >= document.documentElement.scrollHeight - 160; };
+    addEventListener("scroll", onScroll, { passive: true }); return () => removeEventListener("scroll", onScroll);
+  }, []);
+
+  const older = async () => {
+    if (!msgs?.length) return; stick.current = false; setLoadingMore(true);
+    const { data } = await supabase.rpc("class_message_feed", { p_limit: PAGE, p_before: msgs[0].created_at });
+    const rows = (data as ClassMessage[]) ?? []; setMore(rows.length === PAGE); setMsgs((o) => mergeMessages(o ?? [], rows)); setLoadingMore(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div><h1 className="text-2xl">Messages</h1><p className="text-sm text-muted">From your instructors, for the classes you attend. You can't reply here.</p></div>
+      {msgs === null ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /></div>
+        : msgs.length === 0 ? <Card className="space-y-2 py-10 text-center"><p className="text-3xl" aria-hidden="true">💬</p><p className="font-medium">No messages yet</p>
+            <p className="text-sm text-muted">When your instructor shares a prompt or an image during class, it shows up here. Check in to a class to receive them.</p>
+            <Link to="/" className="inline-block pt-1 text-sm font-medium text-accent">Go to Home</Link></Card>
+        : <div className="space-y-4">
+            {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
+            {msgs.map((m, i) => {
+              const newDay = i === 0 || new Date(m.created_at).toDateString() !== new Date(msgs[i - 1].created_at).toDateString();
+              return (<div key={m.id} className="space-y-4">
+                {newDay && <p className="text-center text-xs font-medium text-muted">{dayLabel(m.created_at)}</p>}
+                <MessageBubble m={m} context />
+              </div>);
+            })}
+            <div ref={endRef} />
+          </div>}
+    </div>
+  );
+}
