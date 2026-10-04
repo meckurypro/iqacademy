@@ -1,22 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Centre team: directors (added by admin) and coordinators (added by the director or admin).
+// Admins reach this from a centre's card on the Centres page, so a centre is always chosen up front.
+// Directors land on their own centre(s); only a director with several centres gets a switcher.
 export default function Team() {
   const { centreId } = useParams(); const { roles } = useAuth();
   const isAdmin = roles.some((r) => r.role === "admin" || r.role === "super_admin");
+  if (isAdmin && !centreId) return <Navigate to="/centres" replace />;
+  // keyed on the route so moving between centres never keeps a stale selection
+  return <TeamPage key={centreId ?? "mine"} centreId={centreId} isAdmin={isAdmin} />;
+}
+
+function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }) {
+  const { roles } = useAuth();
   const myCentres = [...new Set(roles.filter((r) => r.role === "centre_director" && r.centre_id).map((r) => r.centre_id as string))];
-  const [centres, setCentres] = useState<{ id: string; name: string }[]>([]);
+  const [centres, setCentres] = useState<{ id: string; name: string }[]>();
   const [cid, setCid] = useState<string>(centreId ?? myCentres[0] ?? "");
-  const [team, setTeam] = useState<any[]>(); const [q, setQ] = useState(""); const [hits, setHits] = useState<any[]>([]);
+  const [team, setTeam] = useState<any[]>(); const [loadErr, setLoadErr] = useState(""); const [q, setQ] = useState(""); const [hits, setHits] = useState<any[]>([]);
   const [role, setRole] = useState<"coordinator" | "centre_director">("coordinator"); const [err, setErr] = useState(""); const [busy, setBusy] = useState("");
 
   useEffect(() => { supabase.from("centres").select("id,name").order("name").then((r) => { const all = r.data ?? []; setCentres(isAdmin ? all : all.filter((c) => myCentres.includes(c.id))); }); /* eslint-disable-next-line */ }, [isAdmin]);
-  const load = useCallback(async () => { if (!cid) return; setTeam(undefined); const { data } = await supabase.rpc("centre_team", { p_centre_id: cid }); setTeam(data ?? []); }, [cid]);
+  const centreName = centres?.find((c) => c.id === cid)?.name;
+  const load = useCallback(async () => { if (!cid) return; setTeam(undefined); setLoadErr(""); const { data, error } = await supabase.rpc("centre_team", { p_centre_id: cid }); if (error) setLoadErr(friendly(error)); setTeam(data ?? []); }, [cid]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (q.trim().length < 3) { setHits([]); return; }
@@ -38,9 +48,11 @@ export default function Team() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">Centre team</h1>
-      {centres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{!cid && <option value="">Choose a centre…</option>}{centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
-      {!cid ? <Card className="text-center text-muted">Choose a centre to see its team.</Card> : <>
+      {isAdmin && <Link to="/centres" className="inline-block text-sm text-muted transition hover:text-ink">← Centres</Link>}
+      <div><h1 className="text-2xl">{isAdmin ? "Centre team" : "My team"}</h1>{centreName && (isAdmin || myCentres.length <= 1) && <p className="text-muted">{centreName}</p>}</div>
+      {!isAdmin && myCentres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{(centres ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+      {!cid ? <Card className="text-center text-muted">You're not assigned to a centre yet.</Card> : <>
+        <Err>{loadErr}</Err>
         <section className="space-y-2">
           {!team ? <Skeleton className="h-16" /> : team.length === 0 ? <Card className="text-center text-muted">No team members yet.</Card> : team.map((m) => (
             <Card key={m.user_id + m.role} className="flex items-center gap-3 py-3"><Avatar name={m.full_name} url={m.avatar_url} size={40} />
