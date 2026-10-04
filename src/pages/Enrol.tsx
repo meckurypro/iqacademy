@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, friendly, naira } from "../lib/supabase";
+import { supabase, naira } from "../lib/supabase";
+import { sleep } from "../lib/db";
+import { useFeedback } from "../components/feedback";
 import { Button, Card, Err, Skeleton, cx } from "../components/ui";
 import { place, placeSub } from "../lib/centre";
 
@@ -46,7 +48,7 @@ function Option({ on, onClick, title, sub, note, right, locked }: { on?: boolean
 }
 
 export default function Enrol() {
-  const nav = useNavigate();
+  const nav = useNavigate(); const { run } = useFeedback();
   const [step, setStep] = useState(0);
   const [centres, setCentres] = useState<Centre[]>();
   const [starts, setStarts] = useState<Map<string, string>>();
@@ -55,7 +57,7 @@ export default function Enrol() {
   const [pres, setPres] = useState<Pre[]>([]);
   const [done, setDone] = useState<Set<string>>(new Set());
   const [sel, setSel] = useState({ pack: "", courses: [] as string[], centre: "", plan: "full" as "full" | "instalment" });
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     supabase.from("centres").select("id,name,address,city").eq("is_active", true).order("name").then((r) => setCentres((r.data as Centre[]) ?? []));
@@ -91,14 +93,16 @@ export default function Enrol() {
   const inst = useMemo(() => [...(pack?.package_instalments ?? [])].sort((a, b) => a.number - b.number), [pack]);
 
   const pay = async () => {
-    setBusy(true); setErr("");
-    try {
+    setErr("");
+    const r = await run("Setting up your payment…", async () => {
       const { data: id, error } = await supabase.rpc("create_enrolment", {
         p_centre_id: sel.centre, p_cohort_id: null, p_package_id: sel.pack, p_plan: sel.plan, p_course_ids: sel.courses });
       if (error) throw error;
       const { data: rows } = await supabase.from("enrolment_instalments").select("id").eq("enrolment_id", id).eq("number", 1).single();
       await startPayment(rows!.id);
-    } catch (e) { setErr(friendly(e)); setBusy(false); }
+      await sleep(10000); // the browser is on its way to Paystack; keep the overlay up until it leaves
+    }, { quiet: true });
+    if (!r.ok) setErr(r.message);
   };
 
   const can = [!!sel.pack, !!pack && sel.courses.length === pack.course_count, !!sel.centre && !!starts?.has(sel.centre), true][step];
@@ -140,7 +144,7 @@ export default function Enrol() {
         <div className="mx-auto flex max-w-3xl gap-3">
           <Button variant="secondary" onClick={() => (step ? setStep(step - 1) : nav("/"))}>Back</Button>
           {step < 3 ? <Button className="flex-1" disabled={!can} onClick={() => setStep(step + 1)}>Continue</Button>
-            : <Button className="flex-1" loading={busy} onClick={pay}>Pay {naira(dueNow)} now</Button>}
+            : <Button className="flex-1" onClick={pay}>Pay {naira(dueNow)} now</Button>}
         </div>
       </div>
     </div>

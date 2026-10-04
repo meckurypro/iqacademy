@@ -44,10 +44,40 @@ const MESSAGES: Record<string, string> = {
   description_too_long: "Keep each description under 1,000 characters.",
   lesson_has_materials: "A class you removed has materials attached. Delete those first, or keep the class.",
   forbidden: "You don't have permission to do that.",
+  not_saved: "That didn't save. You may not have permission, or it was removed by someone else. Refresh and try again.",
+  photo_upload_failed: "Photo upload failed. Use a JPG, PNG or WebP under 2 MB.",
+  course_title_required: "Give the course a name.",
+  course_code_invalid: "Use 2–20 letters, numbers, - or _ for the course code.",
+  course_code_taken: "That course code is already used.",
+  course_in_use: "Students or classes still use this course, so it can't be deleted. Hide it instead (turn off “Visible to students”).",
+  prerequisite_cycle: "Those prerequisites would make two courses depend on each other.",
+  prerequisite_invalid: "A prerequisite points at a course that doesn't exist.",
+  centre_code_taken: "That centre code is already used.",
+  centre_in_use: "This centre still has students, classes, cohorts or team members, so it can't be deleted. Hide it instead.",
+  centre_not_found: "That centre no longer exists.",
+  package_in_use: "Students have enrolled on this package, so it can't be deleted. Hide it instead (turn off “On sale”).",
+  cohort_code_taken: "That cohort code is already used.",
+  cohort_in_use: "Students are enrolled in this cohort, so it can't be deleted. Close enrolment instead.",
+  cohort_not_found: "That cohort no longer exists.",
+  slot_not_found: "That class slot no longer exists.",
+  slot_invalid: "Check the day and times for this class slot.",
 };
+
+/** A message that is already written for people. friendly() passes it through untouched. */
+export class UserMessage extends Error {}
 export const friendly = (e: unknown) => {
-  const m = String((e as { message?: string })?.message ?? e ?? "");
+  if (e instanceof UserMessage) return e.message;
+  const x = e as { message?: string; code?: string } | null;
+  const m = String(x?.message ?? e ?? "");
   const k = Object.keys(MESSAGES).find((k) => m.includes(k));
-  return k ? MESSAGES[k] : "Something went wrong. Please try again.";
+  if (k) return MESSAGES[k];
+  if (x?.code === "23503" || /foreign key/i.test(m)) return "This is still in use by students, classes or payments, so it can't be deleted. Hide it instead.";
+  if (x?.code === "23505" || /duplicate key/i.test(m)) return "That already exists. Use a different name or code.";
+  if (x?.code === "42501" || /row-level security|permission denied/i.test(m)) return MESSAGES.forbidden;
+  if (x?.code === "PGRST202" || /could not find the function/i.test(m)) return "This action isn't set up in the database yet.";
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return "No internet connection. Check it and try again.";
+  return "Something went wrong. Please try again.";
 };
+/** The raw technical message, for admin screens that show details. */
+export const rawMessage = (e: unknown) => String((e as { message?: string })?.message ?? e ?? "");
 export const naira = (kobo: number) => "₦" + (kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 0 });

@@ -5,15 +5,15 @@ import { supabase } from "../lib/supabase";
 import { setPending } from "../lib/verify";
 import { isStrong } from "../lib/password";
 import { Button, Card, Err, Field } from "../components/ui";
+import { useFeedback } from "../components/feedback";
 import { PasswordCreator, PasswordField } from "../components/PasswordFields";
 
 type Mode = "in" | "up" | "forgot";
 export default function Login() {
-  const nav = useNavigate(); const loc = useLocation();
+  const nav = useNavigate(); const loc = useLocation(); const { run } = useFeedback();
   const st = (loc.state ?? {}) as { mode?: Mode; email?: string };
   const [mode, setMode] = useState<Mode>(st.mode ?? "in");
   const [f, setF] = useState({ name: "", email: st.email ?? "", password: "" });
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(""); const [note, setNote] = useState("");
   const go = (m: Mode) => { setMode(m); setErr(""); setNote(""); };
 
@@ -26,17 +26,16 @@ export default function Login() {
     e.preventDefault(); setErr(""); setNote("");
     const email = f.email.trim();
     if (mode === "up" && !isStrong(f.password)) return setErr("Your password needs to meet every item on the checklist.");
-    setBusy(true);
     if (mode === "forgot") {
-      await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset-password` });
-      setBusy(false);
+      await run("Sending reset link…", () => supabase.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/reset-password` }), { quiet: true });
       // Same message whether or not the account exists, so nobody can probe for registered emails.
       return setNote("If there's an account for that email, we've sent a link to reset your password. Check your inbox (and spam).");
     }
-    const { data, error } = mode === "in"
+    const r = await run(mode === "in" ? "Signing in…" : "Creating your account…", async () => mode === "in"
       ? await supabase.auth.signInWithPassword({ email, password: f.password })
-      : await supabase.auth.signUp({ email, password: f.password, options: { data: { full_name: f.name.trim() }, emailRedirectTo: location.origin } });
-    setBusy(false);
+      : await supabase.auth.signUp({ email, password: f.password, options: { data: { full_name: f.name.trim() }, emailRedirectTo: location.origin } }), { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    const { data, error } = r.data;
     if (error) {
       if (/not confirmed/i.test(error.message)) { setPending(email); return nav("/verify-email", { state: { email } }); }
       return setErr(/Invalid login/i.test(error.message) ? "Wrong email or password." : error.message);
@@ -59,7 +58,7 @@ export default function Login() {
           {mode === "up" && <PasswordCreator label="Password" required value={f.password} onValue={(v) => setF({ ...f, password: v })} />}
           {mode === "in" && <button type="button" onClick={() => go("forgot")} className="-mt-1 text-sm text-accent">Forgot password?</button>}
           <Err>{err}</Err>{note && <p className="rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">{note}</p>}
-          <Button type="submit" loading={busy} disabled={mode === "up" && !isStrong(f.password)} className="w-full">{{ in: "Sign in", up: "Create account", forgot: "Send reset link" }[mode]}</Button>
+          <Button type="submit" disabled={mode === "up" && !isStrong(f.password)} className="w-full">{{ in: "Sign in", up: "Create account", forgot: "Send reset link" }[mode]}</Button>
         </form>
       </Card>
       <button className="text-sm text-muted" onClick={() => go(mode === "in" ? "up" : "in")}>

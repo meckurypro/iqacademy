@@ -6,6 +6,7 @@ import "@fontsource-variable/geist";
 import "./index.css";
 import App from "./App";
 import { AuthProvider } from "./lib/auth";
+import { FeedbackProvider } from "./components/feedback";
 import { supabaseConfigured } from "./lib/supabase";
 
 const Missing = () => (
@@ -18,7 +19,7 @@ const Missing = () => (
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     {supabaseConfigured
-      ? <BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter>
+      ? <BrowserRouter><FeedbackProvider><AuthProvider><App /></AuthProvider></FeedbackProvider></BrowserRouter>
       : <Missing />}
   </React.StrictMode>
 );

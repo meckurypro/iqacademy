@@ -4,8 +4,8 @@ import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type Re
 export const cx = (...a: (string | false | null | undefined)[]) => a.filter(Boolean).join(" ");
 
 export function Button({ variant = "primary", loading, className, children, disabled, ...p }:
-  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost"; loading?: boolean }) {
-  const v = { primary: "bg-accent text-accent-ink shadow-card", secondary: "bg-sunken text-ink", ghost: "text-muted hover:bg-sunken" }[variant];
+  ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger"; loading?: boolean }) {
+  const v = { primary: "bg-accent text-accent-ink shadow-card", secondary: "bg-sunken text-ink", ghost: "text-muted hover:bg-sunken", danger: "bg-bad text-white shadow-card" }[variant];
   return (
     <button {...p} disabled={disabled || loading}
       className={cx("relative inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 text-[15px] font-medium transition",

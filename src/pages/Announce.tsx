@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase, friendly } from "../lib/supabase";
+import { supabase, friendly, rawMessage } from "../lib/supabase";
+import { useFeedback } from "../components/feedback";
 import { Button, Card, Err, Field, cx } from "../components/ui";
 import { useUserSearch } from "./Users";
 
@@ -14,11 +15,12 @@ const Chips = ({ items, on, toggle }: { items: Opt[]; on: string[]; toggle: (id:
 );
 
 export default function Announce() {
+  const { run, confirm } = useFeedback();
   const [rules, setRules] = useState<Rule[]>([blank()]);
   const [centres, setCentres] = useState<Opt[]>([]); const [courses, setCourses] = useState<Opt[]>([]); const [cohorts, setCohorts] = useState<(Opt & { centre_id: string })[]>([]);
   const [title, setTitle] = useState(""); const [body, setBody] = useState("");
   const [preview, setPreview] = useState<{ count: number; sample: { full_name: string }[] } | null>(null);
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [sent, setSent] = useState<number | null>(null);
+  const [err, setErr] = useState(""); const [sent, setSent] = useState<number | null>(null);
   const [find, setFind] = useState(""); const found = useUserSearch(find);
 
   useEffect(() => {
@@ -44,10 +46,19 @@ export default function Announce() {
   const patch = (i: number, p: Partial<Rule>) => setRules((rs) => rs.map((r, k) => (k === i ? { ...r, ...p } : r)));
   const flip = (a: string[], id: string) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]);
   const send = async () => {
-    setBusy(true); setErr("");
-    const { data, error } = await supabase.rpc("send_broadcast", { p_title: title, p_body: body || null, p_audience: audience });
-    setBusy(false); if (error) return setErr(friendly(error).replace("Something went wrong. Please try again.", error.message));
-    setSent((data as { recipient_count: number }).recipient_count);
+    setErr("");
+    const n = preview?.count ?? 0;
+    if (!(await confirm({
+      title: `Send to ${n} ${n === 1 ? "person" : "people"}?`,
+      message: "It goes straight to their notification bell and can't be unsent.", confirmLabel: "Send now",
+    }))) return;
+    const r = await run("Sending announcement…", async () => {
+      const { data, error } = await supabase.rpc("send_broadcast", { p_title: title, p_body: body || null, p_audience: audience });
+      if (error) throw error;
+      return data as { recipient_count: number };
+    }, { quiet: true });
+    if (!r.ok) return setErr(friendly(r.error).replace("Something went wrong. Please try again.", rawMessage(r.error) || "Something went wrong. Please try again."));
+    setSent(r.data.recipient_count);
   };
 
   if (sent !== null) return (
@@ -83,7 +94,7 @@ export default function Announce() {
       <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 bg-bg/80 px-4 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center gap-3">
           <p className="num flex-1 text-sm">{empty ? "Add at least one person" : preview ? <><b>{preview.count}</b> {preview.count === 1 ? "person" : "people"} will get this{preview.sample[0] ? <span className="text-muted"> · {preview.sample.slice(0, 2).map((s) => s.full_name.split(" ")[0]).join(", ")}…</span> : null}</> : "Counting…"}</p>
-          <Button loading={busy} disabled={!title.trim() || !preview || preview.count === 0} onClick={send}>Send</Button>
+          <Button disabled={!title.trim() || !preview || preview.count === 0} onClick={send}>Send</Button>
         </div>
       </div>
     </div>

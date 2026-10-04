@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase, friendly, naira } from "../lib/supabase";
+import { supabase, naira } from "../lib/supabase";
+import { sleep } from "../lib/db";
+import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 import { startPayment } from "./Enrol";
@@ -16,10 +18,10 @@ type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; titl
 type Prog = { enrolment_id: string; course_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
 
 export default function StudentHome() {
-  const { name } = useAuth();
+  const { name } = useAuth(); const { run } = useFeedback();
   const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
-  const [scan, setScan] = useState(false); const [busy, setBusy] = useState(""); const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
+  const [scan, setScan] = useState(false); const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
 
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
@@ -34,13 +36,20 @@ export default function StudentHome() {
   useEffect(() => { load(); }, [load]);
 
   const checkIn = async (c: string = code) => {
-    setBusy("scan"); setErr(""); setScan(false);
-    const { error } = await supabase.rpc("check_in", { p_token: c.trim() });
-    setBusy("");
-    if (error) return setErr(friendly(error));
-    setOk(true); load();
+    setErr(""); setScan(false);
+    const r = await run("Checking you in…", async () => {
+      const { error } = await supabase.rpc("check_in", { p_token: c.trim() }); if (error) throw error;
+      await load();
+    }, { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setOk(true);
   };
-  const pay = async (id: string) => { setBusy(id); try { await startPayment(id); } catch (e) { setErr(friendly(e)); setBusy(""); } };
+  const pay = async (id: string) => {
+    setErr("");
+    // startPayment sends the browser to Paystack; the overlay stays up until the page actually leaves.
+    const r = await run("Opening secure payment…", async () => { await startPayment(id); await sleep(10000); }, { quiet: true });
+    if (!r.ok) setErr(r.message);
+  };
   const closeSheet = () => { setOpen(false); setCode(""); setErr(""); setOk(false); setScan(false); };
 
   if (!enr) return <div className="space-y-4"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-28" /></div>;
@@ -57,7 +66,7 @@ export default function StudentHome() {
         <Card key={i.id} className="anim-rise space-y-3">
           <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
           <p className="text-sm text-muted">{i.label}{e.centres ? ` · ${place(e.centres)}` : ""}</p>
-          <Button className="w-full" loading={busy === i.id} onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
+          <Button className="w-full" onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
         </Card>))}
       <Err>{!open && err}</Err>
 
@@ -97,7 +106,7 @@ export default function StudentHome() {
             <p className="text-sm text-muted">Or type the 8-character code your instructor shows.</p>
             <input autoFocus value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={8} placeholder="A1B2C3D4" inputMode="text" autoCapitalize="characters"
               className="num h-14 w-full rounded-xl bg-sunken text-center text-2xl font-semibold tracking-[.3em] outline-none ring-accent/40 focus:ring-2" />
-            <Err>{err}</Err><Button className="w-full" disabled={code.length < 8} loading={busy === "scan"} onClick={() => checkIn()}>Check in</Button></div>)}
+            <Err>{err}</Err><Button className="w-full" disabled={code.length < 8} onClick={() => checkIn()}>Check in</Button></div>)}
       </Sheet>
     </div>
   );

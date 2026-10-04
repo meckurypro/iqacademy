@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase, naira, friendly } from "../lib/supabase";
+import { supabase, naira, friendly, UserMessage } from "../lib/supabase";
+import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -7,11 +8,12 @@ const tone = (s: string) => (s === "succeeded" || s === "paid" ? "ok" : s === "f
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
 
 export default function Payments() {
+  const { run, confirm } = useFeedback();
   const [tab, setTab] = useState<"payments" | "refunds">("payments");
   const [rows, setRows] = useState<any[]>(); const [refs, setRefs] = useState<any[]>(); const [q, setQ] = useState("");
   const [p, setP] = useState<any>(null); const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
   const [f, setF] = useState({ amt: "", why: "", cancel: false, method: "paystack", bank: "", acct: "", note: "", accName: "" });
-  const [busy, setBusy] = useState(""); const [err, setErr] = useState(""); const [done, setDone] = useState("");
+  const [err, setErr] = useState(""); const [done, setDone] = useState("");
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
@@ -31,23 +33,35 @@ export default function Payments() {
     if (!banks.length) { const r = await supabase.functions.invoke("paystack-create-recipient", { body: { action: "list_banks" } }); setBanks(r.data?.banks ?? []); }
   };
   const verify = async () => {
-    setBusy("verify"); setErr("");
-    const r = await supabase.functions.invoke("paystack-create-recipient", { body: { action: "resolve", bank_code: f.bank, account_number: f.acct } });
-    setBusy(""); r.data?.account_name ? setF({ ...f, accName: r.data.account_name }) : setErr("Couldn't find that account. Check the bank and number.");
+    setErr("");
+    const r = await run("Verifying account…", () => supabase.functions.invoke("paystack-create-recipient", { body: { action: "resolve", bank_code: f.bank, account_number: f.acct } }), { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    r.data.data?.account_name ? setF({ ...f, accName: r.data.data.account_name }) : setErr("Couldn't find that account. Check the bank and number.");
   };
   const send = async () => {
-    setBusy("send"); setErr("");
-    if (f.method === "paystack") {
-      const { data, error } = await supabase.functions.invoke("process-refund", { body: { payment_id: p.id, amount: kobo, reason: f.why || null, cancel_enrolment: f.cancel, bank_code: f.bank, account_number: f.acct } });
-      setBusy(""); if (error || data?.error) return setErr(data?.detail ?? (data?.error?.includes?.("invalid_refund_amount") ? "That's more than can still be refunded." : data?.error) ?? "Something went wrong.");
-      setDone(data.message);
-    } else {
+    setErr("");
+    const paystack = f.method === "paystack";
+    const yes = await confirm({
+      title: paystack ? `Send ${naira(kobo)} to ${f.accName}?` : `Record a manual refund of ${naira(kobo)}?`,
+      message: `${paystack ? "The money leaves your Paystack balance straight away. " : ""}${f.cancel ? "Their enrolment will also be cancelled." : "Their enrolment stays active."} This can't be undone.`,
+      confirmLabel: paystack ? "Send refund" : "Record refund", danger: true,
+    });
+    if (!yes) return;
+    const r = await run(paystack ? "Sending refund…" : "Recording refund…", async () => {
+      if (paystack) {
+        const { data, error } = await supabase.functions.invoke("process-refund", { body: { payment_id: p.id, amount: kobo, reason: f.why || null, cancel_enrolment: f.cancel, bank_code: f.bank, account_number: f.acct } });
+        if (error || data?.error) throw new UserMessage(data?.detail ?? (data?.error?.includes?.("invalid_refund_amount") ? "That's more than can still be refunded." : data?.error) ?? "Something went wrong.");
+        await load();
+        return data.message as string;
+      }
       const bankName = banks.find((b) => b.code === f.bank)?.name ?? null;
       const { error } = await supabase.rpc("record_manual_refund", { p_payment_id: p.id, p_amount: kobo, p_reason: f.why || null, p_cancel_enrolment: f.cancel, p_note: f.note || null, p_bank_name: bankName, p_account_name: f.accName || null, p_account_last4: f.acct ? f.acct.slice(-4) : null });
-      setBusy(""); if (error) return setErr(error.message.includes("invalid_refund_amount") ? "That's more than can still be refunded." : friendly(error));
-      setDone("Refund recorded. The student and the centre have been updated.");
-    }
-    load();
+      if (error) throw error.message.includes("invalid_refund_amount") ? new UserMessage("That's more than can still be refunded.") : error;
+      await load();
+      return "Refund recorded. The student and the centre have been updated.";
+    }, { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setDone(r.data);
   };
   const ready = kobo > 0 && kobo <= left && (f.method === "manual" ? f.note.trim().length > 2 : !!f.accName);
 
@@ -87,8 +101,8 @@ export default function Payments() {
               {f.method === "manual" && <Field label="How you paid" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. GTB transfer, ref 123456" />}
               <p className="rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">The centre's share of this refund is deducted from their next payout, and the student and centre are notified.</p>
               <Err>{err}</Err>
-              {f.method === "paystack" && !f.accName ? <Button className="w-full" loading={busy === "verify"} disabled={!f.bank || f.acct.length !== 10 || !(kobo > 0 && kobo <= left)} onClick={verify}>Verify account</Button>
-                : <Button className="w-full" loading={busy === "send"} disabled={!ready} onClick={send}>{f.method === "paystack" ? `Send ${naira(kobo)} to ${f.accName.split(" ")[0]}` : `Record manual refund of ${naira(kobo)}`}</Button>}
+              {f.method === "paystack" && !f.accName ? <Button className="w-full" disabled={!f.bank || f.acct.length !== 10 || !(kobo > 0 && kobo <= left)} onClick={verify}>Verify account</Button>
+                : <Button className="w-full" disabled={!ready} onClick={send}>{f.method === "paystack" ? `Send ${naira(kobo)} to ${f.accName.split(" ")[0]}` : `Record manual refund of ${naira(kobo)}`}</Button>}
             </>}
           </div>)}
       </Sheet>

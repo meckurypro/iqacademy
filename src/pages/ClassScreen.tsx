@@ -3,16 +3,17 @@ import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
+import { useFeedback } from "../components/feedback";
 
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
 type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 
 export default function ClassScreen() {
-  const { id } = useParams(); const nav = useNavigate();
+  const { id } = useParams(); const nav = useNavigate(); const { run, confirm } = useFeedback();
   const [s, setS] = useState<Sess>(); const [roster, setRoster] = useState<Row[]>();
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
-  const [pick, setPick] = useState<Row | null>(null); const [busy, setBusy] = useState(""); const [err, setErr] = useState("");
+  const [pick, setPick] = useState<Row | null>(null); const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
@@ -27,14 +28,28 @@ export default function ClassScreen() {
     return () => { supabase.removeChannel(ch); };
   }, [id, load]);
 
-  const run = async (key: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void) => {
-    setBusy(key); setErr(""); const { error } = await fn(); setBusy("");
-    if (error) return setErr(friendly(error)); after?.(); load();
+  const act = async (label: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void, success?: string) => {
+    setErr("");
+    const r = await run(label, async () => { const { error } = await fn(); if (error) throw error; await load(); }, { success, quiet: true });
+    if (!r.ok) return setErr(r.message);
+    after?.();
   };
   const newCode = async () => {
-    setBusy("code"); setErr("");
-    const { data, error } = await supabase.rpc("generate_checkin_token", { p_session_id: id });
-    setBusy(""); if (error) return setErr(friendly(error)); setCode(data as string); setShowCode(true); load();
+    setErr("");
+    const r = await run("Generating class code…", async () => {
+      const { data, error } = await supabase.rpc("generate_checkin_token", { p_session_id: id }); if (error) throw error;
+      await load(); return data as string;
+    }, { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setCode(r.data); setShowCode(true);
+  };
+  const endClass = async () => {
+    if (await confirm({ title: "End this class?", message: "Students who haven't checked in are marked absent.", confirmLabel: "End class" }))
+      act("Ending class…", () => supabase.rpc("complete_session", { p_session_id: id, p_mark_absentees: true }), undefined, "Class ended");
+  };
+  const cancelClass = async () => {
+    if (await confirm({ title: "Cancel this class?", message: "Students are told it's cancelled.", confirmLabel: "Cancel class", cancelLabel: "Keep class", danger: true }))
+      act("Cancelling class…", () => supabase.rpc("cancel_session", { p_session_id: id, p_reason: "Cancelled by instructor" }), undefined, "Class cancelled");
   };
 
   if (!s || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-32" /><Skeleton className="h-48" /></div>;
@@ -61,8 +76,8 @@ export default function ClassScreen() {
       </Card>
 
       {!closed && <div className="grid grid-cols-2 gap-3">
-        <Button loading={busy === "code"} onClick={newCode}>Show class code</Button>
-        <Button variant="secondary" loading={busy === "done"} onClick={() => run("done", () => supabase.rpc("complete_session", { p_session_id: id, p_mark_absentees: true }))}>End class</Button></div>}
+        <Button onClick={newCode}>Show class code</Button>
+        <Button variant="secondary" onClick={endClass}>End class</Button></div>}
       <Err>{err}</Err>
 
       <section className="space-y-2"><h2 className="text-lg">Students</h2>
@@ -72,22 +87,22 @@ export default function ClassScreen() {
             <Avatar name={r.full_name} size={36} /><p className="flex-1 truncate font-medium">{r.full_name}</p>
             <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
       </section>
-      {!closed && <Button variant="ghost" className="w-full text-bad" onClick={() => { if (confirm("Cancel this class and notify students?")) run("cancel", () => supabase.rpc("cancel_session", { p_session_id: id, p_reason: "Cancelled by instructor" })); }}>Cancel this class</Button>}
+      {!closed && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
 
       <Sheet open={showCode} onClose={() => setShowCode(false)} title="Class code">
         <div className="space-y-4 text-center">
           <div className="mx-auto w-fit rounded-2xl bg-white p-4"><QRCodeSVG value={code} size={200} /></div>
           <p className="num text-4xl font-semibold tracking-[.25em]">{code}</p>
           <p className="text-sm text-muted">Students scan the QR or type this code in their app.</p>
-          <Button variant="secondary" className="w-full" loading={busy === "code"} onClick={newCode}>Get a new code</Button>
+          <Button variant="secondary" className="w-full" onClick={newCode}>Get a new code</Button>
         </div>
       </Sheet>
 
       <Sheet open={!!pick} onClose={() => setPick(null)} title={pick?.full_name}>
         <div className="space-y-2"><p className="text-sm text-muted">Set attendance manually (for example if a phone died).</p>
           {(["present", "absent", "excused"] as const).map((st) => (
-            <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize" loading={busy === st}
-              onClick={() => run(st, () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null))}>{st}</Button>))}
+            <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize"
+              onClick={() => act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
         </div>
       </Sheet>
     </div>

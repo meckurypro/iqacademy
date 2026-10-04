@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase, friendly, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -39,19 +40,20 @@ const nextRule = (rows: Row[], courses: number) => {
 };
 
 export default function Prices() {
-  const { roles } = useAuth();
+  const { roles } = useAuth(); const { run, confirm } = useFeedback();
   const isAdmin = roles.some((r) => r.role === "admin" || r.role === "super_admin");
   const [rows, setRows] = useState<any[]>();
   const [courseMax, setCourseMax] = useState(10);
   const [f, setF] = useState<Form | null>(null);
-  const [show, setShow] = useState(false); const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(""); const [note, setNote] = useState("");
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState(""); const [loadErr, setLoadErr] = useState("");
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from("packages")
+    const { data, error } = await supabase.from("packages")
       .select("id,code,name,description,course_count,duration_weeks,price_full,is_active,sort_order,package_instalments(number,label,amount,due_rule)")
       .order("sort_order");
-    setRows(data ?? []);
+    if (error) { setLoadErr(friendly(error)); return setRows([]); }
+    setLoadErr(""); setRows(data ?? []);
   }, []);
   useEffect(() => {
     load();
@@ -62,7 +64,7 @@ export default function Prices() {
 
   const set = (patch: Partial<Form>) => setF((cur) => (cur ? { ...cur, ...patch } : cur));
   const setRow = (i: number, patch: Partial<Row>) => setF((cur) => (cur ? { ...cur, inst: cur.inst.map((r, j) => (j === i ? { ...r, ...patch } : r)) } : cur));
-  const open = (next: Form) => { setErr(""); setShow(false); setNote(""); setF(next); };
+  const open = (next: Form) => { setErr(""); setShow(false); setF(next); };
   const edit = (p: any) => {
     const inst = [...(p.package_instalments ?? [])].sort((a: any, b: any) => a.number - b.number);
     open({ id: p.id, code: p.code, name: p.name, description: p.description ?? "", courses: String(p.course_count), weeks: p.duration_weeks ? String(p.duration_weeks) : "",
@@ -103,16 +105,39 @@ export default function Prices() {
   const save = async () => {
     if (!f) return;
     setShow(true); if (problems.length) return;
-    if (f.instOn && instTotal !== priceN && !confirm(`The instalments add up to ${naira(instTotal * 100)} but the full price is ${naira(priceN * 100)}. Save anyway?`)) return;
-    setBusy(true); setErr("");
-    const { error } = await supabase.rpc("save_package", {
-      p_package_id: f.id || null, p_code: f.code.trim(), p_name: f.name.trim(), p_description: f.description.trim() || null,
-      p_course_count: courseN, p_duration_weeks: f.weeks ? Number(f.weeks) : null, p_price_full: toKobo(f.price), p_is_active: f.active,
-      p_instalments: f.instOn ? f.inst.map((r, i) => ({ label: r.label.trim(), amount: toKobo(r.amount), due_rule: i === 0 ? "before_start" : r.rule })) : [],
+    if (f.instOn && instTotal !== priceN && !(await confirm({
+      title: "Instalments don't add up to the full price",
+      message: `The instalments add up to ${naira(instTotal * 100)} but the full price is ${naira(priceN * 100)}. Students paying by instalments will pay ${naira(instTotal * 100)} in total.`,
+      confirmLabel: "Save anyway",
+    }))) return;
+    setErr("");
+    const r = await run(f.id ? "Saving package…" : "Creating package…", async () => {
+      const { error } = await supabase.rpc("save_package", {
+        p_package_id: f.id || null, p_code: f.code.trim(), p_name: f.name.trim(), p_description: f.description.trim() || null,
+        p_course_count: courseN, p_duration_weeks: f.weeks ? Number(f.weeks) : null, p_price_full: toKobo(f.price), p_is_active: f.active,
+        p_instalments: f.instOn ? f.inst.map((r, i) => ({ label: r.label.trim(), amount: toKobo(r.amount), due_rule: i === 0 ? "before_start" : r.rule })) : [],
+      });
+      if (error) throw error;
+      await load();
+    }, { success: "Package saved. New enrolments will use these prices.", quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setF(null);
+  };
+
+  const remove = async () => {
+    if (!f?.id) return;
+    const yes = await confirm({
+      title: `Delete ${f.name || "this package"}?`,
+      message: "This permanently deletes the package and its instalment plan. A package that students have enrolled on can't be deleted. Take it off sale instead.",
+      confirmLabel: "Delete package", danger: true,
     });
-    setBusy(false);
-    if (error) return setErr(friendly(error));
-    setF(null); setNote("Saved. New enrolments will use these prices."); load();
+    if (!yes) return; setErr("");
+    const r = await run("Deleting package…", async () => {
+      const { error } = await supabase.rpc("delete_package", { p_package_id: f.id }); if (error) throw error;
+      await load();
+    }, { success: "Package deleted", quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setF(null);
   };
 
   const diff = instTotal - priceN;
@@ -120,9 +145,9 @@ export default function Prices() {
     <div className="space-y-4">
       <div className="flex items-center justify-between"><h1 className="text-2xl">Prices</h1><Button className="h-10" onClick={() => open(blank)}>+ New</Button></div>
       <Card className="text-sm text-muted">Changes apply to new enrolments only. Students who have already enrolled keep the price and instalments they signed up for.</Card>
-      {note && <p className="rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">{note}</p>}
+      {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
 
-      {!rows ? <Skeleton className="h-28" /> : rows.length === 0 ? <Card className="text-center text-muted">No packages yet.</Card> : rows.map((p) => {
+      {!rows ? <Skeleton className="h-28" /> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">No packages yet.</Card> : rows.map((p) => {
         const inst = [...(p.package_instalments ?? [])].sort((a: any, b: any) => a.number - b.number);
         const total = inst.reduce((s: number, i: any) => s + i.amount, 0);
         return (
@@ -180,7 +205,8 @@ export default function Prices() {
 
           {show && problems.length > 0 && <ul className="space-y-1 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">{problems.map((p) => <li key={p}>• {p}</li>)}</ul>}
           <Err>{err}</Err>
-          <Button className="w-full" loading={busy} onClick={save}>Save</Button>
+          <Button className="w-full" onClick={save}>Save</Button>
+          {f.id && <Button variant="ghost" className="w-full text-bad" onClick={remove}>Delete this package…</Button>}
         </div>}
       </Sheet>
     </div>

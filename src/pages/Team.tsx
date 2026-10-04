@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
+import { useFeedback } from "../components/feedback";
 import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -17,12 +18,12 @@ export default function Team() {
 }
 
 function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }) {
-  const { roles } = useAuth();
+  const { roles } = useAuth(); const { run, confirm } = useFeedback();
   const myCentres = [...new Set(roles.filter((r) => r.role === "centre_director" && r.centre_id).map((r) => r.centre_id as string))];
   const [centres, setCentres] = useState<{ id: string; name: string }[]>();
   const [cid, setCid] = useState<string>(centreId ?? myCentres[0] ?? "");
   const [team, setTeam] = useState<any[]>(); const [loadErr, setLoadErr] = useState(""); const [q, setQ] = useState(""); const [hits, setHits] = useState<any[]>([]);
-  const [role, setRole] = useState<"coordinator" | "centre_director">("coordinator"); const [err, setErr] = useState(""); const [busy, setBusy] = useState("");
+  const [role, setRole] = useState<"coordinator" | "centre_director">("coordinator"); const [err, setErr] = useState("");
 
   useEffect(() => { supabase.from("centres").select("id,name").order("name").then((r) => { const all = r.data ?? []; setCentres(isAdmin ? all : all.filter((c) => myCentres.includes(c.id))); }); /* eslint-disable-next-line */ }, [isAdmin]);
   const centreName = centres?.find((c) => c.id === cid)?.name;
@@ -34,15 +35,24 @@ function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }
     return () => clearTimeout(h);
   }, [q]);
 
-  const add = async (id: string) => {
-    setBusy(id); setErr("");
-    const { error } = role === "coordinator" ? await supabase.rpc("add_centre_coordinator", { p_user_id: id, p_centre_id: cid }) : await supabase.rpc("assign_role", { p_user_id: id, p_role: "centre_director", p_centre_id: cid });
-    setBusy(""); if (error) return setErr(friendly(error)); setQ(""); setHits([]); load();
+  const add = async (h: any) => {
+    setErr("");
+    const r = await run(`Adding ${String(h.full_name).split(" ")[0]}…`, async () => {
+      const { error } = role === "coordinator" ? await supabase.rpc("add_centre_coordinator", { p_user_id: h.id, p_centre_id: cid }) : await supabase.rpc("assign_role", { p_user_id: h.id, p_role: "centre_director", p_centre_id: cid });
+      if (error) throw error;
+    }, { success: `${h.full_name} added to the team`, quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setQ(""); setHits([]); load();
   };
   const remove = async (m: any) => {
-    if (!confirm(`Remove ${m.full_name}?`)) return; setBusy(m.user_id); setErr("");
-    const { error } = m.role === "coordinator" ? await supabase.rpc("remove_centre_coordinator", { p_user_id: m.user_id, p_centre_id: cid }) : await supabase.rpc("remove_role", { p_user_id: m.user_id, p_role: "centre_director", p_centre_id: cid });
-    setBusy(""); if (error) return setErr(friendly(error)); load();
+    if (!(await confirm({ title: `Remove ${m.full_name}?`, message: `They lose their ${m.role === "coordinator" ? "coordinator" : "director"} access${centreName ? ` at ${centreName}` : ""}. Their account stays.`, confirmLabel: "Remove", danger: true }))) return;
+    setErr("");
+    const r = await run(`Removing ${String(m.full_name).split(" ")[0]}…`, async () => {
+      const { error } = m.role === "coordinator" ? await supabase.rpc("remove_centre_coordinator", { p_user_id: m.user_id, p_centre_id: cid }) : await supabase.rpc("remove_role", { p_user_id: m.user_id, p_role: "centre_director", p_centre_id: cid });
+      if (error) throw error;
+    }, { success: `${m.full_name} removed`, quiet: true });
+    if (!r.ok) return setErr(r.message);
+    load();
   };
   const label = { centre_director: "Director", coordinator: "Coordinator" } as const;
 
@@ -57,14 +67,14 @@ function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }
           {!team ? <Skeleton className="h-16" /> : team.length === 0 ? <Card className="text-center text-muted">No team members yet.</Card> : team.map((m) => (
             <Card key={m.user_id + m.role} className="flex items-center gap-3 py-3"><Avatar name={m.full_name} url={m.avatar_url} size={40} />
               <div className="min-w-0 flex-1"><p className="truncate font-medium">{m.full_name}</p><Badge tone={m.role === "centre_director" ? "ok" : "muted"}>{label[m.role as keyof typeof label]}</Badge></div>
-              {(m.role === "coordinator" || isAdmin) && <Button variant="ghost" className="h-9 px-3 text-sm text-bad" loading={busy === m.user_id} onClick={() => remove(m)}>Remove</Button>}</Card>))}
+              {(m.role === "coordinator" || isAdmin) && <Button variant="ghost" className="h-9 px-3 text-sm text-bad" onClick={() => remove(m)}>Remove</Button>}</Card>))}
         </section>
         <Card className="space-y-3">
           <p className="font-medium">Add someone who already has an account</p>
           {isAdmin && <div className="grid grid-cols-2 gap-2">{([["coordinator", "Coordinator"], ["centre_director", "Director"]] as const).map(([r, l]) => (
             <button key={r} onClick={() => setRole(r)} className={cx("h-10 rounded-xl text-sm font-medium transition", role === r ? "bg-accent text-accent-ink" : "bg-sunken")}>{l}</button>))}</div>}
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email (3+ letters)" className="h-12 w-full rounded-xl bg-sunken px-4 outline-none" />
-          {hits.map((h) => <button key={h.id} disabled={busy === h.id} onClick={() => add(h.id)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-sunken active:scale-[.99]">
+          {hits.map((h) => <button key={h.id} onClick={() => add(h)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-sunken active:scale-[.99]">
             <Avatar name={h.full_name} url={h.avatar_url} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{h.full_name}</p><p className="truncate text-sm text-muted">{h.email_hint}</p></div><span className="text-sm text-accent">Add</span></button>)}
           {q.trim().length >= 3 && hits.length === 0 && <p className="text-sm text-muted">No one found. They need to create an account in the app first.</p>}
           <Err>{err}</Err>
