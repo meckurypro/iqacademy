@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import RunReminder from "../components/RunReminder";
 import { Link } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { Card, Skeleton } from "../components/ui";
@@ -13,6 +14,7 @@ export default function AdminHome() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl">Overview</h1>
+      <RunReminder />
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Revenue this month" value={naira(d.revenue_this_month ?? 0)} />
         <Stat label="Outstanding balances" value={naira(d.outstanding_balances ?? 0)} />

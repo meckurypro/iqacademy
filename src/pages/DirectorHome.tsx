@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { place } from "../lib/centre";
+import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Link } from "react-router-dom";
@@ -31,11 +33,12 @@ export default function DirectorHome() {
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl">{ids.length > 1 ? "Your branches" : view[0]?.centre?.name ?? "Your centre"}</h1>
+      <div><h1 className="text-2xl">{ids.length > 1 ? "Your branches" : view[0]?.centre ? place(view[0].centre) : "Your centre"}</h1>
+        {ids.length === 1 && view[0]?.centre && place(view[0].centre) !== view[0].centre.name && <p className="text-sm text-muted">{view[0].centre.name}</p>}
         <p className="text-muted">{view.length === 1 ? `Your share here: ${view[0].share_pct}% of student payments` : "Each branch has its own agreed share"}</p></div>
 
       {ids.length > 1 && <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {[{ id: "all", name: "All branches" }, ...(ds ?? []).map((d) => ({ id: d.centre?.id, name: d.centre?.name }))].map((c) => (
+        {[{ id: "all", name: "All branches" }, ...(ds ?? []).map((d) => ({ id: d.centre?.id, name: d.centre ? place(d.centre) : "" }))].map((c) => (
           <button key={c.id} onClick={() => setSel(c.id)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", sel === c.id ? "bg-accent text-accent-ink" : "bg-sunken")}>{c.name}</button>))}</div>}
 
       <div className="flex items-center justify-between rounded-2xl bg-surface px-2 py-1 ring-1 ring-line">
@@ -53,7 +56,7 @@ export default function DirectorHome() {
 
         {sel === "all" && ds.length > 1 && <section className="space-y-2"><h2 className="text-lg">By branch</h2>
           {ds.map((d) => <Card key={d.centre?.id} onClick={() => setSel(d.centre?.id)} className="flex items-center justify-between py-3">
-            <div><p className="font-medium">{d.centre?.name}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
+            <div><p className="font-semibold">{d.centre && <Place centre={d.centre} nameOnly />}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
             <div className="text-right"><p className="num font-semibold">{naira(d.earnings_month)}</p><p className="text-xs text-muted">net this month</p></div></Card>)}</section>}
 
         <section className="space-y-2"><h2 className="text-lg">Students by day</h2>
@@ -71,7 +74,7 @@ export default function DirectorHome() {
         <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><span className="text-muted">›</span></Card></Link>
 
         <section className="space-y-2"><h2 className="text-lg">Payouts</h2>
-          {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre?.name }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
+          {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
             <Card key={p.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(p.amount)}</p><p className="text-sm text-muted">{ids.length > 1 ? `${p.centre} · ` : ""}{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Pending"}</p></div>
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
           {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</section>

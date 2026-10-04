@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import Place from "../components/Place";
+import { place, placeLabel } from "../lib/centre";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -20,13 +22,13 @@ export default function Team() {
 function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }) {
   const { roles } = useAuth(); const { run, confirm } = useFeedback();
   const myCentres = [...new Set(roles.filter((r) => r.role === "centre_director" && r.centre_id).map((r) => r.centre_id as string))];
-  const [centres, setCentres] = useState<{ id: string; name: string }[]>();
+  const [centres, setCentres] = useState<{ id: string; name: string; city: string | null; address: string | null }[]>();
   const [cid, setCid] = useState<string>(centreId ?? myCentres[0] ?? "");
   const [team, setTeam] = useState<any[]>(); const [loadErr, setLoadErr] = useState(""); const [q, setQ] = useState(""); const [hits, setHits] = useState<any[]>([]);
   const [role, setRole] = useState<"coordinator" | "centre_director">("coordinator"); const [err, setErr] = useState("");
 
-  useEffect(() => { supabase.from("centres").select("id,name").order("name").then((r) => { const all = r.data ?? []; setCentres(isAdmin ? all : all.filter((c) => myCentres.includes(c.id))); }); /* eslint-disable-next-line */ }, [isAdmin]);
-  const centreName = centres?.find((c) => c.id === cid)?.name;
+  useEffect(() => { supabase.from("centres").select("id,name,city,address").order("name").then((r) => { const all = r.data ?? []; setCentres(isAdmin ? all : all.filter((c) => myCentres.includes(c.id))); }); /* eslint-disable-next-line */ }, [isAdmin]);
+  const centreObj = centres?.find((c) => c.id === cid); const centreName = centreObj ? place(centreObj) : undefined;
   const load = useCallback(async () => { if (!cid) return; setTeam(undefined); setLoadErr(""); const { data, error } = await supabase.rpc("centre_team", { p_centre_id: cid }); if (error) setLoadErr(friendly(error)); setTeam(data ?? []); }, [cid]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -59,8 +61,8 @@ function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }
   return (
     <div className="space-y-5">
       {isAdmin && <Link to="/centres" className="inline-block text-sm text-muted transition hover:text-ink">← Centres</Link>}
-      <div><h1 className="text-2xl">{isAdmin ? "Centre team" : "My team"}</h1>{centreName && (isAdmin || myCentres.length <= 1) && <p className="text-muted">{centreName}</p>}</div>
-      {!isAdmin && myCentres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{(centres ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>}
+      <div><h1 className="text-2xl">{isAdmin ? "Centre team" : "My team"}</h1>{centreName && (isAdmin || myCentres.length <= 1) && <p className="text-muted">{centreObj && <Place centre={centreObj} nameOnly />}</p>}</div>
+      {!isAdmin && myCentres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{(centres ?? []).map((c) => <option key={c.id} value={c.id}>{placeLabel(c)}</option>)}</select>}
       {!cid ? <Card className="text-center text-muted">You're not assigned to a centre yet.</Card> : <>
         <Err>{loadErr}</Err>
         <section className="space-y-2">

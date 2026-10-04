@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import Place from "../components/Place";
 import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
@@ -9,7 +10,7 @@ import MessageBubble from "../components/MessageBubble";
 import { BUCKET, MAX_MEDIA_BYTES, MEDIA_TYPES, type ClassMessage } from "../lib/messages";
 
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
-type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
+type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 
 export default function ClassScreen() {
@@ -30,7 +31,7 @@ export default function ClassScreen() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
+      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
       supabase.rpc("session_attendance_roster", { p_session_id: id }),
     ]);
     setS(a.data as Sess); setRoster((b.data as Row[]) ?? []);
@@ -100,7 +101,7 @@ export default function ClassScreen() {
     <div className="space-y-5">
       <button onClick={() => nav(-1)} className="text-sm text-muted">← Back</button>
       <div><h1 className="text-2xl">{s.course_title}</h1>
-        <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · {s.centre_name}{s.room ? ` · ${s.room}` : ""}</p></div>
+        <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 
       {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
         <p className="text-sm text-muted">Today's topic</p>

@@ -12,8 +12,8 @@ import MakeupCard from "../components/MakeupCard";
 import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
 
-type Inst = { id: string; number: number; amount: number; status: string; label: string };
-type Enr = { id: string; status: string; balance: number; total_amount: number; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
+type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
+type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; room: string | null };
 type Ref = { id: string; amount: number; status: string; created_at: string };
 type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; title: string; summary: string | null; state: "attended" | "missed" | "upcoming" };
@@ -28,7 +28,7 @@ export default function StudentHome() {
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
     const [e, s, p, ls] = await Promise.all([
-      supabase.from("enrolments").select("id,status,balance,total_amount,centres(name,city,address),enrolment_instalments(id,number,amount,status,label)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
+      supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
       supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
       supabase.from("v_lesson_progress").select("enrolment_id,course_id,lesson_no,title,summary,state").eq("enrolment_status", "active").order("lesson_no"),
@@ -56,6 +56,8 @@ export default function StudentHome() {
 
   if (!enr) return <div className="space-y-4"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-28" /></div>;
   const owing = enr.flatMap((e) => e.enrolment_instalments.filter((i) => i.status === "pending").sort((a, b) => a.number - b.number).slice(0, 1).map((i) => ({ e, i })));
+  const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, o);
+  const todayIso = new Date().toLocaleDateString("en-CA");
   const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   return (
@@ -64,10 +66,17 @@ export default function StudentHome() {
 
       {enr.length === 0 && <CourseOutline />}
 
+      {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (
+        <Card key={e.id} className="anim-rise space-y-1">
+          <p className="text-sm text-muted">Your first class</p>
+          <p className="text-lg font-semibold">{d0(e.starts_on!, { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className="text-sm text-muted">{e.enrolment_courses?.find((c) => c.sequence_no === 1)?.courses?.title}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
+        </Card>))}
+
       {owing.map(({ e, i }) => (
         <Card key={i.id} className="anim-rise space-y-3">
           <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
-          <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
+          <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}{e.status === "pending_payment" && e.starts_on ? ` · classes start ${d0(e.starts_on, { day: "numeric", month: "short" })}` : i.due_date && i.number > 1 ? ` · due ${d0(i.due_date, { day: "numeric", month: "short" })}` : ""}</p>
           <Button className="w-full" onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
         </Card>))}
       <Err>{!open && err}</Err>

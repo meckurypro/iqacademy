@@ -96,7 +96,7 @@ export default function Enrol() {
     setErr("");
     const r = await run("Setting up your payment…", async () => {
       const { data: id, error } = await supabase.rpc("create_enrolment", {
-        p_centre_id: sel.centre, p_cohort_id: null, p_package_id: sel.pack, p_plan: sel.plan, p_course_ids: sel.courses });
+        p_centre_id: sel.centre, p_package_id: sel.pack, p_plan: sel.plan, p_course_ids: sel.courses });
       if (error) throw error;
       const { data: rows } = await supabase.from("enrolment_instalments").select("id").eq("enrolment_id", id).eq("number", 1).single();
       await startPayment(rows!.id);
