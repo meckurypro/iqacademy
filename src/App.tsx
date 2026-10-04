@@ -147,8 +147,8 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/announce" element={<Announce />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/class-messages" element={<ClassMessagesAdmin />} />
+        <Route path="/messages" element={role === "student" ? <Messages /> : <Navigate to="/" replace />} />
+        <Route path="/class-messages" element={role === "admin" || role === "super_admin" ? <ClassMessagesAdmin /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />

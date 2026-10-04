@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 import { useFeedback } from "../components/feedback";
+import { useAuth } from "../lib/auth";
 import MessageBubble from "../components/MessageBubble";
 import { BUCKET, MAX_MEDIA_BYTES, MEDIA_TYPES, type ClassMessage } from "../lib/messages";
 
@@ -13,6 +14,7 @@ const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 
 export default function ClassScreen() {
   const { id } = useParams(); const nav = useNavigate(); const { run, confirm } = useFeedback();
+  const { session, roles } = useAuth(); const [teacher, setTeacher] = useState<string | null>(null);
   const [s, setS] = useState<Sess>(); const [roster, setRoster] = useState<Row[]>();
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
   const [pick, setPick] = useState<Row | null>(null); const [err, setErr] = useState("");
@@ -23,6 +25,7 @@ export default function ClassScreen() {
     const { data } = await supabase.from("class_messages").select("id,session_id,sender_label,body,media_path,media_name,media_mime,media_size,created_at").eq("session_id", id!).order("created_at");
     setSent((data as ClassMessage[]) ?? []);
   }, [id]);
+  useEffect(() => { supabase.from("class_sessions").select("instructor_id").eq("id", id!).maybeSingle().then((r) => setTeacher((r.data?.instructor_id as string) ?? null)); }, [id]);
   useEffect(() => { if (!file) { setPreview(""); return; } const u = URL.createObjectURL(file); setPreview(u); return () => URL.revokeObjectURL(u); }, [file]);
 
   const load = useCallback(async () => {
@@ -62,6 +65,8 @@ export default function ClassScreen() {
       act("Cancelling class…", () => supabase.rpc("cancel_session", { p_session_id: id, p_reason: "Cancelled by instructor" }), undefined, "Class cancelled");
   };
 
+  // Only the instructor of this class (or an admin) can message it; coordinators and directors can view the class but not send.
+  const canSend = roles.some((r) => r.role === "admin" || r.role === "super_admin") || (!!teacher && teacher === session?.user.id);
   const pickFile = (f: File | undefined) => {
     setMsgErr(""); if (!f) return;
     if (!MEDIA_TYPES.includes(f.type) || f.size > MAX_MEDIA_BYTES) return setMsgErr(friendly(new Error("invalid_media")));
@@ -121,7 +126,7 @@ export default function ClassScreen() {
             <Avatar name={r.full_name} size={36} /><p className="flex-1 truncate font-medium">{r.full_name}</p>
             <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
       </section>
-      {s.status !== "cancelled" && <section className="space-y-3">
+      {canSend && s.status !== "cancelled" && <section className="space-y-3">
         <h2 className="text-lg">Message the class</h2>
         <Card className="space-y-3">
           <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} rows={4} aria-label="Message to the class"
