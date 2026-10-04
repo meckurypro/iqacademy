@@ -130,8 +130,8 @@ export default function Landing() {
           <div className="flex flex-1 flex-col justify-center pb-24">
             <Typewriter lines={LINES} />
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <a href={APP_URL} className={`${btn} border border-line hover:bg-sunken`}>On mobile? Get the app</a>
-              <Link to="/login" className={`${btn} bg-accent text-accent-ink hover:opacity-90`}>Continue on PC</Link>
+              <a href={APP_URL} className={`${btn} bg-accent text-accent-ink hover:opacity-90`}>On mobile? Get the app</a>
+              <Link to="/login" className={`${btn} border border-line text-ink hover:bg-sunken`}>Continue on PC</Link>
             </div>
           </div>
         </section>
