@@ -41,3 +41,5 @@ h1, h2, h3 { @apply font-semibold tracking-tight; }
 .busy-icon { animation: busy-pulse 1.2s ease-in-out infinite; }
 /* Reduced motion: keep a slow spin (it's the only sign that work is happening), drop the pulse */
 @media (prefers-reduced-motion: reduce) { .busy-overlay .busy-arc { animation: busy-spin 2.4s linear infinite !important; } }
+.caret { display: inline-block; width: .075em; height: .9em; margin-left: .08em; vertical-align: -.08em; background: rgb(var(--accent)); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0 } }

@@ -43,6 +43,13 @@ const MESSAGES: Record<string, string> = {
   topic_too_long: "Keep each topic under 120 characters.",
   description_too_long: "Keep each description under 1,000 characters.",
   lesson_has_materials: "A class you removed has materials attached. Delete those first, or keep the class.",
+  makeup_not_open: "Make-up classes open once your classes have ended, and last two months.",
+  not_a_missed_class: "That's not a class you missed, so there's nothing to make up.",
+  makeup_limit_reached: "You've used all your make-up classes.",
+  not_eligible_for_solo: "You can buy a single course once you've fully paid for a course pack.",
+  solo_price_not_set: "This course can't be bought on its own yet.",
+  course_not_available: "That course isn't available right now.",
+  prices_invalid: "Something is wrong with those prices. Please check and try again.",
   forbidden: "You don't have permission to do that.",
   not_saved: "That didn't save. You may not have permission, or it was removed by someone else. Refresh and try again.",
   photo_upload_failed: "Photo upload failed. Use a JPG, PNG or WebP under 2 MB.",
@@ -50,6 +57,7 @@ const MESSAGES: Record<string, string> = {
   course_code_invalid: "Use 2–20 letters, numbers, - or _ for the course code.",
   course_code_taken: "That course code is already used.",
   course_in_use: "Students or classes still use this course, so it can't be deleted. Hide it instead (turn off “Visible to students”).",
+  course_is_prerequisite: "Other courses list this one as a prerequisite. Remove it from them first, or hide this course instead.",
   prerequisite_cycle: "Those prerequisites would make two courses depend on each other.",
   prerequisite_invalid: "A prerequisite points at a course that doesn't exist.",
   centre_code_taken: "That centre code is already used.",
@@ -74,7 +82,7 @@ export const friendly = (e: unknown) => {
   if (x?.code === "23503" || /foreign key/i.test(m)) return "This is still in use by students, classes or payments, so it can't be deleted. Hide it instead.";
   if (x?.code === "23505" || /duplicate key/i.test(m)) return "That already exists. Use a different name or code.";
   if (x?.code === "42501" || /row-level security|permission denied/i.test(m)) return MESSAGES.forbidden;
-  if (x?.code === "PGRST202" || /could not find the function/i.test(m)) return "This action isn't set up in the database yet.";
+  if (x?.code === "PGRST202" || /could not find the function/i.test(m)) return "This needs a database update that hasn't been applied yet.";
   if (/failed to fetch|networkerror|load failed/i.test(m)) return "No internet connection. Check it and try again.";
   return "Something went wrong. Please try again.";
 };

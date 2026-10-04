@@ -4,6 +4,7 @@ import { supabase, friendly, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
+import SoloPrices from "../components/SoloPrices";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Admin: package prices, how many instalments are allowed, and what each instalment costs.
@@ -51,7 +52,7 @@ export default function Prices() {
   const load = useCallback(async () => {
     const { data, error } = await supabase.from("packages")
       .select("id,code,name,description,course_count,duration_weeks,price_full,is_active,sort_order,package_instalments(number,label,amount,due_rule)")
-      .order("sort_order");
+      .neq("code", "SOLO").order("sort_order");
     if (error) { setLoadErr(friendly(error)); return setRows([]); }
     setLoadErr(""); setRows(data ?? []);
   }, []);
@@ -165,6 +166,8 @@ export default function Prices() {
             <Button variant="secondary" className="h-10 w-full" onClick={() => edit(p)}>Edit</Button>
           </Card>);
       })}
+
+      <div className="pt-4"><SoloPrices /></div>
 
       <Sheet open={!!f} onClose={() => setF(null)} title={f?.id ? "Edit package" : "New package"}>
         {f && <div className="space-y-3">

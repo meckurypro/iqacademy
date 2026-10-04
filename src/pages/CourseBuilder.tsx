@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { supabase, friendly, rawMessage } from "../lib/supabase";
+import { supabase, friendly, rawMessage, UserMessage } from "../lib/supabase";
+import { touched } from "../lib/db";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Field, Sheet, Skeleton, cx } from "../components/ui";
@@ -59,6 +60,19 @@ async function fetchCourse(id: string): Promise<Loaded> {
     snap: { details: { code: c.data.code, title: c.data.title, summary: c.data.summary ?? "", active: c.data.is_active }, rows, groups: [...byGroup.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]) },
     others: (all.data ?? []) as Other[],
   };
+}
+
+const isMissingFunction = (e: unknown) => (e as { code?: string })?.code === "PGRST202" || /could not find the function/i.test(rawMessage(e));
+const groupsKey = (g: string[][]) => JSON.stringify(g.filter((x) => x.length).map((x) => [...x].sort().join(",")).sort());
+
+// Fallback for a database that doesn't have save_course yet (migration 31): save what it CAN do today, using
+// save_course_outline (migration 23) for the classes and a checked update for the details.
+// Returns true when prerequisite changes had to be skipped.
+async function saveWithoutSaveCourse(id: string, s: Snapshot, base: Snapshot): Promise<boolean> {
+  const o = await supabase.rpc("save_course_outline", { p_course_id: id, p_lessons: s.rows.map((x) => ({ title: x.title.trim(), description: x.description.trim() })) });
+  if (o.error) throw o.error;
+  touched(await supabase.from("courses").update({ title: s.details.title.trim(), summary: s.details.summary.trim() || null, is_active: s.details.active }).eq("id", id).select("id"));
+  return groupsKey(s.groups) !== groupsKey(base.groups);
 }
 
 function useIsAdmin() {
@@ -147,7 +161,7 @@ function CourseList() {
 
 // ───────────────────────────── course editor ─────────────────────────────
 function Editor({ id }: { id: string }) {
-  const nav = useNavigate(); const { run, confirm } = useFeedback();
+  const nav = useNavigate(); const { run, confirm, toast } = useFeedback();
   const [base, setBase] = useState<Snapshot>();   // what the database holds
   const [d, setD] = useState<Snapshot>();         // what is on screen
   const [others, setOthers] = useState<Other[]>([]);
@@ -215,19 +229,28 @@ function Editor({ id }: { id: string }) {
     if (problems.length) return;
     const sent = d;
     const r = await run("Saving course…", async () => {
+      let skipped = false;
       const { error } = await supabase.rpc("save_course", {
         p_course_id: id, p_code: sent.details.code, p_title: sent.details.title.trim(), p_summary: sent.details.summary.trim() || null, p_is_active: sent.details.active,
         p_lessons: sent.rows.map((x) => ({ title: x.title.trim(), description: x.description.trim() })),
         p_prerequisites: sent.groups.filter((g) => g.length),
       });
-      if (error) throw error;
+      if (error) {
+        if (!isMissingFunction(error)) throw error;
+        skipped = await saveWithoutSaveCourse(id, sent, base);
+      }
       // Read it back: only call it saved if the database really holds what was typed.
       const fresh = await fetchCourse(id);
-      if (!same(fresh.snap, sent)) throw new Error("not_saved");
-      return fresh;
-    }, { success: "Course saved", quiet: true });
+      if (!same(fresh.snap, skipped ? { ...sent, groups: fresh.snap.groups } : sent)) throw new Error("not_saved");
+      return { fresh, skipped };
+    }, { quiet: true });
     if (!r.ok) return setErr({ message: r.message, detail: rawMessage(r.error) });
-    apply(r.data); setShow(false);
+    const { fresh, skipped } = r.data;
+    if (!skipped) { apply(fresh); setShow(false); return toast("Course saved"); }
+    // Details and classes are saved; the prerequisite edits stay on screen, still unsaved.
+    setBase(fresh.snap); setOthers(fresh.others); setCountText(String(fresh.snap.rows.length)); setD({ ...fresh.snap, groups: sent.groups }); setShow(false);
+    setErr({ message: "Your details and classes are saved. Prerequisite changes can't be saved yet: the database update that enables them (migration 31) hasn't been applied.", detail: "" });
+    toast("Saved, except prerequisites");
   };
 
   const remove = async () => {
