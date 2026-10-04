@@ -31,13 +31,13 @@ const startsLabel = (iso: string) => {
   return d <= t ? "Starts today" : `Starts ${d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`;
 };
 
-function Option({ on, onClick, title, sub, note, right, locked }: { on?: boolean; onClick: () => void; title: string; sub?: string | null; note?: string; right?: string; locked?: string }) {
+function Option({ on, onClick, title, sub, note, right, locked, strong }: { on?: boolean; onClick: () => void; title: string; sub?: string | null; note?: string; right?: string; locked?: string; strong?: boolean }) {
   return (
     <button onClick={onClick} disabled={!!locked}
       className={cx("anim-fade flex w-full items-center gap-3 rounded-2xl p-4 text-left ring-1 transition active:scale-[.99] disabled:opacity-50",
         on ? "bg-accent/10 ring-2 ring-accent" : "bg-surface ring-line")}>
-      <div className="min-w-0 flex-1"><p className="font-medium">{title}</p>
-        {(locked || sub) && <p className="mt-0.5 text-sm text-muted">{locked ?? sub}</p>}
+      <div className="min-w-0 flex-1"><p className={strong ? "text-[17px] font-semibold leading-snug" : "font-medium"}>{title}</p>
+        {(locked || sub) && <p className={cx("mt-0.5 text-muted", strong ? "text-[13px]" : "text-sm")}>{locked ?? sub}</p>}
         {note && !locked && <p className="mt-0.5 text-sm font-medium text-accent">{note}</p>}</div>
       {right && <span className="num font-medium">{right}</span>}
       <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", on ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{on && "✓"}</span>
@@ -124,7 +124,7 @@ export default function Enrol() {
           {first && <p className="text-sm text-muted">Dates show when <span className="font-medium text-ink">{first.title}</span>, your first course, starts at each location.</p>}
           {centres!.length ? [...centres!].sort((a, b) => (starts!.get(a.id) ?? "9").localeCompare(starts!.get(b.id) ?? "9") || place(a).localeCompare(place(b))).map((c) => {
             const d = starts!.get(c.id);
-            return <Option key={c.id} on={sel.centre === c.id} onClick={() => setSel({ ...sel, centre: c.id })} title={place(c)} sub={placeSub(c)}
+            return <Option key={c.id} strong on={sel.centre === c.id} onClick={() => setSel({ ...sel, centre: c.id })} title={place(c)} sub={placeSub(c)}
               note={d ? startsLabel(d) : undefined} locked={d ? undefined : "No classes scheduled yet"} />;
           }) : <p className="text-muted">No centres are open yet.</p>}
         </>)}
