@@ -54,7 +54,7 @@ export default function VerifyEmail() {
       <Shell>
         <div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div>
         <div className="space-y-1.5 text-center">
-          <h1 className="text-2xl">You're verified{first ? `, ${first}` : ""}</h1>
+          <h1 className="text-[26px] leading-tight">You're verified{first ? `, ${first}` : ""}</h1>
           <p className="text-muted">Your email is confirmed and your account is ready.</p>
         </div>
         <Button className="w-full" onClick={() => { clearPending(); nav("/", { replace: true }); }}>Continue to IQ Academy</Button>
@@ -65,7 +65,7 @@ export default function VerifyEmail() {
   // 2) We don't know which address to verify (opened directly or from another device).
   if (!email) return (
     <Shell>
-      <div className="space-y-1.5 text-center"><h1 className="text-2xl">Verify your email</h1><p className="text-muted">Enter the address you signed up with and we'll send a fresh link.</p></div>
+      <div className="space-y-1.5 text-center"><h1 className="text-[26px] leading-tight">Verify your email</h1><p className="text-muted">Enter the address you signed up with and we'll send a fresh link.</p></div>
       <Card className="p-5"><form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const v = typed.trim().toLowerCase(); setPending(v); setEmail(v); setLeft(0); resend(v); }}>
         <Field label="Email" type="email" required autoComplete="email" value={typed} onChange={(e) => setTyped(e.target.value)} />
         <Button type="submit" className="w-full">Send verification link</Button>
@@ -80,7 +80,7 @@ export default function VerifyEmail() {
     <Shell>
       <div className={`anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full ${expired ? "bg-warn/15 text-warn" : "bg-accent/15 text-accent"}`}><Mail /></div>
       <div className="space-y-1.5 text-center">
-        <h1 className="text-2xl">{expired ? "That link has expired" : "Check your email"}</h1>
+        <h1 className="text-[26px] leading-tight">{expired ? "That link has expired" : "Check your email"}</h1>
         <p className="text-muted">{expired ? "Confirmation links work once and only for a short time. Send yourself a new one." : <>We sent a confirmation link to <span className="break-all font-medium text-ink">{email}</span></>}</p>
       </div>
 

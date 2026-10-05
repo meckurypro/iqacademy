@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { Badge, Card } from "./ui";
+import { Badge, Card, Section } from "./ui";
 
 import Icon from "./Icon";
 import { fmtWhen } from "../lib/time";
@@ -18,8 +18,7 @@ export default function MakeupCard() {
   if (shown.length === 0) return null;
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg">Make-up classes</h2>
+    <Section title="Make-up classes">
       {shown.map((r) => {
         const left = Math.min(r.slots_left, r.missed);
         return (
@@ -27,7 +26,7 @@ export default function MakeupCard() {
             {r.state === "open" && <>
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium">{left > 0 ? `${left} make-up ${left === 1 ? "class" : "classes"} left` : r.missed > 0 ? "No make-up classes left" : "All caught up"}</p>
-                {r.closes_at && <Badge tone="warn">until {day(r.closes_at)}</Badge>}
+                {r.closes_at && <Badge tone="info">until {day(r.closes_at)}</Badge>}
               </div>
               <p className="text-sm text-muted">
                 {r.missed > r.allowance - r.used && r.missed > 0
@@ -48,6 +47,6 @@ export default function MakeupCard() {
               <ul className="space-y-1 pt-1 text-sm">{r.lessons.map((l) => <li key={`${l.course}-${l.lesson_no}`} className="flex gap-2"><Icon name="close" size={16} className="mt-0.5 shrink-0 text-bad" /><span className="min-w-0"><span className="text-muted">{l.course} · </span>{l.title}</span></li>)}</ul>)}
           </Card>);
       })}
-    </section>
+    </Section>
   );
 }

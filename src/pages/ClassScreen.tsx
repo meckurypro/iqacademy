@@ -3,7 +3,7 @@ import Place from "../components/Place";
 import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
-import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
+import { Avatar, Badge, Button, Card, Empty, Err, Sheet, Skeleton, Section } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
 import MessageBubble from "../components/MessageBubble";
@@ -114,7 +114,7 @@ export default function ClassScreen() {
   return (
     <div className="space-y-5">
       <button onClick={() => nav(-1)} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back</span></button>
-      <div><h1 className="text-2xl">{s.course_title}</h1>
+      <div><h1 className="text-[26px] leading-tight">{s.course_title}</h1>
         <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 
       {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
@@ -143,22 +143,22 @@ export default function ClassScreen() {
       {!closed && !isDoor && isTeacher && <Card className="text-sm text-muted">{door === "early" ? "The centre's check-in code appears 30 minutes before the class. The class starts and ends by itself." : "Check-in is open. Students appear below as they arrive. The class ends by itself at its scheduled time."}</Card>}
       <Err>{err}</Err>
 
-      <section className="space-y-2"><h2 className="text-lg">Students</h2>
-        {roster.length === 0 && <Card className="text-center text-muted">No students are enrolled in this class yet.</Card>}
+      <Section title="Students">
+        {roster.length === 0 && <Empty title="No students are enrolled in this class yet." />}
         {roster.map((r) => (
           <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
             <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
             <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
-      </section>
-      {isDoor && denied.length > 0 && <section className="space-y-2"><h2 className="text-lg">Turned away <span className="num text-muted">({denied.length})</span></h2>
+      </Section>
+      {isDoor && denied.length > 0 && <Section title="Turned away" aside={<span className="num">{denied.length}</span>}>
         <p className="px-1 text-sm text-muted">People who tried the code but aren't cleared for this class.</p>
         {denied.map((d) => (
           <Card key={d.student_id} className="flex items-center gap-3 py-3">
             <Avatar name={d.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{d.full_name}</p><p className="text-xs text-muted">{REASON_LABEL[d.reason] ?? "Not cleared"}{d.attempts > 1 ? ` · ${d.attempts} tries` : ""} · {t(d.last_at)}</p></div>
             <Badge tone="bad">Red</Badge></Card>))}
-      </section>}
+      </Section>}
       {canSend && (s.status === "in_progress" || sent.length > 0 || s.status === "scheduled") && <section className="space-y-3">
-        <h2 className="text-lg">Messages</h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Messages</h2>
         {s.status === "in_progress" ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
           : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. It starts by itself at {t(s.start_at)}.</Card>}
         {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}

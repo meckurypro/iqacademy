@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { supabase, friendly, rawMessage } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Field, Sheet, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, Empty, Field, Sheet, Skeleton, cx } from "../components/ui";
 
 import Icon from "../components/Icon";
 // Admin: create courses and build each one class by class.
@@ -112,12 +112,12 @@ function CourseList() {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <div><h1 className="text-2xl">Course builder</h1>
+        <div><h1 className="text-[26px] leading-tight">Course builder</h1>
           <p className="text-sm text-muted">Create courses, set how many classes each has and what every class covers.</p></div>
         <Button className="h-10 shrink-0" onClick={() => { setErr(""); setShow(false); setNf({ title: "", code: "", summary: "" }); }}>+ New</Button>
       </div>
       {loadErr && <div className="space-y-2"><p className="rounded-xl bg-bad/10 px-3 py-2 text-sm text-bad">{loadErr}</p><Button variant="secondary" onClick={load}>Try again</Button></div>}
-      {!rows ? <><Skeleton className="h-20" /><Skeleton className="h-20" /></> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">No courses yet. Tap “+ New” to create the first one.</Card> : rows.map((c) => {
+      {!rows ? <><Skeleton className="h-20" /><Skeleton className="h-20" /></> : rows.length === 0 && !loadErr ? <Empty title="No courses yet. Tap “+ New” to create the first one." /> : rows.map((c) => {
         const described = c.course_lessons.filter((l) => l.summary && l.summary.trim()).length;
         return (
           <Link key={c.id} to={`/courses/${c.id}`} className="block">
@@ -249,7 +249,7 @@ function Editor({ id }: { id: string }) {
   return (
     <div className="space-y-5 pb-24">
       <button onClick={back} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />All courses</span></button>
-      <div><h1 className="text-2xl">{base.details.title}</h1><p className="text-sm text-muted">{base.details.code} · {d.rows.length} {d.rows.length === 1 ? "class" : "classes"} · {described} described</p></div>
+      <div><h1 className="text-[26px] leading-tight">{base.details.title}</h1><p className="text-sm text-muted">{base.details.code} · {d.rows.length} {d.rows.length === 1 ? "class" : "classes"} · {described} described</p></div>
 
       <Card className="space-y-3">
         <h2 className="text-lg">Details</h2>
@@ -287,7 +287,7 @@ function Editor({ id }: { id: string }) {
             <button type="button" aria-label="Fewer classes" disabled={d.rows.length <= 1} onClick={() => changeCount(d.rows.length - 1)} className="grid h-10 w-10 place-items-center rounded-full bg-sunken text-lg disabled:opacity-40">−</button>
             <input aria-label="Number of classes" inputMode="numeric" value={countText} onChange={(e) => setCountText(e.target.value.replace(/\D/g, "").slice(0, 2))}
               onBlur={() => changeCount(Number(countText))} onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-              className="num h-10 w-12 rounded-xl bg-sunken text-center font-semibold outline-none ring-accent/40 focus:ring-2" />
+              className="num h-10 w-12 rounded-xl bg-surface ring-1 ring-line text-center font-semibold outline-none transition focus:ring-2 focus:ring-accent/60" />
             <button type="button" aria-label="More classes" disabled={d.rows.length >= MAX_CLASSES} onClick={() => changeCount(d.rows.length + 1)} className="grid h-10 w-10 place-items-center rounded-full bg-sunken text-lg disabled:opacity-40">+</button>
           </div>
         </Card>

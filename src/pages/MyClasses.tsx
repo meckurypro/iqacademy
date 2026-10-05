@@ -63,7 +63,7 @@ export default function MyClasses() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">My classes</h1>
+      <h1 className="text-[26px] leading-tight">My classes</h1>
       {!rows ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
         : failed && rows.length === 0 ? <Card className="space-y-1 text-center text-sm text-muted"><p>Couldn't load your classes.</p><button className="font-medium text-accent" onClick={load}>Try again</button></Card>
         : rows.length === 0 ? <Card className="space-y-1 py-8 text-center"><p className="font-medium">Nothing assigned yet</p><p className="text-sm text-muted">When an admin assigns you classes you'll be notified, and they'll show up here.</p></Card>

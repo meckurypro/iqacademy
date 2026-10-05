@@ -6,16 +6,12 @@ import ClassCountdown from "../components/ClassCountdown";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Badge, Card, Skeleton } from "../components/ui";
+import { Badge, Card, Empty, List, NavRow, PageHeader, Section, Skeleton, Stat } from "../components/ui";
 
 import Icon from "../components/Icon";
 import { fmtClock, fmtWhen } from "../lib/time";
 type S = { id: string; start_at: string; end_at: string; status?: string; centre_name: string; centre_city?: string | null; centre_address?: string | null; course_title: string; students_present?: number; students_enrolled?: number };
 const t = (d: string) => fmtClock(d);
-
-export const Stat = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
-  <Card className="space-y-1"><p className="text-sm text-muted">{label}</p><p className="num text-2xl font-semibold tracking-tight">{value}</p>{sub && <p className="text-xs text-muted">{sub}</p>}</Card>
-);
 
 export default function InstructorHome() {
   const { name } = useAuth();
@@ -26,32 +22,30 @@ export default function InstructorHome() {
   const today: S[] = d.today ?? [], up: S[] = d.upcoming ?? [];
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl">Hi {name.split(" ")[0]}</h1>
+      <PageHeader title={`Hi ${name.split(" ")[0]}`} />
       <RunReminder />
       <ClassCountdown />
-      <Link to="/emergency"><Card onClick={() => {}} className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sunken text-accent"><Icon name="alert" size={20} /></span><div className="min-w-0 flex-1"><p className="font-medium">Emergency class</p><p className="text-sm text-muted">Start an extra class at a centre</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
+      <List><NavRow to="/emergency" icon="alert" tone="warn" title="Emergency class" hint="Start an extra class at a centre" /></List>
       <div className="grid grid-cols-2 gap-3">
-        <Stat label="Classes taught" value={d.sessions_taught ?? 0} sub="this month" />
-        <Stat label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people`} />
-        <Stat label="Avg per class" value={d.avg_students_per_class ?? 0} />
-        <Stat label="All time" value={d.lifetime?.sessions_taught ?? 0} sub={`${d.lifetime?.student_attendances ?? 0} student visits`} />
+        <Stat tone="info" label="Classes this month" value={d.sessions_taught ?? 0} sub={`${d.lifetime?.sessions_taught ?? 0} all time`} />
+        <Stat tone="ok" label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people · avg ${d.avg_students_per_class ?? 0} per class`} />
       </div>
-      <section className="space-y-2"><h2 className="text-lg">Today</h2>
-        {today.length === 0 ? <Card className="text-center text-muted">No classes today. Enjoy the break.</Card> :
+      <Section title="Today">
+        {today.length === 0 ? <Empty icon="today" title="No classes today" hint="Enjoy the break." /> :
           today.map((s) => (
-            <Link key={s.id} to={`/class/${s.id}`}><Card onClick={() => {}} className="anim-fade mb-2 space-y-1">
+            <Link key={s.id} to={`/class/${s.id}`} className="block"><Card onClick={() => {}} className="anim-fade space-y-1">
               <div className="flex items-center justify-between"><p className="font-medium">{s.course_title}</p>
-                <Badge tone={s.status === "completed" ? "ok" : s.status === "in_progress" ? "warn" : "muted"}>{s.status === "in_progress" ? "Live" : s.status}</Badge></div>
+                <Badge tone={s.status === "completed" ? "ok" : s.status === "in_progress" ? "info" : "muted"}>{s.status === "in_progress" ? "Live" : s.status === "completed" ? "Done" : "Scheduled"}</Badge></div>
               <p className="text-sm text-muted">{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly /></p>
               {s.status === "completed" && <p className="num text-sm">{s.students_present} of {s.students_enrolled} students attended</p>}
             </Card></Link>))}
-      </section>
-      <section className="space-y-2"><h2 className="text-lg">Coming up</h2>
-        {up.length === 0 ? <p className="text-muted">Nothing scheduled in the next 7 days.</p> : up.map((s) => (
+      </Section>
+      <Section title="Coming up">
+        {up.length === 0 ? <Empty icon="schedule" title="Nothing in the next 7 days" /> : up.map((s) => (
           <Card key={s.id} className="space-y-0.5"><p className="font-medium">{s.course_title}</p>
             <p className="text-sm text-muted">{fmtWhen(s.start_at, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly /></p>
             {s.centre_address && <p className="text-xs text-muted">{s.centre_address}</p>}</Card>))}
-      </section>
+      </Section>
     </div>
   );
 }

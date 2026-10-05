@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Avatar, Badge, Card, Skeleton } from "../components/ui";
+import { Avatar, Badge, Card, PageHeader, Section, Skeleton } from "../components/ui";
 import DoorToday from "../components/DoorToday";
 import ClassCountdown from "../components/ClassCountdown";
 
@@ -19,16 +19,16 @@ export default function CoordinatorHome() {
   if (!centre || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-24" /></div>;
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl">Hi {name.split(" ")[0]}</h1><p className="text-muted">{centre.name}</p></div>
+      <PageHeader title={`Hi ${name.split(" ")[0]}`} sub={centre.name} />
       <ClassCountdown />
       <Card className="flex items-center gap-4"><div className="rounded-xl bg-white p-2"><QRCodeSVG value={location.origin} size={96} /></div>
         <div><p className="font-medium">Invite students</p><p className="text-sm text-muted">Let them scan this to open the app, create an account and enrol themselves.</p></div></Card>
       <DoorToday centreIds={[centreId!]} />
-      <section className="space-y-2"><h2 className="text-lg">Students <span className="num text-muted">({roster.length})</span></h2>
+      <Section title="Students" aside={<span className="num">{roster.length}</span>}>
         {roster.map((e) => { const p = e.students?.profiles; return (
           <Card key={e.id} className="flex items-center gap-3 py-3"><Avatar name={p?.full_name ?? "?"} url={p?.avatar_url} size={36} />
             <div className="min-w-0 flex-1"><p className="truncate font-medium">{p?.full_name}</p></div>
-            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</section>
+            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</Section>
     </div>
   );
 }

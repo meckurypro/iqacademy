@@ -207,7 +207,8 @@ src/
   pages/                One file per screen (Landing, Login, Enrol, StudentHome,
                         InstructorHome, ClassScreen, DirectorHome, AdminHome, Roster, ...)
   components/
-    ui.tsx              Button, Card, Field, Sheet (portalled), Badge, Avatar, Skeleton
+    ui.tsx              Button, Card, Field, Sheet (portalled), Badge, Avatar, Skeleton, plus the layout pieces
+                        every screen shares: PageHeader, Section, List + NavRow, IconTile, Stat, Empty
     feedback.tsx        run() saving overlay, confirm() dialog, toast()
     NavMenu.tsx         Hamburger drawer
     PasswordFields.tsx  PasswordField, PasswordCreator, checklist, strength meter
@@ -308,7 +309,7 @@ If the two required variables are missing, the app shows a setup message instead
 
 - The app icon source is `public/favicon.png`. `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` and `favicon-32.png` are resized from it, so regenerate them if you change it.
 - The header shows the icon with the word "Academy" sized to match the "IQ" mark inside the icon.
-- The accent colour lives in `src/index.css` (`--accent`, light and dark). Surfaces, text and status colours are CSS variables there too.
+- The accent colour lives in `src/index.css` (`--accent`, light and dark). Surfaces, text and status colours are CSS variables there too: green (`ok`), blue (`info`), amber (`warn`) and red (`bad`). Use them sparingly, as a soft tint on a badge, icon tile or stat dot, so the amber/cream brand stays the main colour.
 - `public/manifest.webmanifest` makes the app installable to a phone's home screen. There is no service worker, so it does not work offline.
 
 ---

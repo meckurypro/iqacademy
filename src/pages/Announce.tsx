@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase, friendly, rawMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
-import { Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
+import { Button, Card, Empty, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 import { useUserSearch } from "./Users";
 
 import Icon from "../components/Icon";
@@ -64,7 +64,7 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
 
   if (sent !== null) return (
     <Card className="anim-rise mx-auto mt-10 max-w-sm space-y-4 p-8 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div>
-      <h1 className="text-xl">Sent to {sent} {sent === 1 ? "person" : "people"}</h1><p className="text-muted">It's on their notification bell now.</p>
+      <h1 className="text-[26px] leading-tight">Sent to {sent} {sent === 1 ? "person" : "people"}</h1><p className="text-muted">It's on their notification bell now.</p>
       <Button className="w-full" onClick={() => { setSent(null); setTitle(""); setBody(""); setRules([blank()]); }}>Write another</Button>
       <Button variant="ghost" className="w-full" onClick={onSeeSent}>See sent announcements</Button></Card>);
 
@@ -74,12 +74,12 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
         <Card key={i} className="anim-fade space-y-3">
           <div className="flex items-center justify-between"><p className="text-sm font-medium text-muted">{i === 0 ? "Send to" : "Also send to"}</p>
             {rules.length > 1 && <button className="text-sm text-bad" onClick={() => setRules(rules.filter((_, k) => k !== i))}>Remove</button>}</div>
-          <select value={r.who} onChange={(e) => patch(i, { ...blank(), who: e.target.value })} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{WHO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <select value={r.who} onChange={(e) => patch(i, { ...blank(), who: e.target.value })} className="h-12 w-full rounded-xl bg-surface ring-1 ring-line px-4 outline-none transition focus:ring-2 focus:ring-accent/60">{WHO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           {["students", "instructors", "centre_directors", "coordinators"].includes(r.who) && <><p className="text-sm text-muted">Only at these centres (leave empty for all)</p><Chips items={centres} on={r.centres} toggle={(id) => patch(i, { centres: flip(r.centres, id) })} /></>}
           {["students", "instructors"].includes(r.who) && <><p className="text-sm text-muted">Only in these courses</p><Chips items={courses} on={r.courses} toggle={(id) => patch(i, { courses: flip(r.courses, id) })} /></>}
           {r.who === "users" && <div className="space-y-2">
             <div className="flex flex-wrap gap-2">{r.users.map((u) => <button key={u.id} onClick={() => patch(i, { users: r.users.filter((x) => x.id !== u.id) })} className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm text-accent-ink">{u.name}<Icon name="close" size={14} /></button>)}</div>
-            <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search people to add…" className="h-12 w-full rounded-xl bg-sunken px-4 outline-none" />
+            <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search people to add…" className="h-12 w-full rounded-xl bg-surface ring-1 ring-line px-4 outline-none transition focus:ring-2 focus:ring-accent/60" />
             {find.trim() && found?.slice(0, 5).map((u) => <button key={u.id} onClick={() => { patch(i, { users: [...r.users.filter((x) => x.id !== u.id), { id: u.id, name: u.full_name }] }); setFind(""); }} className="block w-full rounded-xl px-3 py-2 text-left hover:bg-sunken">{u.full_name} <span className="text-sm text-muted">{u.email}</span></button>)}</div>}
         </Card>))}
       <Button variant="secondary" className="w-full" onClick={() => setRules([...rules, blank()])}>+ Add another group</Button>
@@ -87,7 +87,7 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
       <Card className="space-y-3">
         <Field label="Title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Classes start Monday" />
         <label className="block"><span className="mb-1.5 block text-sm text-muted">Message</span>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} rows={4} className="w-full rounded-xl bg-sunken p-4 text-[15px] outline-none ring-accent/40 focus:ring-2" /></label>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} rows={4} className="w-full rounded-xl bg-surface ring-1 ring-line p-4 text-[15px] outline-none transition focus:ring-2 focus:ring-accent/60" /></label>
       </Card>
       <Err>{err}</Err>
 
@@ -152,9 +152,9 @@ function SentList() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl">Sent announcements</h1><p className="text-sm text-muted">Fix a typo or take one back. Changes apply to everyone who received it, and nobody is notified again.</p></div>
+      <div><h1 className="text-[26px] leading-tight">Sent announcements</h1><p className="text-sm text-muted">Fix a typo or take one back. Changes apply to everyone who received it, and nobody is notified again.</p></div>
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
-      {!rows ? <><Skeleton className="h-24" /><Skeleton className="h-24" /></> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">Nothing sent yet.</Card> : rows.map((b) => (
+      {!rows ? <><Skeleton className="h-24" /><Skeleton className="h-24" /></> : rows.length === 0 && !loadErr ? <Empty title="Nothing sent yet." /> : rows.map((b) => (
         <Card key={b.id} className="space-y-2">
           <div><p className="font-medium">{b.title}</p><p className="text-sm text-muted">{fmtWhen(b.created_at, { dateStyle: "medium", timeStyle: "short" })} · sent to {people(b.recipient_count)}</p></div>
           {b.body && <p className="line-clamp-3 whitespace-pre-line text-[15px]">{b.body}</p>}
@@ -167,7 +167,7 @@ function SentList() {
         {ed && <div className="space-y-3">
           <Field label="Title" value={ed.title} maxLength={120} onChange={(e) => setEd({ ...ed, title: e.target.value })} />
           <label className="block"><span className="mb-1.5 block text-sm text-muted">Message</span>
-            <textarea value={ed.body} onChange={(e) => setEd({ ...ed, body: e.target.value })} maxLength={2000} rows={5} className="w-full rounded-xl bg-sunken p-4 text-[15px] outline-none ring-accent/40 focus:ring-2" /></label>
+            <textarea value={ed.body} onChange={(e) => setEd({ ...ed, body: e.target.value })} maxLength={2000} rows={5} className="w-full rounded-xl bg-surface ring-1 ring-line p-4 text-[15px] outline-none transition focus:ring-2 focus:ring-accent/60" /></label>
           <p className="text-sm text-muted">This changes the wording for all {ed.n} {ed.n === 1 ? "person" : "people"} who received it. They aren't notified again.</p>
           <Err>{err}</Err>
           <Button className="w-full" disabled={!ed.title.trim()} onClick={save}>Save changes</Button>

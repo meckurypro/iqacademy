@@ -3,7 +3,7 @@ import Place from "../components/Place";
 import { placeLabel } from "../lib/centre";
 import { supabase, naira, friendly, UserMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, Empty, Err, Field, Sheet, Skeleton, cx, PageHeader } from "../components/ui";
 
 import Icon from "../components/Icon";
 import { fmtWhen } from "../lib/time";
@@ -71,18 +71,18 @@ export default function Payments() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Payments & refunds</h1>
-      <div className="flex gap-1 rounded-2xl bg-sunken p-1">{(["payments", "refunds"] as const).map((t) => (
-        <button key={t} onClick={() => setTab(t)} className={cx("h-10 flex-1 rounded-xl text-sm font-medium capitalize transition", tab === t ? "bg-surface shadow-card" : "text-muted")}>{t}</button>))}</div>
+      <PageHeader title="Payments & refunds" />
+      <div className="flex gap-1 rounded-xl bg-sunken p-1">{(["payments", "refunds"] as const).map((t) => (
+        <button key={t} onClick={() => setTab(t)} className={cx("h-10 flex-1 rounded-lg text-sm font-medium capitalize transition", tab === t ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink")}>{t}</button>))}</div>
 
       {tab === "payments" && <>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by student, centre or reference" className="h-12 w-full rounded-2xl bg-surface px-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" />
-        {!rows ? <Skeleton className="h-20" /> : shown.length === 0 ? <Card className="text-center text-muted">No payments found.</Card> : shown.map((x) => (
+        {!rows ? <Skeleton className="h-20" /> : shown.length === 0 ? <Empty title="No payments found." /> : shown.map((x) => (
           <Card key={x.id} onClick={() => open(x)} className="anim-fade flex items-center justify-between gap-3 py-3">
             <div className="min-w-0"><p className="truncate font-medium">{name(x)}</p><p className="truncate text-sm text-muted">{x.centres && <Place centre={x.centres} nameOnly />} · {x.paid_at ? fmtWhen(x.paid_at, { dateStyle: "short" }) : ""} · {x.provider}</p></div>
-            <div className="text-right"><p className="num font-semibold">{naira(x.amount)}</p>{x.refunded_amount > 0 ? <Badge tone="warn">−{naira(x.refunded_amount)} refunded</Badge> : <Badge tone={tone(x.status)}>{x.status}</Badge>}</div></Card>))}</>}
+            <div className="text-right"><p className="num font-semibold">{naira(x.amount)}</p>{x.refunded_amount > 0 ? <Badge tone="info">−{naira(x.refunded_amount)} refunded</Badge> : <Badge tone={tone(x.status)}>{x.status}</Badge>}</div></Card>))}</>}
 
-      {tab === "refunds" && (!refs ? <Skeleton className="h-20" /> : refs.length === 0 ? <Card className="text-center text-muted">No refunds yet.</Card> : refs.map((r) => (
+      {tab === "refunds" && (!refs ? <Skeleton className="h-20" /> : refs.length === 0 ? <Empty title="No refunds yet." /> : refs.map((r) => (
         <Card key={r.id} className="space-y-1 py-3"><div className="flex items-start justify-between"><div><p className="font-medium">{name(r)}</p><p className="text-sm text-muted">{r.centres && <Place centre={r.centres} nameOnly />} · {fmtWhen(r.created_at, { dateStyle: "short" })} · {r.method === "paystack" ? "Paystack" : "Manual"}</p></div>
           <div className="text-right"><p className="num font-semibold">{naira(r.amount)}</p><Badge tone={tone(r.status)}>{r.status}</Badge></div></div>
           {r.account_name && <p className="text-xs text-muted">{r.bank_name} ••{r.account_last4} · {r.account_name}</p>}

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { mapDuplicate, ok, touched } from "../lib/db";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Err, Field, Sheet, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Empty, Err, Field, Sheet, Skeleton } from "../components/ui";
 
 import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -84,9 +84,9 @@ export default function Centres() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><h1 className="text-2xl">Centres</h1><Button className="h-10" onClick={() => { setErr(""); setF(empty); }}>+ New</Button></div>
+      <div className="flex items-center justify-between"><h1 className="text-[26px] leading-tight">Centres</h1><Button className="h-10" onClick={() => { setErr(""); setF(empty); }}>+ New</Button></div>
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
-      {!rows ? <Skeleton className="h-24" /> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">No centres yet. Tap “+ New” to add one.</Card> : rows.map((c) => { const t = c.centre_terms?.revenue_share_pct ?? c.centre_terms?.[0]?.revenue_share_pct; const a = c.centre_payout_accounts?.account_last4 ? c.centre_payout_accounts : c.centre_payout_accounts?.[0];
+      {!rows ? <Skeleton className="h-24" /> : rows.length === 0 && !loadErr ? <Empty title="No centres yet. Tap “+ New” to add one." /> : rows.map((c) => { const t = c.centre_terms?.revenue_share_pct ?? c.centre_terms?.[0]?.revenue_share_pct; const a = c.centre_payout_accounts?.account_last4 ? c.centre_payout_accounts : c.centre_payout_accounts?.[0];
         return (
         <Card key={c.id} className="space-y-3"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-medium">{place(c)}</p>{placeSub(c) && <p className="text-sm text-muted">{placeSub(c)}</p>}</div>
           <div className="flex shrink-0 flex-col items-end gap-1"><Badge tone="ok">{t ?? 0}% share</Badge>{!c.is_active && <Badge>Hidden</Badge>}</div></div>
@@ -108,7 +108,7 @@ export default function Centres() {
           {f.id && <Button variant="ghost" className="w-full text-bad" onClick={remove}>Delete this centre…</Button>}</div>}
       </Sheet>
       <Sheet open={!!bank} onClose={() => setBank(null)} title={`Bank account · ${bank?.name ?? ""}`}>
-        <div className="space-y-3"><select value={acct.code} onChange={(e) => { setAcct({ ...acct, code: e.target.value }); setAccName(""); }} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none"><option value="">{banks.length ? "Choose bank…" : "Loading banks…"}</option>{banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</select>
+        <div className="space-y-3"><select value={acct.code} onChange={(e) => { setAcct({ ...acct, code: e.target.value }); setAccName(""); }} className="h-12 w-full rounded-xl bg-surface ring-1 ring-line px-4 outline-none transition focus:ring-2 focus:ring-accent/60"><option value="">{banks.length ? "Choose bank…" : "Loading banks…"}</option>{banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</select>
           <Field label="Account number" inputMode="numeric" maxLength={10} value={acct.number} onChange={(e) => { setAcct({ ...acct, number: e.target.value.replace(/\D/g, "") }); setAccName(""); }} />
           {accName && <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok"><Icon name="check" size={16} className="shrink-0" />{accName}</p>}<Err>{err}</Err>
           {!accName ? <Button className="w-full" disabled={!acct.code || acct.number.length !== 10} onClick={resolve}>Verify account</Button>

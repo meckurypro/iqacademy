@@ -90,7 +90,7 @@ export default function OfflinePayments() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl">Offline payments</h1>
+      <div><h1 className="text-[26px] leading-tight">Offline payments</h1>
         <p className="text-sm text-muted">Students who chose to pay by cash or transfer. Leave a payment here until the money arrives: nothing changes for the student until you approve or decline it.</p></div>
 
       <Card className="space-y-2">
@@ -169,7 +169,7 @@ export default function OfflinePayments() {
           <Field label="Account name" value={editBank.account_name ?? ""} maxLength={120} onChange={(e) => setEditBank({ ...editBank, account_name: e.target.value })} />
           <Field label="Account number" inputMode="numeric" value={editBank.account_number ?? ""} maxLength={24} onChange={(e) => setEditBank({ ...editBank, account_number: e.target.value.replace(/[^\d ]/g, "") })} />
           <label className="block"><span className="mb-1.5 block text-sm text-muted">Instructions for students</span>
-            <textarea value={editBank.instructions ?? ""} maxLength={600} onChange={(e) => setEditBank({ ...editBank, instructions: e.target.value })} className="min-h-[88px] w-full rounded-xl bg-sunken px-4 py-3 text-[15px] outline-none ring-accent/40 transition focus:ring-2" /></label>
+            <textarea value={editBank.instructions ?? ""} maxLength={600} onChange={(e) => setEditBank({ ...editBank, instructions: e.target.value })} className="min-h-[88px] w-full rounded-xl bg-surface ring-1 ring-line px-4 py-3 text-[15px] outline-none transition focus:ring-2 focus:ring-accent/60" /></label>
           <Button className="w-full" onClick={saveBank}>Save</Button>
         </div>}
       </Sheet>

@@ -77,7 +77,7 @@ export default function OfflinePay() {
   if (row === undefined) return <div className="space-y-4"><Skeleton className="h-8 w-1/2" /><Skeleton className="h-32" /><Skeleton className="h-40" /></div>;
   if (row === null) return (
     <Card className="mx-auto mt-6 max-w-sm space-y-3 p-6 text-center">
-      <h1 className="text-xl">Nothing waiting here</h1>
+      <h1 className="text-[26px] leading-tight">Nothing waiting here</h1>
       <p className="text-muted">This payment has been confirmed, declined or cancelled. Your home screen has the latest.</p>
       <Link to="/"><Button className="w-full">Go home</Button></Link>
     </Card>);
@@ -86,7 +86,7 @@ export default function OfflinePay() {
   const sent = !!row.receipt;
   return (
     <div className="space-y-5 pb-8">
-      <div><p className="text-sm text-muted">Offline payment</p><h1 className="text-2xl">{sent ? "Receipt sent" : "Pay and send your receipt"}</h1></div>
+      <div><p className="text-sm text-muted">Offline payment</p><h1 className="text-[26px] leading-tight">{sent ? "Receipt sent" : "Pay and send your receipt"}</h1></div>
 
       <Card className="space-y-3">
         <div className="flex items-start justify-between gap-3">
@@ -125,7 +125,7 @@ export default function OfflinePay() {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3 rounded-xl bg-sunken px-4 py-3 text-sm"><span className="flex min-w-0 items-center gap-2"><Icon name={file.type === "application/pdf" ? "file" : "image"} size={18} className="shrink-0 text-muted" /><span className="truncate">{file.name}</span></span><button onClick={() => setFile(null)} className="text-muted">Remove</button></div>
             <label className="block"><span className="mb-1.5 block text-sm text-muted">Note for the team (optional)</span>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="e.g. Paid from GTB at 2pm, in the name of Ada" className="min-h-[72px] w-full rounded-xl bg-sunken px-4 py-3 text-[15px] outline-none ring-accent/40 transition focus:ring-2" /></label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="e.g. Paid from GTB at 2pm, in the name of Ada" className="min-h-[72px] w-full rounded-xl bg-surface ring-1 ring-line px-4 py-3 text-[15px] outline-none transition focus:ring-2 focus:ring-accent/60" /></label>
             <Button className="w-full" onClick={send}>{sent ? "Replace receipt" : "Send receipt"}</Button>
           </div>
         ) : <Button variant={sent ? "secondary" : "primary"} className="w-full" onClick={() => pick.current?.click()}>{sent ? "Replace receipt" : "Choose photo or PDF"}</Button>}

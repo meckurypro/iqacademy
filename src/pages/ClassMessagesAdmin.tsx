@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase, friendly } from "../lib/supabase";
 import { ok } from "../lib/db";
 import { BUCKET, mergeMessages, type ClassMessage } from "../lib/messages";
-import { Button, Card, Err, Skeleton } from "../components/ui";
+import { Button, Card, Empty, Err, Skeleton } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import MessageBubble from "../components/MessageBubble";
 import { fmtDay } from "../lib/time";
@@ -46,10 +46,10 @@ export default function ClassMessagesAdmin() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl">Class messages</h1><p className="text-sm text-muted">Everything instructors have sent to their classes. Only admins can delete.</p></div>
+      <div><h1 className="text-[26px] leading-tight">Class messages</h1><p className="text-sm text-muted">Everything instructors have sent to their classes. Only admins can delete.</p></div>
       <Err>{err}</Err>
       {msgs === null ? <div className="space-y-3"><Skeleton className="h-28" /><Skeleton className="h-28" /></div>
-        : msgs.length === 0 ? !err && <Card className="py-10 text-center text-muted">No class messages yet.</Card>
+        : msgs.length === 0 ? !err && <Empty icon="messages" title="No class messages yet." />
         : <div className="space-y-5">
             {msgs.map((m) => (
               <div key={m.id} className="space-y-1.5">

@@ -114,7 +114,7 @@ export default function Roster() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Roster</h1>
+      <h1 className="text-[26px] leading-tight">Roster</h1>
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
       {peopleErr && <div className="space-y-2"><Err>Couldn't load instructors: {peopleErr}</Err><Button variant="secondary" onClick={loadPeople}>Try again</Button></div>}
 

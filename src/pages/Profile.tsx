@@ -3,7 +3,7 @@ import { supabase, rawMessage } from "../lib/supabase";
 import { touched } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { useAuth, primaryRole, roleLabel } from "../lib/auth";
-import { Avatar, Button, Card, Err, Field, Sheet, cx } from "../components/ui";
+import { Avatar, Button, Card, Err, Field, PageHeader, Sheet, cx } from "../components/ui";
 import { isStrong } from "../lib/password";
 import { useTheme, type ThemePref } from "../lib/theme";
 import { MatchHint, PasswordCreator, PasswordField } from "../components/PasswordFields";
@@ -44,10 +44,10 @@ export default function Profile() {
   };
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">Profile</h1>
+      <PageHeader title="Profile" />
       <Card className="flex flex-col items-center gap-3 p-6">
         <Avatar name={name || "?"} url={avatar} size={96} />
-        <label className="cursor-pointer rounded-xl bg-sunken px-4 py-2 text-sm font-medium transition active:scale-95">Change photo
+        <label className="cursor-pointer rounded-xl bg-surface px-4 py-2 text-sm font-medium ring-1 ring-line transition hover:bg-sunken active:scale-95">Change photo
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} /></label>
         <p className="text-sm text-muted">{roleLabel[primaryRole(roles)]} · {session!.user.email}</p>
       </Card>
@@ -58,12 +58,12 @@ export default function Profile() {
         <Button className="w-full" disabled={!full.trim()} onClick={save}>Save changes</Button>
       </Card>
       <Card className="flex items-center justify-between gap-4">
-        <div><h2 className="text-lg">Password</h2><p className="text-sm text-muted">Keep your account secure.</p></div>
+        <div><h2 className="text-base">Password</h2><p className="text-sm text-muted">Keep your account secure.</p></div>
         <Button variant="secondary" onClick={() => setPwOpen(true)}>Change password</Button>
       </Card>
       <ChangePasswordSheet open={pwOpen} onClose={() => setPwOpen(false)} />
       <Card className="space-y-3">
-        <h2 className="text-lg">Appearance</h2>
+        <h2 className="text-base">Appearance</h2>
         <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-1 rounded-xl bg-sunken p-1">
           {([["light", "sun", "Light"], ["dark", "moon", "Dark"], ["system", "monitor", "System"]] as [ThemePref, IconName, string][]).map(([v, ic, l]) => (
             <button key={v} role="radio" aria-checked={theme === v} onClick={() => setTheme(v)}
@@ -72,7 +72,7 @@ export default function Profile() {
             </button>))}
         </div>
       </Card>
-      <Button variant="secondary" className="w-full text-bad" onClick={() => run("Signing out…", () => supabase.auth.signOut())}>Sign out</Button>
+      <Button variant="ghost" className="w-full text-bad hover:bg-bad/10 hover:text-bad" onClick={() => run("Signing out…", () => supabase.auth.signOut())}>Sign out</Button>
     </div>
   );
 }

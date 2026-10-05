@@ -5,6 +5,8 @@ import { NavLink } from "react-router-dom";
 import { Avatar, cx } from "./ui";
 import Icon, { type IconName } from "./Icon";
 import { primaryRole, roleLabel, useAuth } from "../lib/auth";
+import { supabase } from "../lib/supabase";
+import { useFeedback } from "./feedback";
 
 export type NavItem = [to: string, label: string, icon: IconName];
 
@@ -19,7 +21,9 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
   const role = primaryRole(roles);
   const [open, setOpen] = useState(false); const [closing, setClosing] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const items: NavItem[] = [...(tabs ?? [["/", "Home", "home"]]), ...(EXTRA[role] ?? [])]; // Profile is reached through the user card above
+  // The bottom tab bar already lists the tabs, so the menu only adds what the bar doesn't have. Roles without a tab bar get Home here.
+  const items: NavItem[] = [...(tabs ? [] : [["/", "Home", "home"] as NavItem]), ...(EXTRA[role] ?? [])];
+  const { run } = useFeedback();
 
   const close = useCallback(() => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 200); }, []);
 
@@ -45,24 +49,28 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
           <aside className={cx("absolute inset-y-0 right-0 flex w-[85%] max-w-xs flex-col rounded-l-3xl bg-surface p-4 shadow-2xl ring-1 ring-line", closing ? "anim-slide-out" : "anim-slide")}
             style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))", paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
             <div className="mb-4 flex items-center justify-between">
-              <span className="px-1 text-sm font-medium text-muted">Menu</span>
+              <span className="px-1 text-[13px] font-semibold uppercase tracking-wider text-muted">Menu</span>
               <button ref={closeRef} onClick={close} aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-sunken active:scale-95">
                 <Icon name="close" size={18} />
               </button>
             </div>
-            <NavLink to="/profile" onClick={close} className="mb-4 flex items-center gap-3 rounded-2xl bg-sunken p-3 transition active:scale-[.98]">
+            <NavLink to="/profile" onClick={close} className="mb-3 flex items-center gap-3 rounded-2xl bg-sunken/70 p-3 ring-1 ring-line transition active:scale-[.98]">
               <Avatar name={name || "?"} url={avatar} size={44} />
               <div className="min-w-0 flex-1 leading-tight"><p className="truncate font-medium">{name}</p><p className="text-xs text-muted">{roleLabel[role]}</p></div>
               <Icon name="chevronRight" size={18} className="text-muted" />
             </NavLink>
-            <nav className="flex-1 space-y-1 overflow-y-auto">
+            <nav className="space-y-1 overflow-y-auto">
               {items.map(([to, label, icon]) => (
                 <NavLink key={to} to={to} end onClick={close}
-                  className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition active:scale-[.98]", isActive ? "bg-accent/10 font-semibold text-accent" : "hover:bg-sunken")}>
-                  {({ isActive }) => <><span className={cx("grid h-9 w-9 place-items-center rounded-lg transition", isActive ? "bg-accent text-accent-ink" : "bg-sunken text-muted")}><Icon name={icon} size={20} /></span>{label}</>}
+                  className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition active:scale-[.98]", isActive ? "bg-accent/10 font-medium text-accent" : "hover:bg-sunken")}>
+                  {({ isActive }) => <><span className={cx("grid h-9 w-9 place-items-center rounded-lg transition", isActive ? "bg-accent/15 text-accent" : "bg-sunken text-muted")}><Icon name={icon} size={20} /></span>{label}</>}
                 </NavLink>))}
             </nav>
-            <p className="mt-3 px-1 text-xs leading-relaxed text-muted/80">
+            <div className="flex-1" />
+            <button onClick={() => { close(); run("Signing out…", () => supabase.auth.signOut()); }} className="mb-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-muted transition hover:bg-sunken hover:text-bad active:scale-[.98]">
+              <span className="grid h-9 w-9 place-items-center rounded-lg bg-sunken"><Icon name="arrowLeft" size={18} /></span>Sign out
+            </button>
+            <p className="px-1 text-xs leading-relaxed text-muted/80">
               IQ Academy is{" "}
               <a href="https://promptiq.com.ng?utm_source=academy_app&utm_medium=menu" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 transition hover:text-ink">PromptIQ</a>
               's school. Learn AI from the team that builds with it.

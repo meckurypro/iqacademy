@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import Place from "../components/Place";
 import EmergencyClassSheet from "../components/EmergencyClassSheet";
-import { Badge, Button, Card, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Skeleton, Section } from "../components/ui";
 import { fmtClock, fmtWhen } from "../lib/time";
 import { now as clockNow } from "../lib/time";
 
@@ -62,7 +62,7 @@ export default function EmergencyClasses() {
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl">Emergency classes</h1>
+        <h1 className="text-[26px] leading-tight">Emergency classes</h1>
         <p className="text-muted">A one-off class at a centre for a course and topic you choose. {admin ? "You choose who teaches it." : "You teach it yourself."}</p>
       </div>
       <Button className="w-full" onClick={() => setOpen(true)}>New emergency class</Button>
@@ -70,10 +70,10 @@ export default function EmergencyClasses() {
       {!rows ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
         : failed && rows.length === 0 ? <Card className="space-y-1 text-center text-sm text-muted"><p>Couldn't load emergency classes.</p><button className="font-medium text-accent" onClick={load}>Try again</button></Card>
         : <>
-          <section className="space-y-2"><h2 className="text-lg">Coming up</h2>
+          <Section title="Coming up">
             {current.length === 0 ? <Card className="text-center text-sm text-muted">No emergency classes are scheduled.</Card> : current.map(item)}
-          </section>
-          {past.length > 0 && <section className="space-y-2"><h2 className="text-lg">Recent</h2>{past.map(item)}</section>}
+          </Section>
+          {past.length > 0 && <Section title="Recent">{past.map(item)}</Section>}
         </>}
 
       {open && <EmergencyClassSheet admin={admin} onClose={() => setOpen(false)} onCreated={load} />}

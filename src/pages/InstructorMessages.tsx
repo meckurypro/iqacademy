@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Button, Card, Skeleton } from "../components/ui";
+import { Button, Card, Empty, Skeleton } from "../components/ui";
 import ClassComposer from "../components/ClassComposer";
 import MessageBubble from "../components/MessageBubble";
 import { mergeMessages, type ClassMessage } from "../lib/messages";
@@ -49,7 +49,7 @@ export default function InstructorMessages() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">Messages</h1>
+      <h1 className="text-[26px] leading-tight">Messages</h1>
 
       {active === null ? <Skeleton className="h-40" />
         : active.length === 0 ? <Card className="space-y-1 py-6 text-center"><p className="font-medium">No class in progress</p>
@@ -63,7 +63,7 @@ export default function InstructorMessages() {
       <section className="space-y-4">
         <h2 className="px-1 text-lg">Sent</h2>
         {msgs === null ? <Skeleton className="h-24" />
-          : msgs.length === 0 ? <Card className="py-8 text-center text-muted">No messages yet</Card>
+          : msgs.length === 0 ? <Empty icon="messages" title="No messages yet" />
           : <>
               {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
               {msgs.map((m, i) => {

@@ -122,7 +122,7 @@ export default function Enrol() {
     const c = claims[0];
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl">You have a registration waiting</h1>
+        <h1 className="text-[26px] leading-tight">You have a registration waiting</h1>
         <Card className="space-y-3">
           <p className="text-sm text-muted">{c.package}{c.courses.length ? ` · ${c.courses.join(" + ")}` : ""}</p>
           <p className="num text-2xl font-semibold">{naira(c.amount)} <span className="text-base font-normal text-muted">offline</span></p>
@@ -137,8 +137,8 @@ export default function Enrol() {
     <div className="space-y-5 pb-32">
       <div>
         <div className="mb-3 flex gap-1.5">{STEPS.map((_, i) => <div key={i} className={cx("h-1 flex-1 rounded-full transition-colors", i <= step ? "bg-accent" : "bg-line")} />)}</div>
-        <p className="text-sm text-muted">Step {step + 1} of {STEPS.length}</p>
-        <h1 className="text-2xl">{["Choose your pack", pack ? `Pick ${pack.course_count} courses` : "Pick your courses", "Where will you learn?", "How would you like to pay?"][step]}</h1>
+        <p className="text-[13px] font-medium text-muted">Step {step + 1} of {STEPS.length}</p>
+        <h1 className="text-[26px] leading-tight">{["Choose your pack", pack ? `Pick ${pack.course_count} courses` : "Pick your courses", "Where will you learn?", "How would you like to pay?"][step]}</h1>
       </div>
 
       <div key={step} className="space-y-3">
@@ -171,8 +171,8 @@ export default function Enrol() {
         </>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 bg-bg/80 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl gap-3">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md">
+        <div className="mx-auto flex max-w-2xl gap-3">
           <Button variant="secondary" onClick={() => (step ? setStep(step - 1) : nav("/"))}>Back</Button>
           {step < 3 ? <Button className="flex-1" disabled={!can} onClick={() => setStep(step + 1)}>Continue</Button>
             : <Button className="flex-1" onClick={pay}>{method === "offline" ? `Continue · pay ${naira(dueNow)} offline` : `Pay ${naira(dueNow)} now`}</Button>}

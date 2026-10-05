@@ -17,9 +17,9 @@ const two = (n: number) => String(n).padStart(2, "0");
 
 function Unit({ value, label }: { value: string; label: string }) {
   return (
-    <div className="min-w-[3.6rem] rounded-xl bg-sunken px-2 py-2.5 text-center">
-      <p className="num text-3xl font-semibold leading-none tracking-tight text-ink">{value}</p>
-      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-muted">{label}</p>
+    <div className="min-w-[3.6rem] rounded-xl bg-sunken/80 px-2 py-2.5 text-center">
+      <p className="num text-[28px] font-semibold leading-none tracking-tight text-ink">{value}</p>
+      <p className="mt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }
@@ -60,19 +60,19 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
   const action = c.as_role === "student"
     ? (doorOpen
         ? <button onClick={() => onCheckIn?.(c)} className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">Check in</button>
-        : <p className="rounded-xl bg-sunken px-3 py-3 text-center text-sm font-medium text-ink">{copy.early(c)}</p>)
+        : <p className="rounded-xl bg-sunken/80 px-3 py-3 text-center text-sm font-medium text-ink">{copy.early(c)}</p>)
     : (doorOpen
         ? <Link to={`/class/${c.id}`} className="grid h-12 w-full place-items-center rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">{copy.open}</Link>
-        : <Link to={`/class/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-sunken text-sm font-medium text-ink transition active:scale-[.98]">{copy.early(c) || "View class"}</Link>);
+        : <Link to={`/class/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-sunken/80 text-sm font-medium text-ink transition active:scale-[.98]">{copy.early(c) || "View class"}</Link>);
 
   return (
-    <Card className="anim-rise space-y-4 bg-surface bg-[radial-gradient(70%_60%_at_0%_0%,rgb(var(--accent)/0.10),transparent)] ring-1 ring-line">
+    <Card className="anim-rise space-y-4 bg-surface bg-[radial-gradient(70%_60%_at_0%_0%,rgb(var(--accent)/0.08),transparent)] p-5 shadow-lift ring-1 ring-line">
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-sm font-medium text-muted">
           {phase === "live" && <span className="h-2 w-2 rounded-full bg-ok animate-pulse motion-reduce:animate-none" />}
           {label}{c.is_emergency && " · Emergency"}
         </p>
-        {phase === "checkin" && <span className="inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 text-xs font-semibold text-ink"><span className="h-1.5 w-1.5 rounded-full bg-ok" /><Icon name="scan" size={14} />Door open</span>}
+        {phase === "checkin" && <span className="inline-flex items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok"><span className="h-1.5 w-1.5 rounded-full bg-ok" />Door open</span>}
       </div>
 
       <div role="timer" className="space-y-2">

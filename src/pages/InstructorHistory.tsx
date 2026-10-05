@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Place from "../components/Place";
 import { supabase } from "../lib/supabase";
-import { Badge, Button, Card, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Empty, Skeleton } from "../components/ui";
 import { fmtWhen } from "../lib/time";
 
 type H = { id: string; start_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; students_present: number; students_enrolled: number; auto_closed: boolean };
@@ -19,8 +19,8 @@ export default function InstructorHistory() {
   if (!rows) return <div className="space-y-3"><Skeleton className="h-8 w-1/2" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div>;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Teaching history</h1>
-      {rows.length === 0 && <Card className="text-center text-muted">Classes you teach will appear here.</Card>}
+      <h1 className="text-[26px] leading-tight">Teaching history</h1>
+      {rows.length === 0 && <Empty title="Classes you teach will appear here." />}
       {rows.map((r) => (
         <Card key={r.id} className="anim-fade flex items-center gap-3">
           <div className="min-w-0 flex-1"><p className="truncate font-medium">{r.course_title}</p>

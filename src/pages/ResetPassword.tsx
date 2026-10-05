@@ -29,13 +29,13 @@ export default function ResetPassword() {
   if (loading) return <div className="mx-auto max-w-sm space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
   if (!session || linkError) return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-4 p-6 text-center">
-      <h1 className="text-2xl">This link has expired</h1>
+      <h1 className="text-[26px] leading-tight">This link has expired</h1>
       <p className="text-muted">Reset links work once and only for a short time. Request a new one and try again.</p>
       <Button onClick={() => { location.href = "/"; }}>Back to sign in</Button>
     </div>);
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
-      <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">Follow the checklist to keep your account safe.</p></div>
+      <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-[26px] leading-tight">Choose a new password</h1><p className="mt-1 text-muted">Follow the checklist to keep your account safe.</p></div>
       <Card className="p-5">{done ? <div className="space-y-3 py-4 text-center"><div className="anim-pop mx-auto grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={28} strokeWidth={2.25} /></div><p className="font-medium">Password updated</p></div> :
         <form onSubmit={submit} className="space-y-4">
           <PasswordCreator label="New password" required value={pw} onValue={setPw} onGenerate={setPw2} />

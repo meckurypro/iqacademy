@@ -4,9 +4,8 @@ import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Link } from "react-router-dom";
-import { Badge, Button, Card, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, List, NavRow, PageHeader, Section, Skeleton, Stat, cx } from "../components/ui";
 import { useFeedback } from "../components/feedback";
-import { Stat } from "./InstructorHome";
 import DoorToday from "../components/DoorToday";
 import ClassCountdown from "../components/ClassCountdown";
 
@@ -64,7 +63,7 @@ export default function DirectorHome() {
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl">{ids.length > 1 ? "Your branches" : view[0]?.centre ? place(view[0].centre) : "Your centre"}</h1>
+      <div><h1 className="text-[26px] leading-tight">{ids.length > 1 ? "Your branches" : view[0]?.centre ? place(view[0].centre) : "Your centre"}</h1>
         {ids.length === 1 && view[0]?.centre && place(view[0].centre) !== view[0].centre.name && <p className="text-sm text-muted">{view[0].centre.name}</p>}
         <p className="text-muted">{view.length === 1 ? `Your share here: ${view[0].share_pct}% of student payments` : "Each branch has its own agreed share"}</p></div>
 
@@ -83,13 +82,13 @@ export default function DirectorHome() {
 
       {!ds || !inc ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
         <div className="grid grid-cols-2 gap-3">
-          <Stat label={month === thisMonth ? "Earned this month" : `Earned in ${month ? monthLabel(month).split(" ")[0] : ""}`} value={naira(earned)} />
-          <Stat label="Refunds deducted" value={refunds ? "−" + naira(refunds) : naira(0)} sub="Student refunds reduce your share" />
-          <Stat label={waiting < 0 ? "To be offset" : "Available"} value={naira(Math.abs(waiting))} sub={waiting < 0 ? "Refunds are higher than income" : "Yours to withdraw"} />
+          <Stat tone="ok" label={month === thisMonth ? "Earned this month" : `Earned in ${month ? monthLabel(month).split(" ")[0] : ""}`} value={naira(earned)} />
+          <Stat tone="bad" label="Refunds deducted" value={refunds ? "−" + naira(refunds) : naira(0)} sub="Student refunds reduce your share" />
+          <Stat tone="info" label={waiting < 0 ? "To be offset" : "Available"} value={naira(Math.abs(waiting))} sub={waiting < 0 ? "Refunds are higher than income" : "Yours to withdraw"} />
           <Stat label="Active students" value={sum(view, "students_active")} sub={`${sum(view, "students_total")} all time`} />
         </div>
 
-        <section className="space-y-2"><h2 className="text-lg">{month ? monthLabel(month) : "Income"}</h2>
+        <Section title={month ? monthLabel(month) : "Income"}>
           {rows.map(({ c, m, d }) => {
             const po = m.payout; const label = ids.length > 1 && d?.centre ? place(d.centre) : "";
             return (
@@ -98,7 +97,7 @@ export default function DirectorHome() {
                   <div className="min-w-0">{label && <p className="font-semibold">{label}</p>}
                     <p className="num text-2xl font-semibold">{naira(m.available)}</p>
                     <p className="text-sm text-muted">{m.withdrawn ? `${naira(m.withdrawn)} already withdrawn` : "Available to withdraw"}</p></div>
-                  {po && <Badge tone={po.status === "paid" ? "ok" : po.status === "failed" ? "bad" : "warn"}>{po.status === "draft" ? "Requested" : po.status === "processing" ? "On its way" : po.status === "paid" ? "Paid" : po.status}</Badge>}
+                  {po && <Badge tone={po.status === "paid" ? "ok" : po.status === "failed" ? "bad" : "info"}>{po.status === "draft" ? "Requested" : po.status === "processing" ? "On its way" : po.status === "paid" ? "Paid" : po.status}</Badge>}
                 </div>
                 {po?.status === "draft"
                   ? <div className="flex items-center justify-between gap-3"><p className="text-sm text-muted">Waiting for approval.</p><button className="text-sm font-medium text-accent" onClick={() => cancelReq(po.id)}>Cancel</button></div>
@@ -113,32 +112,32 @@ export default function DirectorHome() {
                     </>}
               </Card>);
           })}
-        </section>
+        </Section>
 
-        {sel === "all" && ds.length > 1 && <section className="space-y-2"><h2 className="text-lg">By branch</h2>
+        {sel === "all" && ds.length > 1 && <Section title={"By branch"}>
           {ds.map((d) => <Card key={d.centre?.id} onClick={() => setSel(d.centre?.id)} className="flex items-center justify-between py-3">
             <div><p className="font-semibold">{d.centre && <Place centre={d.centre} nameOnly />}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
-            <div className="text-right"><p className="num font-semibold">{naira(netOf(d.centre?.id))}</p><p className="text-xs text-muted">{month === thisMonth ? "net this month" : "net"}</p></div></Card>)}</section>}
+            <div className="text-right"><p className="num font-semibold">{naira(netOf(d.centre?.id))}</p><p className="text-xs text-muted">{month === thisMonth ? "net this month" : "net"}</p></div></Card>)}</Section>}
 
-        <section className="space-y-2"><h2 className="text-lg">Students by day</h2>
+        <Section title={"Students by day"}>
           <Card className="flex h-36 items-end gap-2">{days.map((v, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1"><span className="num text-xs text-muted">{v || ""}</span>
-              <div className="w-full rounded-t-lg bg-accent/80 transition-all duration-700" style={{ height: `${(v / maxDay) * 80}px`, minHeight: v ? 6 : 2, opacity: v ? 1 : .2 }} /><span className="text-xs text-muted">{DAYS[i + 1]}</span></div>))}</Card></section>
+              <div className="w-full rounded-t-lg bg-accent/80 transition-all duration-700" style={{ height: `${(v / maxDay) * 80}px`, minHeight: v ? 6 : 2, opacity: v ? 1 : .2 }} /><span className="text-xs text-muted">{DAYS[i + 1]}</span></div>))}</Card></Section>
 
-        <section className="space-y-2"><h2 className="text-lg">Students by course</h2>
-          {courses.length === 0 ? <p className="text-muted">No active students yet.</p> : courses.map((c) => <Card key={c.course_id} className="flex justify-between py-3"><p>{c.title}</p><p className="num font-semibold">{c.students}</p></Card>)}</section>
+        <Section title={"Students by course"}>
+          {courses.length === 0 ? <p className="text-muted">No active students yet.</p> : courses.map((c) => <Card key={c.course_id} className="flex justify-between py-3"><p>{c.title}</p><p className="num font-semibold">{c.students}</p></Card>)}</Section>
 
-        {view.some((d) => (d.recent_refunds ?? []).length > 0) && <section className="space-y-2"><h2 className="text-lg">Recent refund deductions</h2>
+        {view.some((d) => (d.recent_refunds ?? []).length > 0) && <Section title={"Recent refund deductions"}>
           {view.flatMap((d) => d.recent_refunds ?? []).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5).map((r: any, i: number) => (
-            <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</section>}
+            <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</Section>}
 
-        <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
+        <List><NavRow to="/team" icon="userPlus" title="My team" hint="Add or remove your centre's coordinators" /></List>
 
-        <section className="space-y-2"><h2 className="text-lg">Payouts</h2>
+        <Section title={"Payouts"}>
           {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
             <Card key={p.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(p.amount)}</p><p className="text-sm text-muted">{ids.length > 1 ? `${p.centre} · ` : ""}{p.paid_at ? fmtWhen(p.paid_at, { dateStyle: "short" }) : "Pending"}</p></div>
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
-          {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</section>
+          {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</Section>
       </>}
     </div>
   );

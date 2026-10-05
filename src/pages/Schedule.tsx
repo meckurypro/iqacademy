@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { place } from "../lib/centre";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Err, Field, Sheet, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Empty, Err, Field, Sheet, Skeleton } from "../components/ui";
 
 import Icon from "../components/Icon";
 import { fmtDay } from "../lib/time";
@@ -118,8 +118,8 @@ export default function Schedule() {
   if (!centres) return <div className="space-y-3"><Skeleton className="h-8 w-1/2" /><Skeleton className="h-32" /></div>;
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">Schedule</h1>
-      {centres.length === 0 ? <Card className="text-center text-muted">No centres yet.</Card> : <>
+      <h1 className="text-[26px] leading-tight">Schedule</h1>
+      {centres.length === 0 ? <Empty title="No centres yet." /> : <>
         <select value={centre} onChange={(e) => setCentre(e.target.value)} className={sel}>{centres.map((c) => <option key={c.id} value={c.id}>{place(c)}</option>)}</select>
         {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
 

@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { supabase, friendly, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, Empty, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 import SoloPrices from "../components/SoloPrices";
 
 import Icon from "../components/Icon";
@@ -145,11 +145,11 @@ export default function Prices() {
   const diff = instTotal - priceN;
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between"><h1 className="text-2xl">Prices</h1><Button className="h-10" onClick={() => open(blank)}>+ New</Button></div>
+      <div className="flex items-center justify-between"><h1 className="text-[26px] leading-tight">Prices</h1><Button className="h-10" onClick={() => open(blank)}>+ New</Button></div>
       <Card className="text-sm text-muted">Changes apply to new enrolments only. Students who have already enrolled keep the price and instalments they signed up for.</Card>
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
 
-      {!rows ? <Skeleton className="h-28" /> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">No packages yet.</Card> : rows.map((p) => {
+      {!rows ? <Skeleton className="h-28" /> : rows.length === 0 && !loadErr ? <Empty title="No packages yet." /> : rows.map((p) => {
         const inst = [...(p.package_instalments ?? [])].sort((a: any, b: any) => a.number - b.number);
         const total = inst.reduce((s: number, i: any) => s + i.amount, 0);
         return (

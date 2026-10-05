@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Button, Card, Skeleton } from "../components/ui";
+import { Button, Card, Empty, Skeleton } from "../components/ui";
 import MessageBubble from "../components/MessageBubble";
 import { mergeMessages, type ClassMessage } from "../lib/messages";
 import { dayOf, relativeDay } from "../lib/time";
@@ -55,9 +55,9 @@ export default function Messages() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl">Messages</h1><p className="text-sm text-muted">From your instructors. You can't reply here.</p></div>
+      <div><h1 className="text-[26px] leading-tight">Messages</h1><p className="text-sm text-muted">From your instructors. You can't reply here.</p></div>
       {msgs === null ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /></div>
-        : msgs.length === 0 ? <Card className="py-10 text-center text-muted">No messages yet</Card>
+        : msgs.length === 0 ? <Empty icon="messages" title="No messages yet" />
         : <div className="space-y-4">
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
             {msgs.map((m, i) => {

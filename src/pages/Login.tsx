@@ -47,11 +47,11 @@ export default function Login() {
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
       <div className="text-center">
-        <img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" />
-        <h1 className="text-2xl">{{ in: "Welcome back", up: "Join IQ Academy", forgot: "Reset your password" }[mode]}</h1>
+        <img src="/icon-192.png" alt="" className="mx-auto mb-5 h-14 w-14 rounded-2xl" />
+        <h1 className="text-[26px] leading-tight">{{ in: "Welcome back", up: "Join IQ Academy", forgot: "Reset your password" }[mode]}</h1>
         <p className="mt-1 text-muted">{mode === "forgot" ? "We'll email you a link to choose a new one." : "Understand. Design. Build. Automate."}</p>
       </div>
-      <Card className="space-y-4 p-5">
+      <Card className="space-y-4 p-6 shadow-lift">
         <form onSubmit={submit} className="space-y-4">
           {mode === "up" && <Field label="Full name" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} autoComplete="name" />}
           <Field label="Email" type="email" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" />

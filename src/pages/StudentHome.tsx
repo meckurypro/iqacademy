@@ -5,7 +5,7 @@ import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Err, PageHeader, Section, Sheet, Skeleton } from "../components/ui";
 import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
@@ -99,14 +99,14 @@ export default function StudentHome() {
   const todayIso = today();
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl">Hi {name.split(" ")[0]}</h1>
+    <div className="space-y-6">
+      <PageHeader title={`Hi ${name.split(" ")[0]}`} />
 
       {enr.length === 0 && <CourseOutline />}
 
       {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (
-        <Card key={e.id} className="anim-rise space-y-1">
-          <p className="text-sm text-muted">Your first class</p>
+        <Card key={e.id} className="anim-rise space-y-1 border-l-4 border-l-info">
+          <p className="text-sm font-medium text-info">Your first class</p>
           <p className="text-lg font-semibold">{d0(e.starts_on!, { weekday: "long", day: "numeric", month: "long" })}</p>
           <p className="text-sm text-muted">{e.enrolment_courses?.find((c) => c.sequence_no === 1)?.courses?.title}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
         </Card>))}
@@ -115,7 +115,7 @@ export default function StudentHome() {
         const claim = claims.find((c) => c.instalment_id === i.id);
         if (claim) return (
           <Card key={i.id} className="anim-rise space-y-3">
-            <div className="flex items-center justify-between gap-3"><p className="font-medium">Offline payment</p><Badge tone={claim.receipt ? "ok" : "warn"}>{claim.receipt ? "Awaiting confirmation" : "Receipt needed"}</Badge></div>
+            <div className="flex items-center justify-between gap-3"><p className="font-medium">Offline payment</p><Badge tone={claim.receipt ? "info" : "warn"}>{claim.receipt ? "Awaiting confirmation" : "Receipt needed"}</Badge></div>
             <p className="text-sm text-muted">{naira(claim.amount)} · {claim.instalment_label ?? "Payment"} · reference <span className="num font-medium text-ink">{claim.reference}</span></p>
             <p className="text-sm text-muted">{claim.receipt ? "The team has your receipt and will confirm once the money arrives. You'll get a notification." : "Pay by cash or transfer, then send your receipt so we can confirm it."}</p>
             <div className="grid grid-cols-2 gap-2">
@@ -126,7 +126,7 @@ export default function StudentHome() {
           </Card>);
         return (
         <Card key={i.id} className="anim-rise space-y-3">
-          <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
+          <div className="flex items-center justify-between"><p className="font-semibold">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><span className="num text-lg font-semibold">{naira(i.amount)}</span></div>
           <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}{e.status === "pending_payment" && e.starts_on ? ` · classes start ${d0(e.starts_on, { day: "numeric", month: "short" })}` : i.due_date && i.number > 1 ? ` · due ${d0(i.due_date, { day: "numeric", month: "short" })}` : ""}</p>
           {e.status === "pending_payment" && <p className="text-sm text-muted">{[e.packages?.name, [...e.enrolment_courses].sort((a, b) => a.sequence_no - b.sequence_no).map((c) => c.courses?.title).filter(Boolean).join(" + ")].filter(Boolean).join(" · ")}</p>}
           <div className="grid grid-cols-2 gap-2">
@@ -142,11 +142,11 @@ export default function StudentHome() {
       <ClassCountdown student onCheckIn={() => setOpen(true)} />
 
       {prog.length > 0 && (
-        <section className="space-y-2"><h2 className="text-lg">Your progress</h2>
+        <Section title="Your progress">
           {prog.map((p, k) => { const pct = Math.min(100, Math.round((p.sessions_attended / Math.max(p.sessions_needed, 1)) * 100));
             const key = `${p.enrolment_id}:${p.course_id}`; const list = lessons.filter((l) => l.enrolment_id === p.enrolment_id && l.course_id === p.course_id); const isOpen = openCourse === key;
-            return <Card key={k} className="space-y-2"><div className="flex justify-between"><p className="font-medium">{p.course_title}</p><span className="num text-sm text-muted">{p.sessions_attended}/{p.sessions_needed} classes</span></div>
-              <div className="h-2 overflow-hidden rounded-full bg-sunken"><div className="h-full rounded-full bg-accent transition-all duration-700" style={{ width: `${pct}%` }} /></div>
+            return <Card key={k} className="space-y-3"><div className="flex items-baseline justify-between gap-3"><p className="font-medium">{p.course_title}</p><span className="num text-sm text-muted">{p.sessions_attended}/{p.sessions_needed} classes</span></div>
+              <div className="h-2 overflow-hidden rounded-full bg-sunken"><div className={`h-full rounded-full transition-all duration-700 ${pct >= 100 ? "bg-ok" : "bg-accent"}`} style={{ width: `${pct}%` }} /></div>
               {list.length > 0 && <button onClick={() => setOpenCourse(isOpen ? "" : key)} className="text-sm text-accent">{isOpen ? "Hide classes" : `See all ${list.length} classes`}</button>}
               {isOpen && <ol className="space-y-2 pt-1">{list.map((l) => (
                 <li key={l.lesson_no} className="flex gap-3">
@@ -154,21 +154,21 @@ export default function StudentHome() {
                   <div className="min-w-0"><p className="text-sm font-medium">{l.title}{l.state === "missed" && <span className="ml-2 text-xs font-normal text-bad">Missed</span>}</p>{l.summary && <p className="text-sm text-muted">{l.summary}</p>}</div>
                 </li>))}</ol>}
             </Card>; })}
-        </section>)}
+        </Section>)}
 
       <MakeupCard />
 
       {enr.length > 0 && <SoloCourses />}
 
-      {refunds.length > 0 && <section className="space-y-2"><h2 className="text-lg">Refunds</h2>
+      {refunds.length > 0 && <Section title="Refunds">
         {refunds.map((r) => <Card key={r.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(r.amount)}</p><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })}</p></div>
-          <Badge tone={r.status === "paid" ? "ok" : "warn"}>{r.status === "paid" ? "Sent" : "On its way"}</Badge></Card>)}</section>}
+          <Badge tone={r.status === "paid" ? "ok" : "info"}>{r.status === "paid" ? "Sent" : "On its way"}</Badge></Card>)}</Section>}
 
       <Sheet open={open} onClose={closeSheet} title="Enter your class code">
         <div className="space-y-4">{scan ? <QrScanner onCode={(c) => { setCode(c.toUpperCase()); checkIn(c.toUpperCase()); }} onClose={() => setScan(false)} /> : <Button variant="secondary" className="w-full" onClick={() => setScan(true)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Scan the QR code</span></Button>}
           <p className="text-sm text-muted">Or type the 8-character code shown at the centre.</p>
           <input autoFocus value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={8} placeholder="A1B2C3D4" inputMode="text" autoCapitalize="characters"
-            className="num h-14 w-full rounded-xl bg-sunken text-center text-2xl font-semibold tracking-[.3em] outline-none ring-accent/40 focus:ring-2" />
+            className="num h-14 w-full rounded-xl bg-surface text-center text-2xl font-semibold tracking-[.3em] outline-none ring-1 ring-line transition focus:ring-2 focus:ring-accent/60" />
           <Err>{err}</Err><Button className="w-full" disabled={code.length < 8} onClick={() => checkIn()}>Check in</Button></div>
       </Sheet>
       {verdict && <CheckInVerdict v={verdict} onDone={() => { setVerdict(null); setCode(""); }} onRetry={() => { setVerdict(null); setCode(""); setOpen(true); }} />}

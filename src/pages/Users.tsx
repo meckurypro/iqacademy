@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase, friendly, rawMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
 import { roleLabel, type Role } from "../lib/auth";
-import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
+import { Avatar, Badge, Button, Card, Empty, Err, Sheet, Skeleton } from "../components/ui";
 
 import Icon from "../components/Icon";
 export type UserRow = { id: string; full_name: string; email: string | null; avatar_url: string | null; is_active: boolean; roles: { role: Role; centre_id: string | null; centre_name: string | null }[] };
@@ -55,12 +55,12 @@ export default function Users() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Users</h1>
+      <h1 className="text-[26px] leading-tight">Users</h1>
       <div className="relative"><Icon name="search" size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
         <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email or phone"
           className="h-12 w-full rounded-2xl bg-surface pl-11 pr-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" /></div>
       {!rows ? <div className="space-y-2"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div> :
-        rows.length === 0 ? <Card className="text-center text-muted">No one matches “{q.trim()}”.</Card> :
+        rows.length === 0 ? <Empty title={`No one matches “${q.trim()}”.`} /> :
         rows.map((u) => (
           <Card key={u.id} onClick={() => open(u)} className="anim-fade flex items-center gap-3 py-3">
             <Avatar name={u.full_name || "?"} url={u.avatar_url} />

@@ -38,7 +38,7 @@ export default function ClassComposer({ sessionId, joined, onSent }: { sessionId
   return (
     <Card className="space-y-3">
       <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} rows={4} aria-label="Message to the class" placeholder="Write a message to the class…"
-        className="w-full resize-none rounded-xl bg-sunken p-3 text-[15px] leading-relaxed outline-none ring-accent/40 transition focus:ring-2" />
+        className="w-full resize-none rounded-xl bg-surface ring-1 ring-line p-3 text-[15px] leading-relaxed outline-none transition focus:ring-2 focus:ring-accent/60" />
       {file && <div className="flex items-center gap-3 rounded-xl bg-sunken p-2">
         <img src={preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
         <p className="min-w-0 flex-1 truncate text-sm">{file.name}</p>

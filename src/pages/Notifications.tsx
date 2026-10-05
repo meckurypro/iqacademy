@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Avatar, Button, Card, Skeleton, cx } from "../components/ui";
+import { Avatar, Button, Card, Empty, Skeleton, cx } from "../components/ui";
 import { addDays, dayOf, fmtClock, fmtWhen, now, today } from "../lib/time";
 
 type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string };
@@ -67,12 +67,12 @@ export default function Notifications() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl">Notifications</h1>
+      <h1 className="text-[26px] leading-tight">Notifications</h1>
       {notes === null ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /><Skeleton className="h-24" /></div>
-        : notes.length === 0 ? <Card className="py-10 text-center text-muted">You're all caught up.</Card>
+        : notes.length === 0 ? <Empty icon="bell" title="You're all caught up" hint="New updates will show up here." />
         : <div className="space-y-3">
             {notes.map((n) => (
-              <Card key={n.id} className={cx("anim-fade space-y-2", fresh.has(n.id) && "ring-accent/50")}>
+              <Card key={n.id} className={cx("anim-fade space-y-2", fresh.has(n.id) && "border-l-4 border-l-accent")}>
                 <div className="flex items-center justify-between gap-3">
                   <Sender label={n.sender_label} />
                   <span className="flex items-center gap-2 text-xs text-muted">{fresh.has(n.id) && <span className="h-2 w-2 rounded-full bg-accent" aria-label="New" />}{when(n.created_at)}</span>
