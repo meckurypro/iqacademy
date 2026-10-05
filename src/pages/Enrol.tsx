@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
+import { startPayment } from "../lib/payment";
+import { SoloSheet, useSoloOffers } from "../components/SoloCourses";
 import { useFeedback } from "../components/feedback";
 import { Button, Card, Err, Skeleton, cx } from "../components/ui";
 import type { MyOffline } from "../lib/offline";
@@ -14,13 +16,7 @@ type Course = { id: string; title: string; summary: string | null; sort_order: n
 type Pre = { course_id: string; prerequisite_id: string; group_no: number };
 const STEPS = ["Pack", "Courses", "Centre", "Payment"];
 
-export async function startPayment(instalmentId: string) {
-  const { data, error } = await supabase.functions.invoke("paystack-init-payment", {
-    body: { instalment_id: instalmentId, callback_url: `${location.origin}/pay/callback` },
-  });
-  if (error || !data?.authorization_url) throw new Error(data?.error ?? error?.message ?? "payment_failed");
-  location.href = data.authorization_url;
-}
+export { startPayment };
 
 // "Then ₦40,000 before course 2": the first instalment is the amount due now, so only the rest need spelling out.
 const when = (i: { amount: number; label: string; due_rule: string }) => {
@@ -61,6 +57,7 @@ export default function Enrol() {
   const [method, setMethod] = useState<"online" | "offline">("online");
   const [claims, setClaims] = useState<MyOffline[]>();
   const [err, setErr] = useState("");
+  const { offers: solo } = useSoloOffers(); const [soloOpen, setSoloOpen] = useState(false);
 
   useEffect(() => { supabase.rpc("my_offline_payments").then((r) => setClaims(((r.data as MyOffline[]) ?? []).filter((c) => c.enrolment_status === "pending_payment"))); }, []);
   useEffect(() => {
@@ -147,6 +144,10 @@ export default function Enrol() {
 
       <div key={step} className="space-y-3">
         {step === 0 && (loading(packs) || packs!.map((p) => <Option key={p.id} on={sel.pack === p.id} onClick={() => setSel({ ...sel, pack: p.id, courses: [], centre: "" })} title={p.name} sub={p.description} right={naira(p.price_full)} />))}
+        {step === 0 && packs && !!solo?.length && (
+          <button onClick={() => setSoloOpen(true)} className="mx-auto flex items-center gap-1.5 pt-3 text-sm text-muted transition active:opacity-60">
+            Need just one course? <span className="font-medium text-accent">Explore courses →</span>
+          </button>)}
         {step === 1 && (loading(courses) || courses!.map((c) => {
           const m = !sel.courses.includes(c.id) ? missing(c, sel.courses) : null;
           const full = !!pack && sel.courses.length >= pack.course_count && !sel.courses.includes(c.id);
@@ -178,6 +179,7 @@ export default function Enrol() {
             : <Button className="flex-1" onClick={pay}>{method === "offline" ? `Continue · pay ${naira(dueNow)} offline` : `Pay ${naira(dueNow)} now`}</Button>}
         </div>
       </div>
+      <SoloSheet open={soloOpen} onClose={() => setSoloOpen(false)} offers={solo} />
     </div>
   );
 }

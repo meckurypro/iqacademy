@@ -55,7 +55,7 @@ A person can hold more than one role. The highest one decides their home screen 
 - **Home screen:** next class, the next instalment to pay, progress per course, the full class-by-class outline with a tick for each class attended, refunds, and any offline payment waiting on confirmation.
 - **Check in** to a class by scanning the instructor's QR with the camera or typing the code.
 - **Make-up classes:** a free catch-up window for classes missed.
-- **Buy a single course** once a pack is fully paid.
+- **Buy a single course** from the registration page or the home screen. Courses taken before are marked Retake.
 - **Messages tab:** receive-only class messages from instructors, with an unread badge.
 - Can cancel an unpaid registration from the home screen.
 
@@ -117,7 +117,7 @@ The instructor opens the class and shows a short-lived code and QR. Students sca
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
-- A student who has **fully paid for a pack** can buy one course on its own. Admin sets each course's price, plus a second price for students who haven't completed its prerequisite. The database works out the price, never the browser.
+- Any student can buy one course on its own. Admin sets each course's price, plus a second price for students who haven't completed its prerequisite. The database works out the price, never the browser.
 
 ### Class messages
 Instructors can message a class only **while it is in progress**, and only students who **joined with the code or QR** receive it. Students can't reply, edit or delete. Only admins can delete. Images (JPG, PNG, WebP, GIF, up to 10 MB) live in a private bucket and are downloaded through short-lived signed links minted when the student taps. Students can also copy or share a message.
