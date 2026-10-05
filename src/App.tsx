@@ -28,6 +28,7 @@ import Manage from "./pages/Manage";
 import Centres from "./pages/Centres";
 import Schedule from "./pages/Schedule";
 import Roster from "./pages/Roster";
+import EmergencyClasses from "./pages/EmergencyClasses";
 import MyClasses from "./pages/MyClasses";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
@@ -160,6 +161,7 @@ export default function App() {
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />
         <Route path="/roster" element={role === "admin" || role === "super_admin" ? <Roster /> : <Navigate to="/" replace />} />
+        <Route path="/emergency" element={role === "admin" || role === "super_admin" || role === "instructor" ? <EmergencyClasses /> : <Navigate to="/" replace />} />
         <Route path="/my-classes" element={role === "instructor" ? <MyClasses /> : <Navigate to="/" replace />} />
         <Route path="/schedule" element={role === "student" ? <Navigate to="/" replace /> : <Schedule />} />
         <Route path="/payouts" element={<Payouts />} />

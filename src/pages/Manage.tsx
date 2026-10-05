@@ -6,6 +6,7 @@ import { Badge, Card } from "../components/ui";
 
 const ITEMS = [["/centres", "Centres", "🏫", "Locations, teams, revenue share and bank accounts"], ["/schedule", "Schedule", "🗓️", "Class days at each centre and when each course begins and ends"],
   ["/roster", "Roster", "🧑‍🏫", "Who teaches which class: by class, course or centre"],
+  ["/emergency", "Emergency classes", "🚨", "Start an extra class at a centre and choose who teaches it"],
   ["/courses", "Course builder", "📚", "Classes in each course and what every class covers"],
   ["/prices", "Prices & instalments", "🏷️", "Package prices and what each instalment costs"], ["/offline-payments", "Offline payments", "💵", "Cash and transfer payments waiting for you to confirm"], ["/payments", "Payments & refunds", "🧾", "Student payments, refund a student"], ["/payouts", "Payouts", "💸", "Monthly payments to centres"], ["/instructors", "Instructors", "🎓", "Classes taught and students taught"],
   ["/class-messages", "Class messages", "💬", "What instructors sent to classes. Admins can delete"]];

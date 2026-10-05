@@ -10,6 +10,7 @@ import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
 import MakeupCard from "../components/MakeupCard";
+import EmergencyClassCard from "../components/EmergencyClassCard";
 import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
 import type { MyOffline } from "../lib/offline";
@@ -132,6 +133,8 @@ export default function StudentHome() {
           {e.status === "pending_payment" && <button onClick={() => cancelReg(e.id, false)} className="mx-auto block text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-ink">Cancel registration</button>}
         </Card>); })}
       <Err>{!open && err}</Err>
+
+      <EmergencyClassCard onCheckIn={() => setOpen(true)} refreshKey={ok} />
 
       {next && (
         <Card className="anim-rise space-y-3 bg-accent text-accent-ink ring-0">

@@ -25,6 +25,7 @@ export default function InstructorHome() {
     <div className="space-y-6">
       <h1 className="text-2xl">Hi {name.split(" ")[0]} 👋</h1>
       <RunReminder />
+      <Link to="/emergency"><Card onClick={() => {}} className="flex items-center gap-3"><span className="text-2xl">🚨</span><div className="min-w-0 flex-1"><p className="font-medium">Emergency class</p><p className="text-sm text-muted">Start an extra class at a centre</p></div><span className="text-muted">›</span></Card></Link>
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Classes taught" value={d.sessions_taught ?? 0} sub="this month" />
         <Stat label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people`} />

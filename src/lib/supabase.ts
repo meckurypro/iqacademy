@@ -115,6 +115,13 @@ const MESSAGES: Record<string, string> = {
   enrolment_not_found: "That registration no longer exists.",
   nothing_selected: "Pick at least one class first.",
   bad_scope: "Something went wrong with that selection. Please try again.",
+  instructor_required: "Choose which instructor will teach it.",
+  emergency_no_topic: "Choose a topic that belongs to that course.",
+  emergency_bad_time: "Choose when the class starts.",
+  emergency_time_passed: "That start time has already passed. Choose a time from now on.",
+  emergency_too_far: "An emergency class can be set up to 30 days ahead.",
+  emergency_bad_length: "A class can run from 15 minutes to 8 hours.",
+  emergency_note_long: "Keep the note under 300 characters.",
 };
 
 /** A message that is already written for people. friendly() passes it through untouched. */

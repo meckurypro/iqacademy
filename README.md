@@ -119,6 +119,9 @@ The instructor opens the class and shows a short-lived code and QR. Students sca
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
 - Any student can buy one course on its own. Admin sets each course's price, plus a second price for students who haven't completed its prerequisite. The database works out the price, never the browser.
 
+### Emergency classes
+An emergency class is a one-off class at a centre that isn't part of any course run. **Instructors** start one for themselves and **admins** start one and choose the instructor (Manage → Emergency classes, or the Emergency class card on an instructor's home). The centre, course, topic (one of the course's classes) and start time all come from dropdowns. Students with an active registration at that centre are notified and can check in whatever course they are on; their attendance counts toward progress only if they are on that course. Centre staff at the centre are notified too, because check-in follows the door rules (centre staff or an admin issue the class code). Nobody is marked absent when it ends, and Roster bulk assignment by course or centre never moves it. The rules live in `create_emergency_class`, `check_in` and `emergency_classes_for_me` (migration 43).
+
 ### Class messages
 Instructors can message a class only **while it is in progress**, and only students who **joined with the code or QR** receive it. Students can't reply, edit or delete. Only admins can delete. Images (JPG, PNG, WebP, GIF, up to 10 MB) live in a private bucket and are downloaded through short-lived signed links minted when the student taps. Students can also copy or share a message.
 

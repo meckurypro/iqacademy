@@ -11,7 +11,7 @@ import { Badge, Card, Skeleton } from "../components/ui";
 type C = {
   id: string; session_no: number; start_at: string; end_at: string; status: string;
   course_id: string; course_title: string; total_sessions: number; lesson_title: string | null;
-  centre_id: string; centre_name: string; centre_city: string | null; centre_address: string | null;
+  centre_id: string; centre_name: string; centre_city: string | null; centre_address: string | null; is_emergency?: boolean;
 };
 
 const time = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -94,9 +94,9 @@ export default function MyClasses() {
                     <Card key={c.id} className="anim-fade space-y-1" onClick={openable ? () => {} : undefined}>
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium">{c.course_title}</p>
-                        {live ? <Badge tone="warn">Live</Badge> : openable ? <Badge tone="ok">Today</Badge> : null}
+                        <span className="flex shrink-0 gap-1">{c.is_emergency && <Badge tone="bad">Emergency</Badge>}{live ? <Badge tone="warn">Live</Badge> : openable ? <Badge tone="ok">Today</Badge> : null}</span>
                       </div>
-                      <p className="text-sm text-muted">Class {c.session_no} of {c.total_sessions}{c.lesson_title ? ` · ${c.lesson_title}` : ""}</p>
+                      <p className="text-sm text-muted">{c.is_emergency ? "Emergency class" : `Class ${c.session_no} of ${c.total_sessions}`}{c.lesson_title ? ` · ${c.lesson_title}` : ""}</p>
                       <p className="num text-sm">{time(c.start_at)} – {time(c.end_at)}</p>
                       <p className="text-sm text-muted"><Place centre={centreOf(c)} /></p>
                     </Card>);
