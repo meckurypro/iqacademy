@@ -17,9 +17,9 @@ const two = (n: number) => String(n).padStart(2, "0");
 
 function Unit({ value, label }: { value: string; label: string }) {
   return (
-    <div className="min-w-[3.6rem] rounded-xl bg-cd-ink/[.07] px-2 py-2.5 text-center">
-      <p className="num text-3xl font-semibold leading-none tracking-tight text-cd-num">{value}</p>
-      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-cd-label">{label}</p>
+    <div className="min-w-[3.6rem] rounded-xl bg-sunken px-2 py-2.5 text-center">
+      <p className="num text-3xl font-semibold leading-none tracking-tight text-ink">{value}</p>
+      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }
@@ -59,40 +59,40 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
 
   const action = c.as_role === "student"
     ? (doorOpen
-        ? <button onClick={() => onCheckIn?.(c)} className="h-12 w-full rounded-xl bg-cd-num font-semibold text-cd-bg transition active:scale-[.98]">Check in</button>
-        : <p className="rounded-xl bg-cd-ink/10 px-3 py-3 text-center text-sm font-medium text-cd-ink">{copy.early(c)}</p>)
+        ? <button onClick={() => onCheckIn?.(c)} className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">Check in</button>
+        : <p className="rounded-xl bg-sunken px-3 py-3 text-center text-sm font-medium text-ink">{copy.early(c)}</p>)
     : (doorOpen
-        ? <Link to={`/class/${c.id}`} className="grid h-12 w-full place-items-center rounded-xl bg-cd-num font-semibold text-cd-bg transition active:scale-[.98]">{copy.open}</Link>
-        : <Link to={`/class/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-cd-ink/10 text-sm font-medium text-cd-ink transition active:scale-[.98]">{copy.early(c) || "View class"}</Link>);
+        ? <Link to={`/class/${c.id}`} className="grid h-12 w-full place-items-center rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">{copy.open}</Link>
+        : <Link to={`/class/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-sunken text-sm font-medium text-ink transition active:scale-[.98]">{copy.early(c) || "View class"}</Link>);
 
   return (
-    <Card className="anim-rise space-y-4 bg-cd-bg text-cd-ink ring-1 ring-cd-num/20">
+    <Card className="anim-rise space-y-4 bg-surface bg-[radial-gradient(70%_60%_at_0%_0%,rgb(var(--accent)/0.10),transparent)] ring-1 ring-line">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-sm font-medium text-cd-sub">
-          {phase === "live" && <span className="h-2 w-2 rounded-full bg-cd-go animate-pulse motion-reduce:animate-none" />}
+        <p className="flex items-center gap-2 text-sm font-medium text-muted">
+          {phase === "live" && <span className="h-2 w-2 rounded-full bg-ok animate-pulse motion-reduce:animate-none" />}
           {label}{c.is_emergency && " · Emergency"}
         </p>
-        {phase === "checkin" && <span className="inline-flex items-center gap-1 rounded-full bg-cd-go/15 px-2.5 py-1 text-xs font-semibold text-cd-go"><Icon name="scan" size={14} />Door open</span>}
+        {phase === "checkin" && <span className="inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 text-xs font-semibold text-ink"><span className="h-1.5 w-1.5 rounded-full bg-ok" /><Icon name="scan" size={14} />Door open</span>}
       </div>
 
       <div role="timer" className="space-y-2">
-        <p className="text-sm text-cd-sub">{phase === "live" ? "Ends in" : "Starts in"}</p>
+        <p className="text-sm text-muted">{phase === "live" ? "Ends in" : "Starts in"}</p>
         <Digits ms={phase === "live" ? toEnd : toStart} />
         <span className="sr-only" aria-live="polite" key={Math.floor((phase === "live" ? toEnd : toStart) / 60000)}>{sr}</span>
       </div>
 
-      {doorOpen && <div className="h-1.5 overflow-hidden rounded-full bg-cd-ink/10" aria-hidden="true"><div className="h-full rounded-full bg-cd-go transition-all duration-1000 ease-linear" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} /></div>}
+      {doorOpen && <div className="h-1.5 overflow-hidden rounded-full bg-sunken" aria-hidden="true"><div className="h-full rounded-full bg-accent transition-all duration-1000 ease-linear" style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }} /></div>}
 
       <div>
-        <h2 className="text-xl text-cd-ink">{c.course_title}</h2>
-        {c.lesson_title && <p className="text-cd-sub">{c.lesson_title}</p>}
-        <p className="mt-1 text-sm text-cd-sub">{fmtClock(c.start_at)} – {fmtClock(c.end_at)} · <Place centre={{ name: c.centre_name, city: c.centre_city, address: c.centre_address }} />{c.room ? ` · ${c.room}` : ""}</p>
-        {c.as_role !== "instructor" && c.instructor_name && <p className="text-sm text-cd-sub">With {c.instructor_name}</p>}
+        <h2 className="text-xl text-ink">{c.course_title}</h2>
+        {c.lesson_title && <p className="text-muted">{c.lesson_title}</p>}
+        <p className="mt-1 text-sm text-muted">{fmtClock(c.start_at)} – {fmtClock(c.end_at)} · <Place centre={{ name: c.centre_name, city: c.centre_city, address: c.centre_address }} />{c.room ? ` · ${c.room}` : ""}</p>
+        {c.as_role !== "instructor" && c.instructor_name && <p className="text-sm text-muted">With {c.instructor_name}</p>}
       </div>
 
       {action}
 
-      {next && <p className={cx("border-t border-cd-ink/10 pt-3 text-sm text-cd-sub")}>Then: {next.course_title} · {fmtWhen(next.start_at, { weekday: "short", day: "numeric", month: "short" })}, {fmtClock(next.start_at)}</p>}
+      {next && <p className={cx("border-t border-line pt-3 text-sm text-muted")}>Then: {next.course_title} · {fmtWhen(next.start_at, { weekday: "short", day: "numeric", month: "short" })}, {fmtClock(next.start_at)}</p>}
     </Card>
   );
 }
