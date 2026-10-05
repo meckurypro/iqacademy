@@ -17,7 +17,7 @@ const MESSAGES: Record<string, string> = {
   cohort_not_open: "Enrolment for this cohort is closed.",
   cohort_full: "This cohort is full. Pick another one.",
   prerequisites_not_met: "You need to complete the prerequisite course first.",
-  already_enrolled_in_course: "You're already enrolled in one of these courses.",
+  already_enrolled_in_course: "You already have one of these courses. If it's an unpaid registration, cancel it from your home screen first.",
   course_count_mismatch: "Choose the right number of courses for this pack.",
   timetable_no_: "That time clashes with another class for the same instructor or room.",
   pay_earlier_instalment_first: "Please pay the earlier instalment first.",
@@ -91,6 +91,10 @@ const MESSAGES: Record<string, string> = {
   cohort_not_found: "That cohort no longer exists.",
   slot_not_found: "That class slot no longer exists.",
   slot_invalid: "Check the day and times for this class slot.",
+  cannot_cancel: "This registration can't be cancelled any more.",
+  enrolment_not_found: "That registration no longer exists.",
+  nothing_selected: "Pick at least one class first.",
+  bad_scope: "Something went wrong with that selection. Please try again.",
 };
 
 /** A message that is already written for people. friendly() passes it through untouched. */

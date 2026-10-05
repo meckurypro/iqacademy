@@ -1,3 +1,4 @@
+// src/pages/Manage.tsx
 import { Link } from "react-router-dom";
 import { Card } from "../components/ui";
 

@@ -1,4 +1,6 @@
+// src/pages/Schedule.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { place } from "../lib/centre";
 import { useFeedback } from "../components/feedback";
@@ -14,18 +16,17 @@ const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00`);
 const fourMonths = () => { const d = new Date(); d.setMonth(d.getMonth() + 4); return iso(d); };
 
 type DayRow = { day: string; start: string; end: string };
-type RunForm = { id: string; course: string; instr: string; start: string; end: string };
+type RunForm = { id: string; course: string; start: string; end: string };
 
 export default function Schedule() {
   const { run, confirm, toast } = useFeedback();
   const [admin, setAdmin] = useState<boolean>();
   const [centres, setCentres] = useState<any[]>();
   const [courses, setCourses] = useState<any[]>([]);
-  const [instructors, setInstructors] = useState<any[]>([]);
   const [centre, setCentre] = useState("");
   const [days, setDays] = useState<any[]>();
   const [runs, setRuns] = useState<any[]>();
-  const [last, setLast] = useState<Record<string, { n: number; last: string }>>({});
+  const [last, setLast] = useState<Record<string, { n: number; last: string; staffed: number }>>({});
   const [loadErr, setLoadErr] = useState("");
   const [dayForm, setDayForm] = useState<DayRow[] | null>(null);
   const [rf, setRf] = useState<RunForm | null>(null);
@@ -39,31 +40,25 @@ export default function Schedule() {
     });
     supabase.from("courses").select("id,title,total_sessions").eq("is_active", true).order("sort_order").then((r) => setCourses(r.data ?? []));
   }, []);
-  useEffect(() => {
-    if (!admin) return;
-    supabase.from("user_roles").select("user_id,profiles(full_name)").eq("role", "instructor").eq("is_active", true).then((r) =>
-      setInstructors((r.data ?? []).map((x: any) => ({ id: x.user_id, name: x.profiles?.full_name ?? "Instructor" }))));
-  }, [admin]);
 
   const load = useCallback(async () => {
     if (!centre) return;
     setLoadErr("");
     const [d, r] = await Promise.all([
       supabase.from("centre_class_days").select("id,day_of_week,start_time,end_time").eq("centre_id", centre).order("day_of_week"),
-      supabase.from("course_runs").select("id,course_id,instructor_id,start_date,end_date,status,cancel_reason,courses(title)").eq("centre_id", centre).order("start_date", { ascending: false }),
+      supabase.from("course_runs").select("id,course_id,start_date,end_date,status,cancel_reason,courses(title)").eq("centre_id", centre).order("start_date", { ascending: false }),
     ]);
     if (d.error || r.error) { setLoadErr(friendly(d.error ?? r.error)); setDays([]); setRuns([]); return; }
     setDays(d.data ?? []); setRuns(r.data ?? []);
     const ids = (r.data ?? []).filter((x: any) => x.status === "scheduled").map((x: any) => x.id);
     if (!ids.length) return setLast({});
-    const s = await supabase.from("class_sessions").select("run_id,session_date").in("run_id", ids).neq("status", "cancelled");
-    const m: Record<string, { n: number; last: string }> = {};
-    (s.data ?? []).forEach((x: any) => { const c = m[x.run_id] ?? { n: 0, last: "" }; c.n++; if (x.session_date > c.last) c.last = x.session_date; m[x.run_id] = c; });
+    const s = await supabase.from("class_sessions").select("run_id,session_date,instructor_id").in("run_id", ids).neq("status", "cancelled");
+    const m: Record<string, { n: number; last: string; staffed: number }> = {};
+    (s.data ?? []).forEach((x: any) => { const c = m[x.run_id] ?? { n: 0, last: "", staffed: 0 }; c.n++; if (x.instructor_id) c.staffed++; if (x.session_date > c.last) c.last = x.session_date; m[x.run_id] = c; });
     setLast(m);
   }, [centre]);
   useEffect(() => { setDays(undefined); setRuns(undefined); load(); }, [load]);
 
-  const instrName = useMemo(() => new Map(instructors.map((i) => [i.id, i.name])), [instructors]);
   const state = (x: any) => x.status === "cancelled" ? "Cancelled" : (last[x.id]?.last ?? x.end_date) < today ? "Ended" : x.start_date <= today ? "Running" : "Upcoming";
 
   // A course whose latest run is about to finish, with nothing scheduled after it
@@ -75,8 +70,8 @@ export default function Schedule() {
       .filter(({ end }) => end >= today && end <= addDays(today, 14));
   }, [runs, last, today]);
 
-  const openNew = (courseId = "", start = "") => { setErr(""); setRf({ id: "", course: courseId, instr: "", start, end: "" }); };
-  const openEdit = (x: any) => { setErr(""); setRf({ id: x.id, course: x.course_id, instr: x.instructor_id ?? "", start: x.start_date, end: x.end_date }); };
+  const openNew = (courseId = "", start = "") => { setErr(""); setRf({ id: "", course: courseId, start, end: "" }); };
+  const openEdit = (x: any) => { setErr(""); setRf({ id: x.id, course: x.course_id, start: x.start_date, end: x.end_date }); };
 
   const suggest = async () => {
     if (!rf?.course || !rf.start) return setErr("Pick the course and start date first.");
@@ -90,7 +85,7 @@ export default function Schedule() {
     if (!rf) return; setErr("");
     const r = await run(rf.id ? "Saving run…" : "Scheduling…", async () => {
       const { data, error } = await supabase.rpc("save_course_run", {
-        p_run_id: rf.id || null, p_centre_id: centre, p_course_id: rf.course, p_instructor_id: rf.instr || null, p_start: rf.start, p_end: rf.end });
+        p_run_id: rf.id || null, p_centre_id: centre, p_course_id: rf.course, p_instructor_id: null, p_start: rf.start, p_end: rf.end });
       if (error) throw error;
       await load(); return data as any;
     }, { quiet: true });
@@ -148,8 +143,9 @@ export default function Schedule() {
               <Card key={x.id} className="space-y-2">
                 <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="font-medium">{x.courses?.title}</p>
                   <p className="num text-sm text-muted">{nice(x.start_date)} to {nice(l?.last ?? x.end_date)}{l ? ` · ${l.n} classes` : ""}</p>
-                  {admin && <p className="text-sm text-muted">{x.instructor_id ? instrName.get(x.instructor_id) ?? "Instructor assigned" : "No instructor yet"}</p>}</div>
+                  {admin && l && x.status === "scheduled" && <p className={l.staffed === l.n ? "text-sm text-ok" : "text-sm text-muted"}>{l.staffed === 0 ? "No instructors yet" : l.staffed === l.n ? "Every class has an instructor" : `${l.staffed} of ${l.n} classes have an instructor`}</p>}</div>
                   <Badge tone={s === "Running" ? "ok" : s === "Upcoming" ? "warn" : "muted"}>{s}</Badge></div>
+                {admin && editable(x) && <Link to={`/roster?centre=${centre}&course=${x.course_id}`} className="block text-sm font-medium text-accent">{(l?.staffed ?? 0) === (l?.n ?? 0) && l ? "Open roster" : "Assign instructors"}</Link>}
                 {editable(x) && <div className="flex gap-2"><Button variant="secondary" className="h-10 flex-1" onClick={() => openEdit(x)}>Edit</Button><Button variant="ghost" className="h-10 flex-1 text-bad" onClick={() => cancelRun(x)}>Cancel run</Button></div>}
               </Card>); })}
         </section>
@@ -177,12 +173,10 @@ export default function Schedule() {
           <p className="text-sm text-muted">{ctr ? place(ctr) : ""}{days?.length ? ` · ${days.map((d) => DAY[d.day_of_week].slice(0, 3)).join(", ")}` : ""}</p>
           <select value={rf.course} disabled={!!rf.id} onChange={(e) => setRf({ ...rf, course: e.target.value, end: "" })} className={sel}>
             <option value="">Choose course…</option>{courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</select>
-          {admin && <select value={rf.instr} onChange={(e) => setRf({ ...rf, instr: e.target.value })} className={sel}>
-            <option value="">No instructor yet</option>{instructors.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select>}
           <Field label="Begins" type="date" min={rf.id ? undefined : today} max={fourMonths()} value={rf.start} onChange={(e) => setRf({ ...rf, start: e.target.value, end: "" })} />
           <Field label="Ends" type="date" min={rf.start || today} value={rf.end} onChange={(e) => setRf({ ...rf, end: e.target.value })} />
           <button className="text-sm font-medium text-accent" onClick={suggest}>Suggest the end date</button>
-          <p className="text-xs text-muted">You can schedule up to four months ahead. A run can't last longer than four months.</p>
+          <p className="text-xs text-muted">You can schedule up to four months ahead. A run can't last longer than four months. Instructors are assigned class by class on the Roster.</p>
           <Err>{err}</Err>
           <Button className="w-full" disabled={!rf.course || !rf.start || !rf.end} onClick={saveRun}>{rf.id ? "Save" : "Schedule run"}</Button>
         </div>}
