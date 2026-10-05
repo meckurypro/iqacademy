@@ -9,6 +9,7 @@ import { startPayment } from "./Enrol";
 import { receiptUrl, sendReceipt, type MyOffline, type OfflineDetails } from "../lib/offline";
 
 import Icon from "../components/Icon";
+import { fmtWhen } from "../lib/time";
 // The student's offline payment: what to pay, where, the reference to quote, and a place to send the receipt.
 // An admin confirms it once the money has arrived; then the usual "Payment received" notice arrives and classes unlock.
 export default function OfflinePay() {
@@ -116,7 +117,7 @@ export default function OfflinePay() {
         {sent && row.receipt && <div className="space-y-2">
           {preview && row.receipt.mime.startsWith("image/") ? <a href={preview} target="_blank" rel="noreferrer"><img src={preview} alt="Your receipt" className="max-h-64 w-full rounded-xl bg-sunken object-contain" /></a>
             : preview ? <a href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-3 text-sm text-accent"><Icon name="file" size={18} className="shrink-0" /><span className="min-w-0 truncate">{row.receipt.name}</span></a> : null}
-          <p className="text-sm text-muted">Sent {new Date(row.receipt.uploaded_at).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. We'll notify you when it's confirmed.</p>
+          <p className="text-sm text-muted">Sent {fmtWhen(row.receipt.uploaded_at, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. We'll notify you when it's confirmed.</p>
           {row.student_note && <p className="rounded-xl bg-sunken px-3 py-2 text-sm">{row.student_note}</p>}
         </div>}
         <input ref={pick} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErr(""); e.target.value = ""; }} />

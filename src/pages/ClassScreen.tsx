@@ -12,6 +12,8 @@ import { type ClassMessage } from "../lib/messages";
 import { doorState, opensAt, REASON_LABEL } from "../lib/checkin";
 
 import Icon from "../components/Icon";
+import { fmtClock } from "../lib/time";
+import { now as tNow } from "../lib/time";
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
 type Denied = { student_id: string; full_name: string; reason: string; attempts: number; last_at: string };
 type Sess = { id: string; centre_id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
@@ -25,8 +27,8 @@ export default function ClassScreen() {
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
   const [pick, setPick] = useState<Row | null>(null); const [err, setErr] = useState("");
   const [sent, setSent] = useState<ClassMessage[]>([]);
-  const [denied, setDenied] = useState<Denied[]>([]); const [now, setNow] = useState(Date.now());
-  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
+  const [denied, setDenied] = useState<Denied[]>([]); const [now, setNow] = useState(tNow());
+  useEffect(() => { const i = setInterval(() => setNow(tNow()), 30000); return () => clearInterval(i); }, []);
 
   const loadSent = useCallback(async () => {
     const { data } = await supabase.from("class_messages").select("id,session_id,sender_label,body,media_path,media_name,media_mime,media_size,created_at").eq("session_id", id!).order("created_at");
@@ -93,7 +95,7 @@ export default function ClassScreen() {
   const joined = roster.filter((r) => r.status === "present" && r.method === "qr_scan").length;
   const closed = s.status === "completed" || s.status === "cancelled";
   const door = doorState(s.start_at, s.end_at, now);
-  const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const t = (d: string) => fmtClock(d);
 
   return (
     <div className="space-y-5">

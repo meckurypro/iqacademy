@@ -5,14 +5,10 @@ import { useAuth } from "../lib/auth";
 import { Button, Card, Skeleton } from "../components/ui";
 import MessageBubble from "../components/MessageBubble";
 import { mergeMessages, type ClassMessage } from "../lib/messages";
+import { dayOf, relativeDay } from "../lib/time";
 
 const PAGE = 40;
-const dayLabel = (d: string) => {
-  const t = new Date(d), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
-  if (t.toDateString() === now.toDateString()) return "Today";
-  if (t.toDateString() === y.toDateString()) return "Yesterday";
-  return t.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long", year: t.getFullYear() === now.getFullYear() ? undefined : "numeric" });
-};
+const dayLabel = (d: string) => relativeDay(d, { weekday: "long", day: "numeric", month: "long" });
 
 export default function Messages() {
   const { session } = useAuth(); const uid = session?.user.id;
@@ -65,7 +61,7 @@ export default function Messages() {
         : <div className="space-y-4">
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
             {msgs.map((m, i) => {
-              const newDay = i === 0 || new Date(m.created_at).toDateString() !== new Date(msgs[i - 1].created_at).toDateString();
+              const newDay = i === 0 || dayOf(m.created_at) !== dayOf(msgs[i - 1].created_at);
               return (<div key={m.id} className="space-y-4">
                 {newDay && <p className="text-center text-xs font-medium text-muted">{dayLabel(m.created_at)}</p>}
                 <MessageBubble m={m} context />

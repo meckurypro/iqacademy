@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import Place from "../components/Place";
 import { Badge, Card, Skeleton } from "../components/ui";
+import { fmtClock, fmtWhen } from "../lib/time";
+import { dayOf, relativeDay, today } from "../lib/time";
 
 type C = {
   id: string; session_no: number; start_at: string; end_at: string; status: string;
@@ -14,15 +16,10 @@ type C = {
   centre_id: string; centre_name: string; centre_city: string | null; centre_address: string | null; is_emergency?: boolean;
 };
 
-const time = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-const short = (d: string) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-const dayKey = (d: string) => new Date(d).toDateString();
-const dayLabel = (d: string) => {
-  const t = new Date(d), now = new Date(), tom = new Date(now); tom.setDate(now.getDate() + 1);
-  if (t.toDateString() === now.toDateString()) return "Today";
-  if (t.toDateString() === tom.toDateString()) return "Tomorrow";
-  return t.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
-};
+const time = (d: string) => fmtClock(d);
+const short = (d: string) => fmtWhen(d, { day: "numeric", month: "short" });
+const dayKey = (d: string) => dayOf(d);
+const dayLabel = (d: string) => relativeDay(d, { weekday: "long", day: "numeric", month: "short" });
 const centreOf = (c: C) => ({ name: c.centre_name, city: c.centre_city, address: c.centre_address });
 
 export default function MyClasses() {
@@ -89,7 +86,7 @@ export default function MyClasses() {
                 <p className="text-sm font-medium text-muted">{dayLabel(list[0].start_at)}</p>
                 {list.map((c) => {
                   const live = c.status === "in_progress";
-                  const openable = live || dayKey(c.start_at) === new Date().toDateString();
+                  const openable = live || dayKey(c.start_at) === today();
                   const body = (
                     <Card key={c.id} className="anim-fade space-y-1" onClick={openable ? () => {} : undefined}>
                       <div className="flex items-start justify-between gap-2">

@@ -8,8 +8,9 @@ import { useAuth } from "../lib/auth";
 import { Badge, Card, Skeleton } from "../components/ui";
 
 import Icon from "../components/Icon";
+import { fmtClock, fmtWhen } from "../lib/time";
 type S = { id: string; start_at: string; end_at: string; status?: string; centre_name: string; centre_city?: string | null; centre_address?: string | null; course_title: string; students_present?: number; students_enrolled?: number };
-const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const t = (d: string) => fmtClock(d);
 
 export const Stat = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
   <Card className="space-y-1"><p className="text-sm text-muted">{label}</p><p className="num text-2xl font-semibold tracking-tight">{value}</p>{sub && <p className="text-xs text-muted">{sub}</p>}</Card>
@@ -46,7 +47,7 @@ export default function InstructorHome() {
       <section className="space-y-2"><h2 className="text-lg">Coming up</h2>
         {up.length === 0 ? <p className="text-muted">Nothing scheduled in the next 7 days.</p> : up.map((s) => (
           <Card key={s.id} className="space-y-0.5"><p className="font-medium">{s.course_title}</p>
-            <p className="text-sm text-muted">{new Date(s.start_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly /></p>
+            <p className="text-sm text-muted">{fmtWhen(s.start_at, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly /></p>
             {s.centre_address && <p className="text-xs text-muted">{s.centre_address}</p>}</Card>))}
       </section>
     </div>

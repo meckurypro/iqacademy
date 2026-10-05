@@ -1,5 +1,6 @@
 // src/lib/checkin.ts
 // Door check-in: the verdict check_in() returns, and the window in which door staff can open check-in.
+import { fmtClock, now } from "./time";
 
 export type Verdict = {
   ok: boolean;
@@ -21,12 +22,12 @@ export const deniedText = (reason?: string) => DENIED[reason ?? ""] ?? { title: 
 /** Matches app_settings.checkin_opens_minutes_before. */
 export const CHECKIN_OPENS_MIN = 30;
 export type DoorState = "early" | "open" | "ended";
-export function doorState(start: string, end: string, now = Date.now()): DoorState {
-  if (now < Date.parse(start) - CHECKIN_OPENS_MIN * 60000) return "early";
-  if (now > Date.parse(end)) return "ended";
+export function doorState(start: string, end: string, at = now()): DoorState {
+  if (at < Date.parse(start) - CHECKIN_OPENS_MIN * 60000) return "early";
+  if (at > Date.parse(end)) return "ended";
   return "open";
 }
-export const opensAt = (start: string) => new Date(Date.parse(start) - CHECKIN_OPENS_MIN * 60000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+export const opensAt = (start: string) => fmtClock(Date.parse(start) - CHECKIN_OPENS_MIN * 60000);
 
 export const REASON_LABEL: Record<string, string> = {
   not_enrolled: "Not registered", payment_required: "Payment due", makeup_not_open: "Make-up not open",

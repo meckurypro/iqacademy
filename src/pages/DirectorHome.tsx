@@ -10,6 +10,7 @@ import { Stat } from "./InstructorHome";
 import DoorToday from "../components/DoorToday";
 
 import Icon from "../components/Icon";
+import { fmtDay, fmtWhen } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const sum = (a: any[], k: string) => a.reduce((n, x) => n + Number(x?.[k] ?? 0), 0);
@@ -37,8 +38,8 @@ export default function DirectorHome() {
   const months = useMemo(() => [...new Set((inc ?? []).flatMap((c) => (c.months ?? []).map((m: any) => m.month as string)))].sort().reverse(), [inc]);
   const thisMonth = inc?.[0]?.today ? String(inc[0].today).slice(0, 7) + "-01" : "";
   useEffect(() => { if (months.length && !months.includes(month)) setMonth(months.includes(thisMonth) ? thisMonth : months[0]); }, [months, month, thisMonth]);
-  const monthLabel = (m: string) => new Date(`${m}T00:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  const niceDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+  const monthLabel = (m: string) => fmtDay(m, { month: "long", year: "numeric" });
+  const niceDay = (d: string) => fmtDay(d, { day: "numeric", month: "long" });
   const rows = useMemo(() => (inc ?? []).filter((c) => sel === "all" || c.centre_id === sel)
     .map((c) => ({ c, m: (c.months ?? []).find((x: any) => x.month === month), d: (ds ?? []).find((x) => x.centre?.id === c.centre_id) })).filter((r) => r.m), [inc, ds, sel, month]);
 
@@ -126,13 +127,13 @@ export default function DirectorHome() {
 
         {view.some((d) => (d.recent_refunds ?? []).length > 0) && <section className="space-y-2"><h2 className="text-lg">Recent refund deductions</h2>
           {view.flatMap((d) => d.recent_refunds ?? []).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5).map((r: any, i: number) => (
-            <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{new Date(r.created_at).toLocaleDateString()} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</section>}
+            <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</section>}
 
         <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
 
         <section className="space-y-2"><h2 className="text-lg">Payouts</h2>
           {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
-            <Card key={p.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(p.amount)}</p><p className="text-sm text-muted">{ids.length > 1 ? `${p.centre} · ` : ""}{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Pending"}</p></div>
+            <Card key={p.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(p.amount)}</p><p className="text-sm text-muted">{ids.length > 1 ? `${p.centre} · ` : ""}{p.paid_at ? fmtWhen(p.paid_at, { dateStyle: "short" }) : "Pending"}</p></div>
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
           {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</section>
       </>}

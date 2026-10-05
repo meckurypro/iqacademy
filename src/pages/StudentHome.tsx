@@ -18,6 +18,7 @@ import Place from "../components/Place";
 import type { MyOffline } from "../lib/offline";
 
 import Icon from "../components/Icon";
+import { fmtClock, fmtDay, fmtWhen, now, today } from "../lib/time";
 type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
 type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; packages: { name: string } | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; room: string | null };
@@ -37,7 +38,7 @@ export default function StudentHome() {
     supabase.rpc("my_offline_payments").then((r) => setClaims((r.data as MyOffline[]) ?? []));
     const [e, s, p, ls] = await Promise.all([
       supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,packages(name),enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
-      supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
+      supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date(now()).toISOString()).order("start_at").limit(1),
       supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
       supabase.from("v_lesson_progress").select("enrolment_id,course_id,lesson_no,title,summary,state").eq("enrolment_status", "active").order("lesson_no"),
     ]);
@@ -95,9 +96,9 @@ export default function StudentHome() {
 
   if (!enr) return <div className="space-y-4"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-28" /></div>;
   const owing = enr.flatMap((e) => e.enrolment_instalments.filter((i) => i.status === "pending").sort((a, b) => a.number - b.number).slice(0, 1).map((i) => ({ e, i })));
-  const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, o);
-  const todayIso = new Date().toLocaleDateString("en-CA");
-  const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => fmtDay(iso, o);
+  const todayIso = today();
+  const t = (d: string) => fmtClock(d);
 
   return (
     <div className="space-y-5">
@@ -142,7 +143,7 @@ export default function StudentHome() {
 
       {next && (
         <Card className="anim-rise space-y-3 bg-accent text-accent-ink ring-0">
-          <p className="text-sm font-medium opacity-95">Next class · {new Date(next.start_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}</p>
+          <p className="text-sm font-medium opacity-95">Next class · {fmtWhen(next.start_at, { weekday: "long", day: "numeric", month: "short" })}</p>
           <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-95">{next.lesson_title}</p>}</div>
           <p className="text-sm opacity-95">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
           <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-accent-ink font-semibold text-accent shadow-card transition active:scale-[.98]">Check in</button>
@@ -168,7 +169,7 @@ export default function StudentHome() {
       {enr.length > 0 && <SoloCourses />}
 
       {refunds.length > 0 && <section className="space-y-2"><h2 className="text-lg">Refunds</h2>
-        {refunds.map((r) => <Card key={r.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(r.amount)}</p><p className="text-sm text-muted">{new Date(r.created_at).toLocaleDateString()}</p></div>
+        {refunds.map((r) => <Card key={r.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(r.amount)}</p><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })}</p></div>
           <Badge tone={r.status === "paid" ? "ok" : "warn"}>{r.status === "paid" ? "Sent" : "On its way"}</Badge></Card>)}</section>}
 
       <Sheet open={open} onClose={closeSheet} title="Enter your class code">

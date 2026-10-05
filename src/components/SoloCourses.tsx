@@ -8,16 +8,14 @@ import Place from "./Place";
 import { Button, Card, Err, Sheet, Skeleton, cx } from "./ui";
 
 import Icon from "./Icon";
+import { fmtDay, today } from "../lib/time";
 // Any student can buy a course on its own. The price is set by admin per course (a second price applies when the
 // prerequisite isn't completed) and is worked out by the database, never here.
 export type Offer = { course_id: string; title: string; summary: string | null; price: number | null; prereq_met: boolean; has_prereq: boolean; taken: boolean; needs: string | null; blocked: string | null };
 type Centre = { id: string; name: string; city: string | null; address: string | null };
 type Start = { centre_id: string; starts_on: string };
 
-const startsLabel = (iso: string) => {
-  const d = new Date(`${iso}T00:00:00`); const t = new Date(); t.setHours(0, 0, 0, 0);
-  return d <= t ? "Starts today" : `Starts ${d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`;
-};
+const startsLabel = (iso: string) => (iso <= today() ? "Starts today" : `Starts ${fmtDay(iso, { day: "numeric", month: "long", year: "numeric" })}`);
 
 /** Courses a student can buy on their own. Courses without a price are left out; undefined while loading. */
 export function useSoloOffers() {

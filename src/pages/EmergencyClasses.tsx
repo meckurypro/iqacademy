@@ -8,13 +8,15 @@ import { useAuth } from "../lib/auth";
 import Place from "../components/Place";
 import EmergencyClassSheet from "../components/EmergencyClassSheet";
 import { Badge, Button, Card, Skeleton } from "../components/ui";
+import { fmtClock, fmtWhen } from "../lib/time";
+import { now as clockNow } from "../lib/time";
 
 type E = {
   id: string; start_at: string; end_at: string; status: string; course_title: string; lesson_title: string | null;
   centre_name: string; centre_city: string | null; centre_address: string | null; instructor_name: string | null; students_present: number;
 };
 
-const when = (d: string) => new Date(d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) + " · " + new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const when = (d: string) => fmtWhen(d, { weekday: "short", day: "numeric", month: "short" }) + " · " + fmtClock(d);
 const tone = { in_progress: "warn", scheduled: "muted", completed: "ok", cancelled: "bad" } as const;
 const text = { in_progress: "Live", scheduled: "Scheduled", completed: "Held", cancelled: "Cancelled" } as const;
 
@@ -39,7 +41,7 @@ export default function EmergencyClasses() {
     return () => { supabase.removeChannel(ch); };
   }, [load]);
 
-  const now = Date.now();
+  const now = clockNow();
   const current = (rows ?? []).filter((s) => (s.status === "scheduled" || s.status === "in_progress") && Date.parse(s.end_at) >= now).sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at));
   const past = (rows ?? []).filter((s) => !current.includes(s));
 

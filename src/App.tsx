@@ -7,6 +7,7 @@ import { supabase } from "./lib/supabase";
 import { Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ClockNotice, { useClockSync } from "./components/ClockWatch";
 import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
@@ -96,7 +97,7 @@ function TabBar({ role }: { role: string }) {
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, skew }: { children: React.ReactNode; skew: number }) {
   const { roles } = useAuth();
   const { pathname } = useLocation();
   return (
@@ -107,6 +108,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Bell />
         <NavMenu tabs={NAV[primaryRole(roles)]} />
       </header>
+      <ClockNotice skew={skew} />
       <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
       <TabBar role={primaryRole(roles)} />
     </div>
@@ -137,7 +139,8 @@ function SignedOutReset() {
 
 export default function App() {
   const { session, loading, roles } = useAuth();
-  if (loading) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
+  const { ready: clockReady, skew } = useClockSync(!!session);
+  if (loading || (session && !clockReady)) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
   if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="/login" element={<Login />} /><Route path="/" element={<Landing />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></>;
   const role = primaryRole(roles);
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
@@ -148,7 +151,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="*" element={
-    <Shell>
+    <Shell skew={skew}>
       <Routes>
         <Route path="/" element={home} />
         <Route path="/history" element={<InstructorHistory />} />

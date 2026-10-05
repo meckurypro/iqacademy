@@ -8,6 +8,7 @@ import { receiptUrl, type OfflineDetails, type Receipt } from "../lib/offline";
 import { Avatar, Badge, Button, Card, Field, Sheet, Skeleton, cx } from "../components/ui";
 
 import Icon from "../components/Icon";
+import { now } from "../lib/time";
 // Admin: offline payments waiting for review. Approve once the money has arrived (the student is notified and their
 // classes unlock), decline with a reason (optionally purging the registration), or simply leave it until the money shows up.
 type Row = {
@@ -18,7 +19,7 @@ type Row = {
 };
 
 const ago = (iso: string) => {
-  const m = Math.round((Date.now() - +new Date(iso)) / 60000);
+  const m = Math.round((now() - Date.parse(iso)) / 60000);
   if (m < 1) return "just now"; if (m < 60) return `${m} min ago`;
   const h = Math.round(m / 60); if (h < 24) return `${h} hr ago`;
   const d = Math.round(h / 24); return d === 1 ? "yesterday" : `${d} days ago`;

@@ -4,18 +4,18 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Avatar, Button, Card, Skeleton, cx } from "../components/ui";
+import { addDays, dayOf, fmtClock, fmtWhen, now, today } from "../lib/time";
 
 type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string };
 const PAGE = 30;
 
 const when = (d: string) => {
-  const t = new Date(d), now = new Date(), mins = Math.round((+now - +t) / 60000);
+  const mins = Math.round((now() - Date.parse(d)) / 60000);
   if (mins < 1) return "Just now";
   if (mins < 60) return `${mins} min ago`;
-  if (t.toDateString() === now.toDateString()) return t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  const y = new Date(now); y.setDate(now.getDate() - 1);
-  if (t.toDateString() === y.toDateString()) return "Yesterday";
-  return t.toLocaleDateString([], { day: "numeric", month: "short", year: t.getFullYear() === now.getFullYear() ? undefined : "numeric" });
+  if (dayOf(d) === today()) return fmtClock(d);
+  if (dayOf(d) === addDays(today(), -1)) return "Yesterday";
+  return fmtWhen(d, { day: "numeric", month: "short", ...(dayOf(d).slice(0, 4) === today().slice(0, 4) ? {} : { year: "numeric" as const }) });
 };
 
 function Sender({ label }: { label: string | null }) {

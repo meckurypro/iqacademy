@@ -3,12 +3,13 @@ import { supabase } from "../lib/supabase";
 import { Badge, Card } from "./ui";
 
 import Icon from "./Icon";
+import { fmtWhen } from "../lib/time";
 // Free make-up classes: once a student's time is up they get two months and up to six classes to catch up on
 // anything they missed. The numbers come from my_makeup_status(), so the rules live in one place (the database).
 type Lesson = { course: string; lesson_no: number; title: string };
 type Status = { enrolment_id: string; state: "pending" | "before" | "open" | "closed"; closes_at: string | null; missed: number; used: number; allowance: number; slots_left: number; lessons: Lesson[] };
 
-const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+const day = (iso: string) => fmtWhen(iso, { day: "numeric", month: "long" });
 
 export default function MakeupCard() {
   const [rows, setRows] = useState<Status[]>([]);

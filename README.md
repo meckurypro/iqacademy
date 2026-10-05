@@ -109,6 +109,11 @@ A person can hold more than one role. The highest one decides their home screen 
 4. **Offline:** a pending payment with a reference (`OFF-XXXXXXXX`) is saved and the student pays outside the app. They upload a receipt (photos are shrunk to a readable size; PDFs are accepted; maximum 5 MB). An admin approves, which activates the enrolment and sends the usual "Payment received" notification. While an offline registration is open, the student can't register again unless they cancel it. They can also switch to paying online instead.
 5. **Instalments lock classes.** A pending instalment locks every course from the one it is due before onward. The first instalment activates the enrolment.
 
+### Dates and times
+- **Real time comes from the server.** The app measures the gap between the phone's clock and the server's once at sign-in (`server_now()`), then every ten minutes, and uses the corrected time for "today", check-in windows and "5 min ago". A phone more than two minutes off shows a dismissible notice. Code: `src/lib/time.ts`, `src/components/ClockWatch.tsx`.
+- **Everything is shown in centre time (Africa/Lagos), whatever timezone the phone is set to.** The database stores moments as UTC (`timestamptz`) and calendar dates as plain dates, and cuts days and months at Lagos midnight. A class at 9:00 reads 9:00 for everyone. Don't use `new Date()`, `Date.now()` or `toLocale*String` for anything a person sees; use the helpers in `src/lib/time.ts`.
+- **Entering a time** (for example an emergency class) is read as the centre's wall-clock time, not the phone's.
+
 ### The student clock
 A student's clock starts on the day of the first class of their first course, not when they pay. That date drives access, visibility, absences, progress and reminders.
 

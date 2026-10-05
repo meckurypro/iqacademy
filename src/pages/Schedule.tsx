@@ -7,14 +7,14 @@ import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton } from "../components/ui";
 
 import Icon from "../components/Icon";
+import { fmtDay } from "../lib/time";
+import { addDays, addMonths, today as todayIso } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAY = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
 const hm = (t: string) => t.slice(0, 5);
-const iso = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const nice = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() + n); return iso(d); };
-const fourMonths = () => { const d = new Date(); d.setMonth(d.getMonth() + 4); return iso(d); };
+const nice = (s: string) => fmtDay(s, { day: "numeric", month: "short", year: "numeric" });
+const fourMonths = () => addMonths(todayIso(), 4);
 
 type DayRow = { day: string; start: string; end: string };
 type RunForm = { id: string; course: string; start: string; end: string };
@@ -32,7 +32,7 @@ export default function Schedule() {
   const [dayForm, setDayForm] = useState<DayRow[] | null>(null);
   const [rf, setRf] = useState<RunForm | null>(null);
   const [err, setErr] = useState("");
-  const today = iso(new Date());
+  const today = todayIso();
 
   useEffect(() => {
     supabase.rpc("am_i_admin").then((r) => setAdmin(Boolean(r.data)));

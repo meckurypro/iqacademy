@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Place from "../components/Place";
 import { supabase } from "../lib/supabase";
 import { Badge, Button, Card, Skeleton } from "../components/ui";
+import { fmtWhen } from "../lib/time";
 
 type H = { id: string; start_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; students_present: number; students_enrolled: number; auto_closed: boolean };
 const PAGE = 20;
@@ -23,7 +24,7 @@ export default function InstructorHistory() {
       {rows.map((r) => (
         <Card key={r.id} className="anim-fade flex items-center gap-3">
           <div className="min-w-0 flex-1"><p className="truncate font-medium">{r.course_title}</p>
-            <p className="truncate text-sm text-muted">{new Date(r.start_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })} · <Place centre={{ name: r.centre_name, city: r.centre_city, address: r.centre_address }} nameOnly /></p>
+            <p className="truncate text-sm text-muted">{fmtWhen(r.start_at, { weekday: "short", day: "numeric", month: "short" })} · <Place centre={{ name: r.centre_name, city: r.centre_city, address: r.centre_address }} nameOnly /></p>
             {r.auto_closed && <Badge tone="warn">Auto-closed</Badge>}</div>
           <div className="text-right"><p className="num text-xl font-semibold">{r.students_present}</p><p className="text-xs text-muted">of {r.students_enrolled}</p></div>
         </Card>))}

@@ -6,17 +6,19 @@ import { supabase } from "../lib/supabase";
 import { doorState, opensAt } from "../lib/checkin";
 import { Badge, Card, Skeleton } from "./ui";
 import Icon from "./Icon";
+import { fmtClock } from "../lib/time";
+import { addDays, dayStart, now as tNow, today } from "../lib/time";
 
 type S = { id: string; centre_id: string; centre_name: string; start_at: string; end_at: string; course_title: string; instructor_name: string | null; status: string; students_present: number | null; students_enrolled: number | null; is_emergency: boolean };
-const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const t = (d: string) => fmtClock(d);
 
 export default function DoorToday({ centreIds, showCentre }: { centreIds: string[]; showCentre?: boolean }) {
-  const [rows, setRows] = useState<S[]>(); const [now, setNow] = useState(Date.now());
+  const [rows, setRows] = useState<S[]>(); const [now, setNow] = useState(tNow());
   const key = centreIds.join(",");
-  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
+  useEffect(() => { const i = setInterval(() => setNow(tNow()), 30000); return () => clearInterval(i); }, []);
   useEffect(() => {
     if (!centreIds.length) { setRows([]); return; }
-    const d0 = new Date(); d0.setHours(0, 0, 0, 0); const d1 = new Date(d0.getTime() + 864e5);
+    const d0 = new Date(dayStart(today())), d1 = new Date(dayStart(addDays(today(), 1)));
     const load = () => supabase.from("v_session_details").select("id,centre_id,centre_name,start_at,end_at,course_title,instructor_name,status,students_present,students_enrolled,is_emergency")
       .in("centre_id", centreIds).gte("start_at", d0.toISOString()).lt("start_at", d1.toISOString()).neq("status", "cancelled").order("start_at").then((r) => setRows((r.data as S[]) ?? []));
     load();

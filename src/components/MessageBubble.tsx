@@ -8,7 +8,8 @@ import { friendly } from "../lib/supabase";
 import { copyText, downloadMedia, fileSize, shareMessage, type ClassMessage } from "../lib/messages";
 
 import Icon from "./Icon";
-const time = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+import { fmtClock } from "../lib/time";
+const time = (d: string) => fmtClock(d);
 const Act = ({ onClick, children, busy }: { onClick: () => void; children: ReactNode; busy?: boolean }) => (
   <button onClick={onClick} disabled={busy} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted transition hover:bg-sunken hover:text-ink active:scale-95 disabled:opacity-50">{children}</button>
 );

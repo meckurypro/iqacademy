@@ -10,6 +10,7 @@ import type { MyOffline } from "../lib/offline";
 import { place, placeSub } from "../lib/centre";
 
 import Icon from "../components/Icon";
+import { fmtDay, today } from "../lib/time";
 type Centre = { id: string; name: string; address: string | null; city: string | null };
 type Start = { centre_id: string; starts_on: string };
 type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; package_instalments: { number: number; label: string; amount: number; due_rule: string }[] };
@@ -26,10 +27,7 @@ const when = (i: { amount: number; label: string; due_rule: string }) => {
 };
 const later = (inst: { amount: number; label: string; due_rule: string }[]) => (inst.length > 1 ? `Then ${inst.slice(1).map(when).join(" · ")}` : undefined);
 
-const startsLabel = (iso: string) => {
-  const d = new Date(`${iso}T00:00:00`); const t = new Date(); t.setHours(0, 0, 0, 0);
-  return d <= t ? "Starts today" : `Starts ${d.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}`;
-};
+const startsLabel = (iso: string) => (iso <= today() ? "Starts today" : `Starts ${fmtDay(iso, { day: "numeric", month: "long", year: "numeric" })}`);
 
 function Option({ on, onClick, title, sub, note, right, locked, strong }: { on?: boolean; onClick: () => void; title: string; sub?: string | null; note?: string; right?: string; locked?: string; strong?: boolean }) {
   return (

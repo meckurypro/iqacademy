@@ -6,6 +6,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import Place from "./Place";
 import { Badge, Card } from "./ui";
+import { fmtClock, fmtWhen } from "../lib/time";
+import { now as tNow } from "../lib/time";
 
 type E = {
   id: string; start_at: string; end_at: string; status: string; course_title: string; lesson_title: string | null;
@@ -29,17 +31,17 @@ export default function EmergencyClassCard({ onCheckIn, refreshKey }: { onCheckI
   }, [session, load, refreshKey]);
 
   if (rows.length === 0) return null;
-  const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const t = (d: string) => fmtClock(d);
   return (
     <>
       {rows.map((s) => {
         const opens = Date.parse(s.start_at) - CHECKIN_OPENS_MIN * 60000;
-        const canCheckIn = Date.now() >= opens && !s.checked_in;
+        const canCheckIn = tNow() >= opens && !s.checked_in;
         return (
           <Card key={s.id} className="anim-rise space-y-2 ring-2 ring-warn/40">
             <div className="flex items-center justify-between gap-3"><p className="font-medium">Emergency class</p>{s.checked_in ? <Badge tone="ok">You're in</Badge> : <Badge tone="warn">{s.status === "in_progress" ? "Live" : "Coming up"}</Badge>}</div>
             <div><p className="text-lg font-semibold">{s.course_title}</p>{s.lesson_title && <p className="text-sm text-muted">{s.lesson_title}</p>}</div>
-            <p className="text-sm text-muted">{new Date(s.start_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} />{s.instructor_first_name ? ` · with ${s.instructor_first_name}` : ""}</p>
+            <p className="text-sm text-muted">{fmtWhen(s.start_at, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} />{s.instructor_first_name ? ` · with ${s.instructor_first_name}` : ""}</p>
             {s.note && <p className="text-sm">{s.note}</p>}
             {canCheckIn && <button onClick={onCheckIn} className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink shadow-card transition active:scale-[.98]">Check in</button>}
             {!s.checked_in && !canCheckIn && <p className="text-sm text-muted">Check-in opens {CHECKIN_OPENS_MIN} minutes before the start. Ask the centre for the class code.</p>}

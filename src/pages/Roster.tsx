@@ -7,9 +7,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import AssignSheet from "../components/AssignSheet";
 import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
-import { addDays, byStart, classes, clock, first, iso, label, locked, mondayOf, short, where, type P, type S, type Scope } from "../lib/roster";
+import { addDays, byStart, classes, clock, first, label, locked, mondayOf, short, where, type P, type S, type Scope } from "../lib/roster";
 
 import Icon from "../components/Icon";
+import { today as todayIso } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -34,7 +35,7 @@ export default function Roster() {
     setLoadErr("");
     const r = await supabase.from("v_session_details")
       .select("id,session_date,start_at,end_at,status,session_no,centre_id,centre_name,centre_city,centre_address,course_id,course_title,instructor_id,lesson_title,run_id")
-      .in("status", ["scheduled", "in_progress"]).gte("session_date", addDays(iso(new Date()), -1)).order("start_at").limit(1000);
+      .in("status", ["scheduled", "in_progress"]).gte("session_date", addDays(todayIso(), -1)).order("start_at").limit(1000);
     if (r.error) { setLoadErr(friendly(r.error)); setSes((o) => o ?? []); return; }
     setSes((r.data as S[]) ?? []);
   }, []);
@@ -63,7 +64,7 @@ export default function Roster() {
   // Start on a week that has classes in it
   useEffect(() => {
     if (week || !ses) return;
-    const today = iso(new Date()), thisWeek = mondayOf(today);
+    const today = todayIso(), thisWeek = mondayOf(today);
     const nextUp = ses.filter((s) => !locked(s)).sort(byStart)[0];
     const busy = ses.some((s) => s.session_date >= thisWeek && s.session_date < addDays(thisWeek, 7));
     setWeek(busy || !nextUp ? thisWeek : mondayOf(nextUp.session_date));
@@ -134,7 +135,7 @@ export default function Roster() {
         {view === "week" && !gaps && week && (
           <div className="flex items-center justify-between">
             <button aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken"><Icon name="chevronLeft" size={20} /></button>
-            <button onClick={() => setWeek(mondayOf(iso(new Date())))} className="text-sm font-medium"><span className="num">{short(week)} – {short(addDays(week, 6))}</span></button>
+            <button onClick={() => setWeek(mondayOf(todayIso()))} className="text-sm font-medium"><span className="num">{short(week)} – {short(addDays(week, 6))}</span></button>
             <button aria-label="Next week" onClick={() => setWeek(addDays(week, 7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken"><Icon name="chevronRight" size={20} /></button>
           </div>)}
 
@@ -142,7 +143,7 @@ export default function Roster() {
           ? <Card className="py-8 text-center text-sm text-muted">{gaps ? "Every upcoming class has an instructor." : "No classes this week."}</Card>
           : <div className="space-y-4">{days.map(([d, list]) => (
             <div key={d} className="space-y-2">
-              <p className="text-sm font-medium text-muted">{d === iso(new Date()) ? "Today · " : ""}{label(d)}</p>
+              <p className="text-sm font-medium text-muted">{d === todayIso() ? "Today · " : ""}{label(d)}</p>
               {list.map(row)}
             </div>))}</div>)}
 

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Avatar, Card, Field, Skeleton } from "../components/ui";
+import { monthStart, today } from "../lib/time";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const iso = (d: Date) => d.toISOString().slice(0, 10);
 export default function Instructors() {
-  const now = new Date();
-  const [from, setFrom] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1))); const [to, setTo] = useState(iso(now));
+  const [from, setFrom] = useState(monthStart(today())); const [to, setTo] = useState(today());
   const [rows, setRows] = useState<any[]>();
   useEffect(() => { setRows(undefined); supabase.rpc("admin_instructor_summary", { p_from: from, p_to: to }).then((r) => setRows(r.data ?? [])); }, [from, to]);
   return (

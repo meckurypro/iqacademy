@@ -6,6 +6,7 @@ import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 
 import Icon from "../components/Icon";
+import { fmtWhen } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const tone = (s: string) => (s === "succeeded" || s === "paid" ? "ok" : s === "failed" ? "bad" : s.includes("refund") || s === "processing" ? "warn" : "muted") as "ok" | "bad" | "warn" | "muted";
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
@@ -78,11 +79,11 @@ export default function Payments() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by student, centre or reference" className="h-12 w-full rounded-2xl bg-surface px-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" />
         {!rows ? <Skeleton className="h-20" /> : shown.length === 0 ? <Card className="text-center text-muted">No payments found.</Card> : shown.map((x) => (
           <Card key={x.id} onClick={() => open(x)} className="anim-fade flex items-center justify-between gap-3 py-3">
-            <div className="min-w-0"><p className="truncate font-medium">{name(x)}</p><p className="truncate text-sm text-muted">{x.centres && <Place centre={x.centres} nameOnly />} · {x.paid_at ? new Date(x.paid_at).toLocaleDateString() : ""} · {x.provider}</p></div>
+            <div className="min-w-0"><p className="truncate font-medium">{name(x)}</p><p className="truncate text-sm text-muted">{x.centres && <Place centre={x.centres} nameOnly />} · {x.paid_at ? fmtWhen(x.paid_at, { dateStyle: "short" }) : ""} · {x.provider}</p></div>
             <div className="text-right"><p className="num font-semibold">{naira(x.amount)}</p>{x.refunded_amount > 0 ? <Badge tone="warn">−{naira(x.refunded_amount)} refunded</Badge> : <Badge tone={tone(x.status)}>{x.status}</Badge>}</div></Card>))}</>}
 
       {tab === "refunds" && (!refs ? <Skeleton className="h-20" /> : refs.length === 0 ? <Card className="text-center text-muted">No refunds yet.</Card> : refs.map((r) => (
-        <Card key={r.id} className="space-y-1 py-3"><div className="flex items-start justify-between"><div><p className="font-medium">{name(r)}</p><p className="text-sm text-muted">{r.centres && <Place centre={r.centres} nameOnly />} · {new Date(r.created_at).toLocaleDateString()} · {r.method === "paystack" ? "Paystack" : "Manual"}</p></div>
+        <Card key={r.id} className="space-y-1 py-3"><div className="flex items-start justify-between"><div><p className="font-medium">{name(r)}</p><p className="text-sm text-muted">{r.centres && <Place centre={r.centres} nameOnly />} · {fmtWhen(r.created_at, { dateStyle: "short" })} · {r.method === "paystack" ? "Paystack" : "Manual"}</p></div>
           <div className="text-right"><p className="num font-semibold">{naira(r.amount)}</p><Badge tone={tone(r.status)}>{r.status}</Badge></div></div>
           {r.account_name && <p className="text-xs text-muted">{r.bank_name} ••{r.account_last4} · {r.account_name}</p>}
           {r.failure_reason && <p className="text-sm text-bad">{r.failure_reason}</p>}</Card>)))}

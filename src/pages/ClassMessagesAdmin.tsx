@@ -6,6 +6,7 @@ import { BUCKET, mergeMessages, type ClassMessage } from "../lib/messages";
 import { Button, Card, Err, Skeleton } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import MessageBubble from "../components/MessageBubble";
+import { fmtDay } from "../lib/time";
 
 const PAGE = 30;
 
@@ -52,7 +53,7 @@ export default function ClassMessagesAdmin() {
         : <div className="space-y-5">
             {msgs.map((m) => (
               <div key={m.id} className="space-y-1.5">
-                <p className="px-1 text-xs text-muted">{[m.course_title, m.centre_name, m.session_date && new Date(m.session_date + "T00:00").toLocaleDateString([], { day: "numeric", month: "short" })].filter(Boolean).join(" · ")}</p>
+                <p className="px-1 text-xs text-muted">{[m.course_title, m.centre_name, m.session_date && fmtDay(m.session_date, { day: "numeric", month: "short" })].filter(Boolean).join(" · ")}</p>
                 <MessageBubble m={m} footer={<div className="mt-1.5 flex justify-end"><Button variant="ghost" className="h-9 px-3 text-sm text-bad" onClick={() => remove(m)}>Delete</Button></div>} />
               </div>))}
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show older</Button>}

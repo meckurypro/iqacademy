@@ -5,6 +5,7 @@ import { Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui"
 import { useUserSearch } from "./Users";
 
 import Icon from "../components/Icon";
+import { fmtWhen } from "../lib/time";
 type Opt = { id: string; name: string };
 type Rule = { who: string; centres: string[]; courses: string[]; users: Opt[] };
 const WHO = [["students", "Students"], ["instructors", "Instructors"], ["centre_directors", "Centre directors"], ["coordinators", "Coordinators"], ["admins", "Admins"], ["users", "Specific people"], ["everyone", "Everyone"]];
@@ -155,7 +156,7 @@ function SentList() {
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
       {!rows ? <><Skeleton className="h-24" /><Skeleton className="h-24" /></> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">Nothing sent yet.</Card> : rows.map((b) => (
         <Card key={b.id} className="space-y-2">
-          <div><p className="font-medium">{b.title}</p><p className="text-sm text-muted">{new Date(b.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · sent to {people(b.recipient_count)}</p></div>
+          <div><p className="font-medium">{b.title}</p><p className="text-sm text-muted">{fmtWhen(b.created_at, { dateStyle: "medium", timeStyle: "short" })} · sent to {people(b.recipient_count)}</p></div>
           {b.body && <p className="line-clamp-3 whitespace-pre-line text-[15px]">{b.body}</p>}
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" className="h-10" onClick={() => { setErr(""); setEd({ id: b.id, title: b.title, body: b.body ?? "", n: b.recipient_count }); }}>Edit</Button>
