@@ -14,7 +14,7 @@ export default function CoordinatorHome() {
     const d0 = new Date(); d0.setHours(0, 0, 0, 0); const d1 = new Date(d0.getTime() + 864e5);
     supabase.from("centres").select("name,address").eq("id", centreId).single().then((r) => setCentre(r.data));
     supabase.from("v_session_details").select("id,start_at,end_at,course_title,teacher:instructor_name,status,students_present,students_enrolled").eq("centre_id", centreId).gte("start_at", d0.toISOString()).lt("start_at", d1.toISOString()).order("start_at").then((r) => setToday(r.data ?? []));
-    supabase.from("enrolments").select("id,status,cohorts(name),students(profiles(full_name,avatar_url))").eq("centre_id", centreId).in("status", ["active", "pending_payment"]).order("created_at", { ascending: false }).limit(100).then((r) => setRoster(r.data ?? []));
+    supabase.from("enrolments").select("id,status,students(profiles(full_name,avatar_url))").eq("centre_id", centreId).in("status", ["active", "pending_payment"]).order("created_at", { ascending: false }).limit(100).then((r) => setRoster(r.data ?? []));
   }, [centreId]);
   const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   if (!centre || !today || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-24" /></div>;
@@ -31,7 +31,7 @@ export default function CoordinatorHome() {
       <section className="space-y-2"><h2 className="text-lg">Students <span className="num text-muted">({roster.length})</span></h2>
         {roster.map((e) => { const p = e.students?.profiles; return (
           <Card key={e.id} className="flex items-center gap-3 py-3"><Avatar name={p?.full_name ?? "?"} url={p?.avatar_url} size={36} />
-            <div className="min-w-0 flex-1"><p className="truncate font-medium">{p?.full_name}</p><p className="truncate text-sm text-muted">{e.cohorts?.name}</p></div>
+            <div className="min-w-0 flex-1"><p className="truncate font-medium">{p?.full_name}</p></div>
             <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</section>
     </div>
   );

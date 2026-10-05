@@ -36,11 +36,6 @@ export function BusyOverlay({ label }: { label: string }) {
       className="busy-overlay anim-fade fixed inset-0 z-[100] grid place-items-center bg-black/65 backdrop-blur-md">
       <div className="flex flex-col items-center gap-7">
         <div className="relative grid h-36 w-36 place-items-center">
-          <svg className="absolute inset-0" viewBox="0 0 144 144" fill="none" strokeLinecap="round" aria-hidden="true">
-            <circle className="busy-arc a" cx="72" cy="72" r="66" stroke="rgb(255 197 107)" strokeWidth="4" strokeDasharray="150 265" />
-            <circle className="busy-arc b" cx="72" cy="72" r="56" stroke="rgb(255 197 107 / .7)" strokeWidth="3.5" strokeDasharray="100 252" />
-            <circle className="busy-arc c" cx="72" cy="72" r="46" stroke="rgb(255 197 107 / .45)" strokeWidth="3" strokeDasharray="60 229" />
-          </svg>
           <img src="/icon-192.png" alt="" className="busy-icon h-[72px] w-[72px] rounded-[20px]" />
         </div>
         <p className="text-lg font-medium tracking-tight text-white">{label}</p>

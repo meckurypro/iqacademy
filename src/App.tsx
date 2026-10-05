@@ -25,9 +25,11 @@ import CoordinatorHome from "./pages/CoordinatorHome";
 import DirectorHome from "./pages/DirectorHome";
 import Manage from "./pages/Manage";
 import Centres from "./pages/Centres";
-import Cohorts from "./pages/Cohorts";
+import Schedule from "./pages/Schedule";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
+import OfflinePayments from "./pages/OfflinePayments";
+import OfflinePay from "./pages/OfflinePay";
 import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
@@ -69,7 +71,7 @@ function UnreadDot() {
 
 const NAV: Record<string, [string, string, string][]> = {
   student: [["/", "Home", "🏠"], ["/messages", "Messages", "💬"]],
-  instructor: [["/", "Today", "📅"], ["/history", "History", "🕘"], ["/messages", "Messages", "💬"]],
+  instructor: [["/", "Today", "📅"], ["/schedule", "Schedule", "🗓️"], ["/history", "History", "🕘"], ["/messages", "Messages", "💬"]],
   admin: [["/", "Overview", "📊"], ["/users", "Users", "👥"], ["/announce", "Announce", "📣"], ["/manage", "Manage", "⚙️"]],
 };
 NAV.super_admin = NAV.admin;
@@ -153,12 +155,14 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />
-        <Route path="/cohorts" element={<Cohorts />} />
+        <Route path="/schedule" element={role === "student" ? <Navigate to="/" replace /> : <Schedule />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/prices" element={<Prices />} />
         <Route path="/courses" element={<CourseBuilder />} />
         <Route path="/courses/:id" element={<CourseBuilder />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/offline-payments" element={<OfflinePayments />} />
+        <Route path="/pay/offline/:id" element={<OfflinePay />} />
         <Route path="/team" element={<Team />} />
         <Route path="/team/:centreId" element={<Team />} />
         <Route path="/instructors" element={<Instructors />} />

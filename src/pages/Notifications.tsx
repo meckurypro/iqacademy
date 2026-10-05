@@ -1,10 +1,11 @@
 // src/pages/Notifications.tsx
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Avatar, Button, Card, Skeleton, cx } from "../components/ui";
 
-type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null };
+type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string };
 const PAGE = 30;
 
 const when = (d: string) => {
@@ -34,7 +35,7 @@ export default function Notifications() {
   const [more, setMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchPage = useCallback((before?: string) => {
-    let q = supabase.from("notifications").select("id,title,body,read_at,created_at,sender_label").order("created_at", { ascending: false }).limit(PAGE + 1);
+    let q = supabase.from("notifications").select("id,title,body,read_at,created_at,sender_label,type").order("created_at", { ascending: false }).limit(PAGE + 1);
     if (before) q = q.lt("created_at", before);
     return q.then((r) => (r.data as Note[]) ?? []);
   }, []);
@@ -77,6 +78,7 @@ export default function Notifications() {
                   <span className="flex items-center gap-2 text-xs text-muted">{fresh.has(n.id) && <span className="h-2 w-2 rounded-full bg-accent" aria-label="New" />}{when(n.created_at)}</span>
                 </div>
                 <p className="font-medium leading-snug">{n.title}</p>
+                {n.type.startsWith("run_") && n.type !== "run_cancelled" && <Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link>}
                 {n.body && <p className="select-text whitespace-pre-wrap break-words text-sm leading-relaxed text-muted">{n.body}</p>}
               </Card>))}
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show older</Button>}
