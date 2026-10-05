@@ -1,6 +1,5 @@
 // src/pages/Messages.tsx — a student's class chat. Receive-only: no composer, no delete.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Button, Card, Skeleton } from "../components/ui";
@@ -60,11 +59,9 @@ export default function Messages() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-2xl">Messages</h1><p className="text-sm text-muted">From your instructors, for the classes you attend. You can't reply here.</p></div>
+      <div><h1 className="text-2xl">Messages</h1><p className="text-sm text-muted">From your instructors. You can't reply here.</p></div>
       {msgs === null ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-32" /></div>
-        : msgs.length === 0 ? <Card className="space-y-2 py-10 text-center"><p className="text-3xl" aria-hidden="true">💬</p><p className="font-medium">No messages yet</p>
-            <p className="text-sm text-muted">When your instructor shares a prompt or an image during class, it shows up here. Check in to a class to receive them.</p>
-            <Link to="/" className="inline-block pt-1 text-sm font-medium text-accent">Go to Home</Link></Card>
+        : msgs.length === 0 ? <Card className="py-10 text-center text-muted">No messages yet</Card>
         : <div className="space-y-4">
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
             {msgs.map((m, i) => {
