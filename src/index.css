@@ -3,15 +3,15 @@
 :root, [data-theme="light"] {
   --bg: 250 249 246; --surface: 255 255 255; --sunken: 243 240 234; --ink: 22 19 13; --muted: 107 103 94;
   --line: 232 228 220; --accent: 161 98 7; --accent-ink: 255 255 255; --ok: 22 163 74; --warn: 217 119 6; --bad: 220 38 38;
-  /* Class countdown: a dark "night" card in both themes. Light text and amber digits on a deep warm neutral keep every
-     pair above WCAG AAA (7:1 or better for text, 8:1 or better for the digits), and amber stays an accent instead of
-     a whole slab. Green means the door is open or the class is live. */
-  --cd-bg: 28 23 16; --cd-ink: 250 249 246; --cd-sub: 214 207 194; --cd-num: 255 197 107; --cd-label: 184 176 160; --cd-go: 74 222 128;
+  /* Class countdown, light theme: a warm cream card with deep amber-brown digits (text 7:1 or better, labels and green AA). Green means
+     the door is open or the class is live. */
+  --cd-bg: 255 247 230; --cd-ink: 28 23 16; --cd-sub: 87 78 62; --cd-num: 120 53 15; --cd-label: 107 92 66; --cd-go: 21 128 61;
 }
 [data-theme="dark"] {
   --bg: 13 11 8; --surface: 23 20 16; --sunken: 33 29 23; --ink: 242 240 248; --muted: 156 151 140;
   --line: 46 41 33; --accent: 255 197 107; --accent-ink: 13 11 8; --ok: 74 222 128; --warn: 251 191 36; --bad: 248 113 113;
-  --cd-bg: 36 31 24;   /* a step lighter than the page so the card still lifts off it */
+  /* Class countdown, dark theme: warm dark card (a step lighter than the page) with light text and amber digits (AAA) */
+  --cd-bg: 36 31 24; --cd-ink: 250 249 246; --cd-sub: 214 207 194; --cd-num: 255 197 107; --cd-label: 184 176 160; --cd-go: 74 222 128;
 }
 html { color-scheme: light dark; -webkit-tap-highlight-color: transparent; }
 body { @apply bg-bg text-ink font-sans antialiased; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
