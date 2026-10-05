@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Place from "../components/Place";
 import RunReminder from "../components/RunReminder";
+import ClassCountdown from "../components/ClassCountdown";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
@@ -27,6 +28,7 @@ export default function InstructorHome() {
     <div className="space-y-6">
       <h1 className="text-2xl">Hi {name.split(" ")[0]}</h1>
       <RunReminder />
+      <ClassCountdown />
       <Link to="/emergency"><Card onClick={() => {}} className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sunken text-accent"><Icon name="alert" size={20} /></span><div className="min-w-0 flex-1"><p className="font-medium">Emergency class</p><p className="text-sm text-muted">Start an extra class at a centre</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Classes taught" value={d.sessions_taught ?? 0} sub="this month" />

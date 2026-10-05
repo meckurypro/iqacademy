@@ -117,10 +117,24 @@ A person can hold more than one role. The highest one decides their home screen 
 ### The student clock
 A student's clock starts on the day of the first class of their first course, not when they pay. That date drives access, visibility, absences, progress and reminders.
 
-### Check-in
-The centre's **coordinator or director** (or an admin) opens check-in on the class screen. That is possible from 30 minutes before the class starts until it ends (`checkin_opens_minutes_before`), and opening it starts the class. They show a short code and QR. The code stops working when the class ends.
+### The class clock
+Classes run themselves. Nobody presses Start or End. A scheduler function, `private.class_clock_tick()`, runs every minute from `pg_cron` (job `iqa-class-clock`, migration 45) and does four things from each class's own start and end times:
 
-Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand. Ending a class can mark absentees.
+| When | What happens |
+| --- | --- |
+| 60 minutes before the start (`class_reminder_minutes_before`) | Students on the class, its instructor and the centre's coordinators and directors each get one notification. Sent once (`class_sessions.reminder_sent_at`). |
+| 30 minutes before the start (`checkin_opens_minutes_before`) | The check-in code is created automatically. It expires at the class's end time. |
+| At the start | The class becomes `in_progress`. |
+| At the end | The class becomes `completed`, the code is deleted, absentees are logged and the head count is refreshed. |
+
+It works from timestamps rather than exact minutes, so a late or missed run catches up on the next one, and every step is safe to repeat. It only auto-completes classes that ended within `class_clock_catchup_hours` (default 12), so it never rewrites old attendance. A failure on one class is logged as a warning and doesn't stop the others. `check_in()` still checks the time window itself, so a late run can never let someone in outside it.
+
+**Countdown.** Students, instructors, coordinators and directors see a countdown card on their home screen (`ClassCountdown`, `lib/classClock.ts`). It shows days and hours when the class is more than a day away, then hours, minutes and seconds. While check-in is open the door shows as open. During a class it counts down to the end, and the moment the class ends it starts counting to the next one. It reads the server-corrected clock and the class's timestamps (never a decrementing counter), so a phone that sleeps is right the moment it wakes, and the card flips on time even if the scheduler is a few seconds late. `my_class_clock()` decides which classes belong to the caller, using the same roster rule as absentee logging.
+
+### Check-in
+The class code and QR appear on the class screen for the centre's **coordinator or director** (or an admin) when check-in opens, with a full-screen view for showing at the door. There is nothing to press, and no manual Start or End button. The code stops working when the class ends. "New code" is still there if a code needs replacing.
+
+Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand.
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
@@ -138,6 +152,8 @@ Instructors can message a class only **while it is in progress**, and only stude
 - A withdrawal request creates a payout for admin approval. Admins process payouts through the `process-payouts` Edge Function, and bank accounts are verified with `paystack-create-recipient`.
 
 ### Reminders
+One hour before each class, the class clock (above) reminds the class's students, its instructor and the centre's staff. Notifications appear in the bell and the notifications page. Other reminders run daily from `iqa-class-reminders` and `iqa-run-reminders`.
+
 When a course is about to hold its last class with nothing scheduled after it, admins and the instructors who teach it get a reminder to schedule the next run.
 
 ### Public landing page
@@ -223,7 +239,7 @@ supabase/migrations/    SQL for the schema changes from migration 19 onward
 ## Backend: database, functions and storage
 
 ### Migrations
-`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
+`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster, door check-in, time calibration, the class clock). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
 
 The base schema (migrations before 19) and the Edge Function source are not in this repository. According to the earlier README they live in the `iq-academy-db` project. Apply migrations to a project that already has that base schema.
 
@@ -299,6 +315,8 @@ If the two required variables are missing, the app shows a setup message instead
 
 ## Known limits
 
+- **Reminders are in-app only.** They appear in the notification bell and page, so someone who never opens the app won't see them. Phone push (Web Push) needs a service worker and a send function and isn't built yet. The reminders are ordinary rows in `notifications`, so a push sender can be added without changing how they are created.
+- **The class clock needs `pg_cron`.** If the extension is off, migration 45 prints a notice instead of scheduling the job. Check `select * from cron.job where jobname = 'iqa-class-clock'`.
 - **Staff accounts for new people:** coordinators can't yet register a student on their behalf; students create their own account (the invite QR makes that quick).
 - **Backend lives elsewhere:** the base schema and Edge Function source are outside this repo, so a fresh Supabase project can't be fully set up from this repository alone.
 - **No automated tests** are included; `npm run build` type-checks the code.

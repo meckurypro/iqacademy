@@ -11,6 +11,7 @@ import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
 import MakeupCard from "../components/MakeupCard";
 import EmergencyClassCard from "../components/EmergencyClassCard";
+import ClassCountdown from "../components/ClassCountdown";
 import CheckInVerdict from "../components/CheckInVerdict";
 import type { Verdict } from "../lib/checkin";
 import SoloCourses from "../components/SoloCourses";
@@ -18,17 +19,16 @@ import Place from "../components/Place";
 import type { MyOffline } from "../lib/offline";
 
 import Icon from "../components/Icon";
-import { fmtClock, fmtDay, fmtWhen, now, today } from "../lib/time";
+import { fmtDay, fmtWhen, today } from "../lib/time";
 type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
 type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; packages: { name: string } | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
-type Sess = { id: string; start_at: string; end_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; room: string | null };
 type Ref = { id: string; amount: number; status: string; created_at: string };
 type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; title: string; summary: string | null; state: "attended" | "missed" | "upcoming" };
 type Prog = { enrolment_id: string; course_id: string; course_title: string; sessions_attended: number; sessions_needed: number; course_status: string };
 
 export default function StudentHome() {
   const { name } = useAuth(); const { run, confirm } = useFeedback();
-  const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
+  const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
   const [claims, setClaims] = useState<MyOffline[]>([]); const nav = useNavigate();
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
   const [scan, setScan] = useState(false); const [err, setErr] = useState(""); const [verdict, setVerdict] = useState<Verdict | null>(null);
@@ -36,13 +36,12 @@ export default function StudentHome() {
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
     supabase.rpc("my_offline_payments").then((r) => setClaims((r.data as MyOffline[]) ?? []));
-    const [e, s, p, ls] = await Promise.all([
+    const [e, p, ls] = await Promise.all([
       supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,packages(name),enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
-      supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date(now()).toISOString()).order("start_at").limit(1),
       supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
       supabase.from("v_lesson_progress").select("enrolment_id,course_id,lesson_no,title,summary,state").eq("enrolment_status", "active").order("lesson_no"),
     ]);
-    setEnr((e.data as unknown as Enr[]) ?? []); setNext((s.data?.[0] as Sess) ?? null); setProg((p.data as Prog[]) ?? []); setLessons((ls.data as Lesson[]) ?? []);
+    setEnr((e.data as unknown as Enr[]) ?? []); setProg((p.data as Prog[]) ?? []); setLessons((ls.data as Lesson[]) ?? []);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -98,7 +97,6 @@ export default function StudentHome() {
   const owing = enr.flatMap((e) => e.enrolment_instalments.filter((i) => i.status === "pending").sort((a, b) => a.number - b.number).slice(0, 1).map((i) => ({ e, i })));
   const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => fmtDay(iso, o);
   const todayIso = today();
-  const t = (d: string) => fmtClock(d);
 
   return (
     <div className="space-y-5">
@@ -141,13 +139,7 @@ export default function StudentHome() {
 
       <EmergencyClassCard onCheckIn={() => setOpen(true)} refreshKey={verdict} />
 
-      {next && (
-        <Card className="anim-rise space-y-3 bg-accent text-accent-ink ring-0">
-          <p className="text-sm font-medium opacity-95">Next class · {fmtWhen(next.start_at, { weekday: "long", day: "numeric", month: "short" })}</p>
-          <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-95">{next.lesson_title}</p>}</div>
-          <p className="text-sm opacity-95">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
-          <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-accent-ink font-semibold text-accent shadow-card transition active:scale-[.98]">Check in</button>
-        </Card>)}
+      <ClassCountdown student onCheckIn={() => setOpen(true)} />
 
       {prog.length > 0 && (
         <section className="space-y-2"><h2 className="text-lg">Your progress</h2>

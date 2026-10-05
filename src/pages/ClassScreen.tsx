@@ -45,7 +45,9 @@ export default function ClassScreen() {
   }, [id]);
   useEffect(() => {
     load(); loadSent();
-    const ch = supabase.channel(`class-${id}`).on("postgres_changes", { event: "*", schema: "public", table: "attendance", filter: `session_id=eq.${id}` }, load).subscribe();
+    const ch = supabase.channel(`class-${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance", filter: `session_id=eq.${id}` }, load)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "class_sessions", filter: `id=eq.${id}` }, load).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [id, load, loadSent]);
 
@@ -62,6 +64,22 @@ export default function ClassScreen() {
     return () => { supabase.removeChannel(ch); };
   }, [isDoor, id, loadDenied]);
 
+  // The class code is made by the class clock 30 minutes before the class and removed when it ends. Door staff just read it.
+  // If the clock hasn't run yet (it runs once a minute), ask for it directly rather than make staff wait.
+  const door0 = s ? doorState(s.start_at, s.end_at, now) : "early";
+  const status0 = s?.status;
+  useEffect(() => {
+    if (!isDoor || door0 !== "open" || status0 === "completed" || status0 === "cancelled") { setCode(""); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("session_checkin_tokens").select("token").eq("session_id", id!).maybeSingle();
+      if (data?.token) { if (alive) setCode(data.token as string); return; }
+      const r = await supabase.rpc("generate_checkin_token", { p_session_id: id, p_rotate: false });
+      if (alive && !r.error) setCode(r.data as string);
+    })();
+    return () => { alive = false; };
+  }, [isDoor, door0, status0, id]);
+
   const act = async (label: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void, success?: string) => {
     setErr("");
     const r = await run(label, async () => { const { error } = await fn(); if (error) throw error; await load(); }, { success, quiet: true });
@@ -70,16 +88,12 @@ export default function ClassScreen() {
   };
   const newCode = async (rotate = false) => {
     setErr("");
-    const r = await run(rotate ? "Making a new code…" : "Opening check-in…", async () => {
+    const r = await run("Making a new code…", async () => {
       const { data, error } = await supabase.rpc("generate_checkin_token", { p_session_id: id, p_rotate: rotate }); if (error) throw error;
       await load(); return data as string;
     }, { quiet: true });
     if (!r.ok) return setErr(r.message);
-    setCode(r.data); setShowCode(true);
-  };
-  const endClass = async () => {
-    if (await confirm({ title: "End this class?", message: "Students who haven't checked in are marked absent.", confirmLabel: "End class" }))
-      act("Ending class…", () => supabase.rpc("complete_session", { p_session_id: id, p_mark_absentees: true }), undefined, "Class ended");
+    setCode(r.data);
   };
   const cancelClass = async () => {
     if (await confirm({ title: "Cancel this class?", message: "Students are told it's cancelled.", confirmLabel: "Cancel class", cancelLabel: "Keep class", danger: true }))
@@ -117,14 +131,16 @@ export default function ClassScreen() {
 
       {!closed && isDoor && <Card className="space-y-3">
         <div className="flex items-center justify-between gap-3"><p className="font-medium">Check-in</p><Badge tone={door === "open" ? "ok" : "muted"}>{door === "open" ? "Open" : door === "early" ? "Not yet" : "Ended"}</Badge></div>
-        <p className="text-sm text-muted">{door === "early" ? `You can open check-in from ${opensAt(s.start_at)}, 30 minutes before the class starts.` : door === "ended" ? "This class has ended, so check-in is closed. End the class to finish up." : "Show the code or QR to students as they arrive. The class starts when you open check-in."}</p>
-        <div className="grid grid-cols-2 gap-3">
-          <Button disabled={door !== "open"} onClick={() => newCode(false)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Show class code</span></Button>
-          <Button variant="secondary" onClick={endClass}>End class</Button></div>
+        {door === "early" && <p className="text-sm text-muted">The class code is created automatically at {opensAt(s.start_at)}, 30 minutes before the class. Nothing to press.</p>}
+        {door === "ended" && <p className="text-sm text-muted">This class has ended, so check-in is closed. The class closes by itself and absentees are logged.</p>}
+        {door === "open" && (code ? <>
+          <button onClick={() => setShowCode(true)} className="mx-auto block w-fit rounded-2xl bg-white p-3 transition active:scale-[.98]" aria-label="Show the class code full screen"><QRCodeSVG value={code} size={176} /></button>
+          <p className="num text-center text-3xl font-semibold tracking-[.25em]">{code}</p>
+          <p className="text-center text-sm text-muted">Students scan the QR or type this code. It stops working when the class ends.</p>
+          <div className="grid grid-cols-2 gap-3"><Button onClick={() => setShowCode(true)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Full screen</span></Button><Button variant="secondary" onClick={() => newCode(true)}>New code</Button></div>
+        </> : <p className="text-sm text-muted">Getting the class code…</p>)}
       </Card>}
-      {!closed && !isDoor && isTeacher && <div className="space-y-2">
-        <Card className="text-sm text-muted">{s.status === "in_progress" ? "Check-in is open. Students appear below as they arrive." : "The centre opens check-in 30 minutes before the class. Students appear below as they arrive."}</Card>
-        <Button variant="secondary" className="w-full" onClick={endClass}>End class</Button></div>}
+      {!closed && !isDoor && isTeacher && <Card className="text-sm text-muted">{door === "early" ? "The centre's check-in code appears 30 minutes before the class. The class starts and ends by itself." : "Check-in is open. Students appear below as they arrive. The class ends by itself at its scheduled time."}</Card>}
       <Err>{err}</Err>
 
       <section className="space-y-2"><h2 className="text-lg">Students</h2>
@@ -144,17 +160,16 @@ export default function ClassScreen() {
       {canSend && (s.status === "in_progress" || sent.length > 0 || s.status === "scheduled") && <section className="space-y-3">
         <h2 className="text-lg">Messages</h2>
         {s.status === "in_progress" ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
-          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. The class starts when the centre opens check-in.</Card>}
+          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. It starts by itself at {t(s.start_at)}.</Card>}
         {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
       </section>}
       {!closed && (isTeacher || roles.some((r) => r.role === "admin" || r.role === "super_admin")) && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
 
       <Sheet open={showCode} onClose={() => setShowCode(false)} title="Class code">
         <div className="space-y-4 text-center">
-          <div className="mx-auto w-fit rounded-2xl bg-white p-4"><QRCodeSVG value={code} size={200} /></div>
+          <div className="mx-auto w-fit rounded-2xl bg-white p-4"><QRCodeSVG value={code} size={260} /></div>
           <p className="num text-4xl font-semibold tracking-[.25em]">{code}</p>
           <p className="text-sm text-muted">Students scan the QR or type this code in their app. It stops working when the class ends.</p>
-          <Button variant="secondary" className="w-full" onClick={() => newCode(true)}>Make a new code</Button>
         </div>
       </Sheet>
 
