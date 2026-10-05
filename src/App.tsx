@@ -44,6 +44,7 @@ import InstructorMessages from "./pages/InstructorMessages";
 import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
 import { useUnreadMessages } from "./lib/messages";
 
+import Icon, { type IconName } from "./components/Icon";
 // The bell only shows the unread count; the list itself lives on the /notifications page.
 function Bell() {
   const { session } = useAuth();
@@ -62,7 +63,7 @@ function Bell() {
   return (
     <NavLink to="/notifications" aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
       className={({ isActive }) => `relative grid h-10 w-10 place-items-center rounded-full hover:bg-sunken ${isActive ? "bg-sunken" : ""}`}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0" /></svg>
+      <Icon name="bell" size={22} />
       {count > 0 && <span className="anim-pop absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{count > 99 ? "99+" : count}</span>}
     </NavLink>
   );
@@ -73,10 +74,10 @@ function UnreadDot() {
   return n > 0 ? <span className="anim-pop absolute -right-2.5 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{n > 99 ? "99+" : n}</span> : null;
 }
 
-const NAV: Record<string, [string, string, string][]> = {
-  student: [["/", "Home", "🏠"], ["/messages", "Messages", "💬"]],
-  instructor: [["/", "Today", "📅"], ["/my-classes", "My classes", "📋"], ["/schedule", "Schedule", "🗓️"], ["/history", "History", "🕘"], ["/messages", "Messages", "💬"]],
-  admin: [["/", "Overview", "📊"], ["/users", "Users", "👥"], ["/announce", "Announce", "📣"], ["/manage", "Manage", "⚙️"]],
+const NAV: Record<string, [string, string, IconName][]> = {
+  student: [["/", "Home", "home"], ["/messages", "Messages", "messages"]],
+  instructor: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"]],
+  admin: [["/", "Overview", "overview"], ["/users", "Users", "users"], ["/announce", "Announce", "announce"], ["/manage", "Manage", "manage"]],
 };
 NAV.super_admin = NAV.admin;
 
@@ -87,8 +88,8 @@ function TabBar({ role }: { role: string }) {
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl">
         {items.map(([to, label, icon]) => (
-          <NavLink key={to} to={to} end className={({ isActive }) => `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs transition ${isActive ? "font-semibold text-accent" : "text-muted"}`}>
-            <span className="relative text-lg leading-none">{icon}{role === "student" && to === "/messages" && <UnreadDot />}</span>{label}
+          <NavLink key={to} to={to} end className={({ isActive }) => `flex flex-1 flex-col items-center gap-1 py-2.5 text-xs transition ${isActive ? "font-semibold text-accent" : "text-muted"}`}>
+            {({ isActive }) => <><span className="relative grid h-6 place-items-center"><Icon name={icon} size={24} solid={isActive} />{role === "student" && to === "/messages" && <UnreadDot />}</span>{label}</>}
           </NavLink>))}
       </div>
     </nav>

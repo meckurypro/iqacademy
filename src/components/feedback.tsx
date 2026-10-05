@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { Button, cx } from "./ui";
 import { friendly } from "../lib/supabase";
 
+import Icon from "./Icon";
 const MIN_VISIBLE_MS = 650; // even a very fast save stays on screen long enough to be seen
 
 type Tone = "ok" | "bad";
@@ -126,7 +127,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => (
             <div key={t.id} role="status" className={cx("anim-drop pointer-events-auto max-w-sm rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl ring-1",
               t.tone === "bad" ? "bg-bad text-white ring-bad" : "bg-surface text-ink ring-line")}>
-              {t.tone === "ok" && <span className="mr-2 text-ok" aria-hidden="true">✓</span>}{t.msg}
+              {t.tone === "ok" && <Icon name="check" size={16} className="mr-1.5 inline text-ok align-[-3px]" />}{t.msg}
             </div>))}
         </div>, document.body)}
     </FeedbackCtx.Provider>

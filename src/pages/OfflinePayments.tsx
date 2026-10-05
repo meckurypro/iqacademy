@@ -7,6 +7,7 @@ import { place } from "../lib/centre";
 import { receiptUrl, type OfflineDetails, type Receipt } from "../lib/offline";
 import { Avatar, Badge, Button, Card, Field, Sheet, Skeleton, cx } from "../components/ui";
 
+import Icon from "../components/Icon";
 // Admin: offline payments waiting for review. Approve once the money has arrived (the student is notified and their
 // classes unlock), decline with a reason (optionally purging the registration), or simply leave it until the money shows up.
 type Row = {
@@ -106,7 +107,7 @@ export default function OfflinePayments() {
 
       {loadErr && <p className="rounded-xl bg-bad/10 px-3 py-2 text-sm text-bad">{loadErr}</p>}
       {!rows ? <><Skeleton className="h-36" /><Skeleton className="h-36" /></> : rows.length === 0 ? (
-        <Card className="space-y-1 p-8 text-center"><p className="text-3xl">{tab === "open" ? "✅" : "🗂️"}</p><p className="font-medium">{tab === "open" ? "Nothing to review" : "Nothing handled in the last 30 days"}</p>
+        <Card className="space-y-1 p-8 text-center"><Icon name={tab === "open" ? "checkCircle" : "inbox"} size={36} className="mx-auto mb-1 text-muted" /><p className="font-medium">{tab === "open" ? "Nothing to review" : "Nothing handled in the last 30 days"}</p>
           {tab === "open" && <p className="text-sm text-muted">New offline payments will show up here.</p>}</Card>
       ) : rows.map((r) => (
         <Card key={r.id} className="space-y-3">
@@ -139,7 +140,7 @@ export default function OfflinePayments() {
       <Sheet open={!!view} onClose={() => setView(null)} title={view ? `${view.row.student_name} · ${naira(view.row.amount)}` : ""}>
         {view && <div className="space-y-3">
           {view.url ? (view.row.receipt?.mime.startsWith("image/") ? <a href={view.url} target="_blank" rel="noreferrer"><img src={view.url} alt="Receipt" className="max-h-[60vh] w-full rounded-xl bg-sunken object-contain" /></a>
-            : <a href={view.url} target="_blank" rel="noreferrer" className="block rounded-xl bg-sunken px-4 py-4 text-accent">📄 Open {view.row.receipt?.name}</a>) : <p className="text-muted">Couldn't load the receipt.</p>}
+            : <a href={view.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-4 text-accent"><Icon name="file" size={18} className="shrink-0" /><span className="min-w-0 truncate">Open {view.row.receipt?.name}</span></a>) : <p className="text-muted">Couldn't load the receipt.</p>}
           <p className="text-sm text-muted">Reference <span className="num font-medium text-ink">{view.row.reference}</span>. Check it against your bank alert or cash book before approving.</p>
           {view.row.status === "pending" && <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={() => { const r = view.row; setView(null); setDecl({ row: r, reason: "", purge: r.enrolment_status === "pending_payment" }); }}>Decline</Button>

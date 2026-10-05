@@ -7,6 +7,7 @@ import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
 import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Centre team: directors (added by admin) and coordinators (added by the director or admin).
 // Admins reach this from a centre's card on the Centres page, so a centre is always chosen up front.
@@ -60,7 +61,7 @@ function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }
 
   return (
     <div className="space-y-5">
-      {isAdmin && <Link to="/centres" className="inline-block text-sm text-muted transition hover:text-ink">← Centres</Link>}
+      {isAdmin && <Link to="/centres" className="inline-block text-sm text-muted transition hover:text-ink"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Centres</span></Link>}
       <div><h1 className="text-2xl">{isAdmin ? "Centre team" : "My team"}</h1>{centreName && (isAdmin || myCentres.length <= 1) && <p className="text-muted">{centreObj && <Place centre={centreObj} nameOnly />}</p>}</div>
       {!isAdmin && myCentres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none">{(centres ?? []).map((c) => <option key={c.id} value={c.id}>{placeLabel(c)}</option>)}</select>}
       {!cid ? <Card className="text-center text-muted">You're not assigned to a centre yet.</Card> : <>

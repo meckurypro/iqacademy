@@ -3,12 +3,8 @@ import { useId, useState, type InputHTMLAttributes } from "react";
 import { cx } from "./ui";
 import { RULES, generatePassword, strength } from "../lib/password";
 
-const Eye = ({ off }: { off?: boolean }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />
-    {off && <path d="M4 4l16 16" />}
-  </svg>
-);
+import Icon from "./Icon";
+const Eye = ({ off }: { off?: boolean }) => <Icon name={off ? "eyeOff" : "eye"} size={20} />;
 
 type PwProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "onChange" | "value"> & {
   label: string; value: string; onValue: (v: string) => void;
@@ -58,7 +54,7 @@ export function PasswordChecklist({ password }: { password: string }) {
         const ok = r.test(password);
         return (
           <li key={r.id} className={cx("flex items-center gap-2 text-[13px] transition-colors", ok ? "text-ok" : "text-muted")}>
-            <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] leading-none transition", ok ? "anim-pop bg-ok text-white" : "ring-1 ring-inset ring-line")} aria-hidden="true">{ok ? "✓" : ""}</span>
+            <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] leading-none transition", ok ? "anim-pop bg-ok text-white" : "ring-1 ring-inset ring-line")} aria-hidden="true">{ok && <Icon name="check" size={10} strokeWidth={3.5} />}</span>
             {r.label}<span className="sr-only">{ok ? " (done)" : " (not yet)"}</span>
           </li>);
       })}
@@ -79,8 +75,8 @@ export function PasswordCreator({ label = "Password", value, onValue, onGenerate
       <StrengthMeter password={value} />
       <PasswordChecklist password={value} />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={suggest} className="rounded-xl bg-accent/10 px-3.5 py-2 text-sm font-medium text-accent transition active:scale-95">✨ Suggest a strong password</button>
-        {generated && value && <button type="button" onClick={copy} className="rounded-xl bg-sunken px-3.5 py-2 text-sm font-medium transition active:scale-95">{copied ? "Copied ✓" : "Copy"}</button>}
+        <button type="button" onClick={suggest} className="inline-flex items-center gap-2 rounded-xl bg-accent/10 px-3.5 py-2 text-sm font-medium text-accent transition active:scale-95"><Icon name="key" size={16} />Suggest a strong password</button>
+        {generated && value && <button type="button" onClick={copy} className="rounded-xl bg-sunken px-3.5 py-2 text-sm font-medium transition active:scale-95">{copied ? <span className="inline-flex items-center gap-1.5"><Icon name="check" size={15} />Copied</span> : "Copy"}</button>}
       </div>
       {generated && <p className="text-xs text-muted">Save it in your password manager or copy it now. You'll need it to sign in.</p>}
     </div>
@@ -90,5 +86,5 @@ export function PasswordCreator({ label = "Password", value, onValue, onGenerate
 export function MatchHint({ a, b }: { a: string; b: string }) {
   if (!b) return null;
   const ok = a === b;
-  return <p className={cx("-mt-1 text-xs", ok ? "text-ok" : "text-bad")} aria-live="polite">{ok ? "✓ Passwords match" : "Passwords don't match yet"}</p>;
+  return <p className={cx("-mt-1 text-xs", ok ? "text-ok" : "text-bad")} aria-live="polite">{ok ? <span className="inline-flex items-center gap-1"><Icon name="check" size={14} />Passwords match</span> : "Passwords don't match yet"}</p>;
 }

@@ -8,6 +8,7 @@ import { Badge, Button, Card, Err, Skeleton } from "../components/ui";
 import { startPayment } from "./Enrol";
 import { receiptUrl, sendReceipt, type MyOffline, type OfflineDetails } from "../lib/offline";
 
+import Icon from "../components/Icon";
 // The student's offline payment: what to pay, where, the reference to quote, and a place to send the receipt.
 // An admin confirms it once the money has arrived; then the usual "Payment received" notice arrives and classes unlock.
 export default function OfflinePay() {
@@ -114,14 +115,14 @@ export default function OfflinePay() {
         <p className="font-medium">{sent ? "Your receipt" : "Send your receipt"}</p>
         {sent && row.receipt && <div className="space-y-2">
           {preview && row.receipt.mime.startsWith("image/") ? <a href={preview} target="_blank" rel="noreferrer"><img src={preview} alt="Your receipt" className="max-h-64 w-full rounded-xl bg-sunken object-contain" /></a>
-            : preview ? <a href={preview} target="_blank" rel="noreferrer" className="block rounded-xl bg-sunken px-4 py-3 text-sm text-accent">📄 {row.receipt.name}</a> : null}
+            : preview ? <a href={preview} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-xl bg-sunken px-4 py-3 text-sm text-accent"><Icon name="file" size={18} className="shrink-0" /><span className="min-w-0 truncate">{row.receipt.name}</span></a> : null}
           <p className="text-sm text-muted">Sent {new Date(row.receipt.uploaded_at).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. We'll notify you when it's confirmed.</p>
           {row.student_note && <p className="rounded-xl bg-sunken px-3 py-2 text-sm">{row.student_note}</p>}
         </div>}
         <input ref={pick} type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setErr(""); e.target.value = ""; }} />
         {file ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-sunken px-4 py-3 text-sm"><span className="min-w-0 truncate">{file.type === "application/pdf" ? "📄" : "🖼️"} {file.name}</span><button onClick={() => setFile(null)} className="text-muted">Remove</button></div>
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-sunken px-4 py-3 text-sm"><span className="flex min-w-0 items-center gap-2"><Icon name={file.type === "application/pdf" ? "file" : "image"} size={18} className="shrink-0 text-muted" /><span className="truncate">{file.name}</span></span><button onClick={() => setFile(null)} className="text-muted">Remove</button></div>
             <label className="block"><span className="mb-1.5 block text-sm text-muted">Note for the team (optional)</span>
               <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="e.g. Paid from GTB at 2pm, in the name of Ada" className="min-h-[72px] w-full rounded-xl bg-sunken px-4 py-3 text-[15px] outline-none ring-accent/40 transition focus:ring-2" /></label>
             <Button className="w-full" onClick={send}>{sent ? "Replace receipt" : "Send receipt"}</Button>

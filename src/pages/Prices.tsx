@@ -6,6 +6,7 @@ import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 import SoloPrices from "../components/SoloPrices";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Admin: package prices, how many instalments are allowed, and what each instalment costs.
 // Everything is saved in one call (save_package) so a package is never left with half a plan.
@@ -202,7 +203,7 @@ export default function Prices() {
                 <Button type="button" variant="secondary" className="h-10 flex-1 text-sm" disabled={!(priceN > 0)} onClick={splitEvenly}>Split evenly</Button>
               </div>
               {instTotal > 0 && priceN > 0 && <p className={cx("text-sm", diff === 0 ? "text-ok" : "text-warn")}>
-                {diff === 0 ? "✓ The instalments add up to the full price." : `Instalments total ${naira(instTotal * 100)}, ${naira(Math.abs(diff) * 100)} ${diff > 0 ? "more" : "less"} than the full price. Students paying by instalments will pay ${naira(instTotal * 100)} in total.`}</p>}
+                {diff === 0 ? <span className="inline-flex items-center gap-1.5"><Icon name="check" size={16} />The instalments add up to the full price.</span> : `Instalments total ${naira(instTotal * 100)}, ${naira(Math.abs(diff) * 100)} ${diff > 0 ? "more" : "less"} than the full price. Students paying by instalments will pay ${naira(instTotal * 100)} in total.`}</p>}
             </>}
           </div>
 

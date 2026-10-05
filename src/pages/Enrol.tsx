@@ -9,6 +9,7 @@ import { Button, Card, Err, Skeleton, cx } from "../components/ui";
 import type { MyOffline } from "../lib/offline";
 import { place, placeSub } from "../lib/centre";
 
+import Icon from "../components/Icon";
 type Centre = { id: string; name: string; address: string | null; city: string | null };
 type Start = { centre_id: string; starts_on: string };
 type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; package_instalments: { number: number; label: string; amount: number; due_rule: string }[] };
@@ -39,7 +40,7 @@ function Option({ on, onClick, title, sub, note, right, locked, strong }: { on?:
         {(locked || sub) && <p className={cx("mt-0.5 text-muted", strong ? "text-[13px]" : "text-sm")}>{locked ?? sub}</p>}
         {note && !locked && <p className="mt-0.5 text-sm font-medium text-accent">{note}</p>}</div>
       {right && <span className="num font-medium">{right}</span>}
-      <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", on ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{on && "✓"}</span>
+      <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", on ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{on && <Icon name="check" size={12} strokeWidth={3} />}</span>
     </button>
   );
 }
@@ -146,7 +147,7 @@ export default function Enrol() {
         {step === 0 && (loading(packs) || packs!.map((p) => <Option key={p.id} on={sel.pack === p.id} onClick={() => setSel({ ...sel, pack: p.id, courses: [], centre: "" })} title={p.name} sub={p.description} right={naira(p.price_full)} />))}
         {step === 0 && packs && !!solo?.length && (
           <button onClick={() => setSoloOpen(true)} className="mx-auto flex items-center gap-1.5 pt-3 text-sm text-muted transition active:opacity-60">
-            Need just one course? <span className="font-medium text-accent">Explore courses →</span>
+            Need just one course? <span className="inline-flex items-center font-medium text-accent">Explore courses<Icon name="chevronRight" size={16} /></span>
           </button>)}
         {step === 1 && (loading(courses) || courses!.map((c) => {
           const m = !sel.courses.includes(c.id) ? missing(c, sel.courses) : null;

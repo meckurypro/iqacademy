@@ -4,6 +4,7 @@ import { useFeedback } from "../components/feedback";
 import { Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 import { useUserSearch } from "./Users";
 
+import Icon from "../components/Icon";
 type Opt = { id: string; name: string };
 type Rule = { who: string; centres: string[]; courses: string[]; users: Opt[] };
 const WHO = [["students", "Students"], ["instructors", "Instructors"], ["centre_directors", "Centre directors"], ["coordinators", "Coordinators"], ["admins", "Admins"], ["users", "Specific people"], ["everyone", "Everyone"]];
@@ -61,7 +62,7 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
   };
 
   if (sent !== null) return (
-    <Card className="anim-rise mx-auto mt-10 max-w-sm space-y-4 p-8 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-3xl text-ok">✓</div>
+    <Card className="anim-rise mx-auto mt-10 max-w-sm space-y-4 p-8 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div>
       <h1 className="text-xl">Sent to {sent} {sent === 1 ? "person" : "people"}</h1><p className="text-muted">It's on their notification bell now.</p>
       <Button className="w-full" onClick={() => { setSent(null); setTitle(""); setBody(""); setRules([blank()]); }}>Write another</Button>
       <Button variant="ghost" className="w-full" onClick={onSeeSent}>See sent announcements</Button></Card>);
@@ -76,7 +77,7 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
           {["students", "instructors", "centre_directors", "coordinators"].includes(r.who) && <><p className="text-sm text-muted">Only at these centres (leave empty for all)</p><Chips items={centres} on={r.centres} toggle={(id) => patch(i, { centres: flip(r.centres, id) })} /></>}
           {["students", "instructors"].includes(r.who) && <><p className="text-sm text-muted">Only in these courses</p><Chips items={courses} on={r.courses} toggle={(id) => patch(i, { courses: flip(r.courses, id) })} /></>}
           {r.who === "users" && <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">{r.users.map((u) => <button key={u.id} onClick={() => patch(i, { users: r.users.filter((x) => x.id !== u.id) })} className="rounded-full bg-accent px-3 py-1.5 text-sm text-accent-ink">{u.name} ✕</button>)}</div>
+            <div className="flex flex-wrap gap-2">{r.users.map((u) => <button key={u.id} onClick={() => patch(i, { users: r.users.filter((x) => x.id !== u.id) })} className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-sm text-accent-ink">{u.name}<Icon name="close" size={14} /></button>)}</div>
             <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search people to add…" className="h-12 w-full rounded-xl bg-sunken px-4 outline-none" />
             {find.trim() && found?.slice(0, 5).map((u) => <button key={u.id} onClick={() => { patch(i, { users: [...r.users.filter((x) => x.id !== u.id), { id: u.id, name: u.full_name }] }); setFind(""); }} className="block w-full rounded-xl px-3 py-2 text-left hover:bg-sunken">{u.full_name} <span className="text-sm text-muted">{u.email}</span></button>)}</div>}
         </Card>))}

@@ -5,6 +5,7 @@ import { supabase, naira } from "../lib/supabase";
 import { Card, Skeleton } from "../components/ui";
 import { Stat } from "./InstructorHome";
 
+import Icon from "../components/Icon";
 export default function AdminHome() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [d, setD] = useState<any>();
@@ -15,7 +16,7 @@ export default function AdminHome() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl">Overview</h1>
-      {off.open > 0 && <Link to="/offline-payments"><Card onClick={() => {}} className="flex items-center justify-between gap-3 ring-2 ring-warn/40"><div><p className="font-medium">{off.open} offline {off.open === 1 ? "payment" : "payments"} to review</p><p className="text-sm text-muted">{off.with_receipt} with a receipt uploaded</p></div><span className="text-muted">›</span></Card></Link>}
+      {off.open > 0 && <Link to="/offline-payments"><Card onClick={() => {}} className="flex items-center justify-between gap-3 ring-2 ring-warn/40"><div><p className="font-medium">{off.open} offline {off.open === 1 ? "payment" : "payments"} to review</p><p className="text-sm text-muted">{off.with_receipt} with a receipt uploaded</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>}
       <RunReminder />
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Revenue this month" value={naira(d.revenue_this_month ?? 0)} />
@@ -25,8 +26,8 @@ export default function AdminHome() {
         <Stat label="Classes today" value={d.sessions_today ?? 0} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Link to="/users"><Card onClick={() => {}} className="space-y-1"><p className="font-medium">Users 👥</p><p className="text-sm text-muted">Search people and change their roles.</p></Card></Link>
-        <Link to="/announce"><Card onClick={() => {}} className="space-y-1"><p className="font-medium">Announcements 📣</p><p className="text-sm text-muted">Message a person, centre, cohort or course.</p></Card></Link>
+        <Link to="/users"><Card onClick={() => {}} className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sunken text-accent"><Icon name="users" size={20} /></span><div className="min-w-0 flex-1"><p className="font-medium">Users</p><p className="text-sm text-muted">Search people and change their roles.</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
+        <Link to="/announce"><Card onClick={() => {}} className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sunken text-accent"><Icon name="announce" size={20} /></span><div className="min-w-0 flex-1"><p className="font-medium">Announcements</p><p className="text-sm text-muted">Message a person, centre, cohort or course.</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
       </div>
     </div>
   );

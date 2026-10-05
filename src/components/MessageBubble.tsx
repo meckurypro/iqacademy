@@ -7,6 +7,7 @@ import { useFeedback } from "./feedback";
 import { friendly } from "../lib/supabase";
 import { copyText, downloadMedia, fileSize, shareMessage, type ClassMessage } from "../lib/messages";
 
+import Icon from "./Icon";
 const time = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 const Act = ({ onClick, children, busy }: { onClick: () => void; children: ReactNode; busy?: boolean }) => (
   <button onClick={onClick} disabled={busy} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted transition hover:bg-sunken hover:text-ink active:scale-95 disabled:opacity-50">{children}</button>
@@ -36,10 +37,10 @@ export default function MessageBubble({ m, context, footer }: { m: ClassMessage;
           {m.media_path && (
             <button onClick={save} disabled={busy === "save"} aria-label={`Download ${m.media_name ?? "image"}`}
               className={cx("flex w-full items-center gap-3 rounded-xl bg-sunken p-3 text-left transition active:scale-[.99] disabled:opacity-60", m.body && "mt-3")}>
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface text-lg ring-1 ring-line" aria-hidden="true">🖼️</span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface text-muted ring-1 ring-line" aria-hidden="true"><Icon name="image" size={22} /></span>
               <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium">{m.media_name ?? "Image"}</span>
                 <span className="text-xs text-muted">{[fileSize(m.media_size), "Tap to download"].filter(Boolean).join(" · ")}</span></span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-accent" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" /></svg>
+              <Icon name="download" size={18} className="shrink-0 text-accent" />
             </button>)}
           <div className="mt-2 flex items-center gap-0.5">
             {m.body && <Act onClick={copy} busy={busy === "copy"}>Copy</Act>}

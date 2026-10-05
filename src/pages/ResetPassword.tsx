@@ -9,6 +9,7 @@ import { rawMessage } from "../lib/supabase";
 import { isStrong } from "../lib/password";
 import { MatchHint, PasswordCreator, PasswordField } from "../components/PasswordFields";
 
+import Icon from "../components/Icon";
 // Opened from the link in the reset email (also used for the one-time link given to new staff).
 export default function ResetPassword() {
   const { session, loading } = useAuth(); const nav = useNavigate(); const { run } = useFeedback();
@@ -35,7 +36,7 @@ export default function ResetPassword() {
   return (
     <div className="mx-auto grid min-h-screen max-w-sm content-center gap-6 p-6">
       <div className="text-center"><img src="/icon-192.png" alt="" className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-card" /><h1 className="text-2xl">Choose a new password</h1><p className="mt-1 text-muted">Follow the checklist to keep your account safe.</p></div>
-      <Card className="p-5">{done ? <div className="space-y-3 py-4 text-center"><div className="anim-pop mx-auto grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-2xl text-ok">✓</div><p className="font-medium">Password updated</p></div> :
+      <Card className="p-5">{done ? <div className="space-y-3 py-4 text-center"><div className="anim-pop mx-auto grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={28} strokeWidth={2.25} /></div><p className="font-medium">Password updated</p></div> :
         <form onSubmit={submit} className="space-y-4">
           <PasswordCreator label="New password" required value={pw} onValue={setPw} onGenerate={setPw2} />
           <PasswordField label="Confirm password" required autoComplete="new-password" value={pw2} onValue={setPw2} />

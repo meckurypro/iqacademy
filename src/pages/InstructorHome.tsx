@@ -7,6 +7,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Badge, Card, Skeleton } from "../components/ui";
 
+import Icon from "../components/Icon";
 type S = { id: string; start_at: string; end_at: string; status?: string; centre_name: string; centre_city?: string | null; centre_address?: string | null; course_title: string; students_present?: number; students_enrolled?: number };
 const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -23,9 +24,9 @@ export default function InstructorHome() {
   const today: S[] = d.today ?? [], up: S[] = d.upcoming ?? [];
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl">Hi {name.split(" ")[0]} 👋</h1>
+      <h1 className="text-2xl">Hi {name.split(" ")[0]}</h1>
       <RunReminder />
-      <Link to="/emergency"><Card onClick={() => {}} className="flex items-center gap-3"><span className="text-2xl">🚨</span><div className="min-w-0 flex-1"><p className="font-medium">Emergency class</p><p className="text-sm text-muted">Start an extra class at a centre</p></div><span className="text-muted">›</span></Card></Link>
+      <Link to="/emergency"><Card onClick={() => {}} className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sunken text-accent"><Icon name="alert" size={20} /></span><div className="min-w-0 flex-1"><p className="font-medium">Emergency class</p><p className="text-sm text-muted">Start an extra class at a centre</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Classes taught" value={d.sessions_taught ?? 0} sub="this month" />
         <Stat label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people`} />

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Badge, Card } from "./ui";
 
+import Icon from "./Icon";
 // Free make-up classes: once a student's time is up they get two months and up to six classes to catch up on
 // anything they missed. The numbers come from my_makeup_status(), so the rules live in one place (the database).
 type Lesson = { course: string; lesson_no: number; title: string };
@@ -43,7 +44,7 @@ export default function MakeupCard() {
               <p className="text-sm text-muted">When your classes end you get two months to make up to six of them, free. Keep attending the rest.</p>
             </>}
             {r.lessons.length > 0 && r.state !== "before" && r.state !== "pending" && (
-              <ul className="space-y-1 pt-1 text-sm">{r.lessons.map((l) => <li key={`${l.course}-${l.lesson_no}`} className="flex gap-2"><span className="text-bad">✕</span><span className="min-w-0"><span className="text-muted">{l.course} · </span>{l.title}</span></li>)}</ul>)}
+              <ul className="space-y-1 pt-1 text-sm">{r.lessons.map((l) => <li key={`${l.course}-${l.lesson_no}`} className="flex gap-2"><Icon name="close" size={16} className="mt-0.5 shrink-0 text-bad" /><span className="min-w-0"><span className="text-muted">{l.course} · </span>{l.title}</span></li>)}</ul>)}
           </Card>);
       })}
     </section>

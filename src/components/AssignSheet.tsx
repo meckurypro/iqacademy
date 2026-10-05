@@ -7,6 +7,7 @@ import { useFeedback } from "./feedback";
 import { Avatar, Button, Err, Sheet, cx } from "./ui";
 import { classes, clock, first, label, pick, plan, short, where, type P, type S, type Scope } from "../lib/roster";
 
+import Icon from "./Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export default function AssignSheet({ anchor, scope0, ses, people, onClose, onSaved }:
@@ -85,7 +86,7 @@ export default function AssignSheet({ anchor, scope0, ses, people, onClose, onSa
                     className={cx("flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition active:scale-[.99] disabled:opacity-50", who === p.id ? "bg-accent/10 ring-2 ring-accent" : "bg-surface ring-line")}>
                     <Avatar name={p.name} url={p.avatar} size={36} />
                     <div className="min-w-0 flex-1"><p className="truncate font-medium">{p.name}</p><p className={cx("text-xs", f.clash.length ? "text-warn" : "text-muted")}>{hint}</p></div>
-                    <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", who === p.id ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{who === p.id && "✓"}</span>
+                    <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", who === p.id ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{who === p.id && <Icon name="check" size={12} strokeWidth={3} />}</span>
                   </button>);
               })}
             </div>}

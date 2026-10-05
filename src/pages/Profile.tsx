@@ -8,6 +8,7 @@ import { isStrong } from "../lib/password";
 import { useTheme, type ThemePref } from "../lib/theme";
 import { MatchHint, PasswordCreator, PasswordField } from "../components/PasswordFields";
 
+import Icon, { type IconName } from "../components/Icon";
 export default function Profile() {
   const { session, name, avatar, roles, refresh } = useAuth(); const { run } = useFeedback();
   const uid = session!.user.id;
@@ -64,10 +65,10 @@ export default function Profile() {
       <Card className="space-y-3">
         <h2 className="text-lg">Appearance</h2>
         <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-1 rounded-xl bg-sunken p-1">
-          {([["light", "☀️", "Light"], ["dark", "🌙", "Dark"], ["system", "💻", "System"]] as [ThemePref, string, string][]).map(([v, ic, l]) => (
+          {([["light", "sun", "Light"], ["dark", "moon", "Dark"], ["system", "monitor", "System"]] as [ThemePref, IconName, string][]).map(([v, ic, l]) => (
             <button key={v} role="radio" aria-checked={theme === v} onClick={() => setTheme(v)}
               className={cx("flex h-10 items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition", theme === v ? "bg-surface text-ink shadow-card" : "text-muted")}>
-              <span aria-hidden="true">{ic}</span>{l}
+              <Icon name={ic} size={18} />{l}
             </button>))}
         </div>
       </Card>
@@ -93,7 +94,7 @@ function ChangePasswordSheet({ open, onClose }: { open: boolean; onClose: () => 
     <Sheet open={open} onClose={close} title={done ? undefined : "Change password"}>
       {done ? (
         <div className="grid justify-items-center gap-3 py-6 text-center">
-          <div className="anim-pop grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-2xl text-ok">✓</div>
+          <div className="anim-pop grid h-14 w-14 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={28} strokeWidth={2.25} /></div>
           <p className="text-lg font-medium">Password updated</p>
         </div>
       ) : (

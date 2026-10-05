@@ -4,6 +4,7 @@ import { useFeedback } from "../components/feedback";
 import { roleLabel, type Role } from "../lib/auth";
 import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components/ui";
 
+import Icon from "../components/Icon";
 export type UserRow = { id: string; full_name: string; email: string | null; avatar_url: string | null; is_active: boolean; roles: { role: Role; centre_id: string | null; centre_name: string | null }[] };
 const TYPES: Role[] = ["student", "coordinator", "centre_director", "instructor", "admin"];
 
@@ -55,7 +56,7 @@ export default function Users() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl">Users</h1>
-      <div className="relative"><span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted">🔎</span>
+      <div className="relative"><Icon name="search" size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
         <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email or phone"
           className="h-12 w-full rounded-2xl bg-surface pl-11 pr-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" /></div>
       {!rows ? <div className="space-y-2"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div> :

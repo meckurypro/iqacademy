@@ -10,6 +10,7 @@ import MessageBubble from "../components/MessageBubble";
 import ClassComposer from "../components/ClassComposer";
 import { type ClassMessage } from "../lib/messages";
 
+import Icon from "../components/Icon";
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
 type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
@@ -75,7 +76,7 @@ export default function ClassScreen() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => nav(-1)} className="text-sm text-muted">← Back</button>
+      <button onClick={() => nav(-1)} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back</span></button>
       <div><h1 className="text-2xl">{s.course_title}</h1>
         <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 

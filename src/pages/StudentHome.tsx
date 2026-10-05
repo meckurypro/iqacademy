@@ -15,6 +15,7 @@ import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
 import type { MyOffline } from "../lib/offline";
 
+import Icon from "../components/Icon";
 type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
 type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; packages: { name: string } | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; room: string | null };
@@ -97,7 +98,7 @@ export default function StudentHome() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl">Hi {name.split(" ")[0]} 👋</h1>
+      <h1 className="text-2xl">Hi {name.split(" ")[0]}</h1>
 
       {enr.length === 0 && <CourseOutline />}
 
@@ -153,7 +154,7 @@ export default function StudentHome() {
               {list.length > 0 && <button onClick={() => setOpenCourse(isOpen ? "" : key)} className="text-sm text-accent">{isOpen ? "Hide classes" : `See all ${list.length} classes`}</button>}
               {isOpen && <ol className="space-y-2 pt-1">{list.map((l) => (
                 <li key={l.lesson_no} className="flex gap-3">
-                  <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${l.state === "attended" ? "bg-ok/15 text-ok" : l.state === "missed" ? "bg-bad/15 text-bad" : "bg-sunken text-muted"}`}>{l.state === "attended" ? "✓" : l.state === "missed" ? "✕" : l.lesson_no}</span>
+                  <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold ${l.state === "attended" ? "bg-ok/15 text-ok" : l.state === "missed" ? "bg-bad/15 text-bad" : "bg-sunken text-muted"}`}>{l.state === "attended" ? <Icon name="check" size={14} strokeWidth={2.5} /> : l.state === "missed" ? <Icon name="close" size={14} strokeWidth={2.5} /> : l.lesson_no}</span>
                   <div className="min-w-0"><p className="text-sm font-medium">{l.title}{l.state === "missed" && <span className="ml-2 text-xs font-normal text-bad">Missed</span>}</p>{l.summary && <p className="text-sm text-muted">{l.summary}</p>}</div>
                 </li>))}</ol>}
             </Card>; })}
@@ -169,10 +170,10 @@ export default function StudentHome() {
 
       <Sheet open={open} onClose={closeSheet} title={ok ? undefined : "Enter your class code"}>
         {ok ? (
-          <div className="space-y-4 py-4 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-3xl text-ok">✓</div>
+          <div className="space-y-4 py-4 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div>
             <h2 className="text-xl">You're checked in</h2><p className="text-muted">Today's class pack is now unlocked.</p><Button className="w-full" onClick={closeSheet}>Done</Button></div>
         ) : (
-          <div className="space-y-4">{scan ? <QrScanner onCode={(c) => { setCode(c.toUpperCase()); checkIn(c.toUpperCase()); }} onClose={() => setScan(false)} /> : <Button variant="secondary" className="w-full" onClick={() => setScan(true)}>📷 Scan the QR code</Button>}
+          <div className="space-y-4">{scan ? <QrScanner onCode={(c) => { setCode(c.toUpperCase()); checkIn(c.toUpperCase()); }} onClose={() => setScan(false)} /> : <Button variant="secondary" className="w-full" onClick={() => setScan(true)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Scan the QR code</span></Button>}
             <p className="text-sm text-muted">Or type the 8-character code your instructor shows.</p>
             <input autoFocus value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={8} placeholder="A1B2C3D4" inputMode="text" autoCapitalize="characters"
               className="num h-14 w-full rounded-xl bg-sunken text-center text-2xl font-semibold tracking-[.3em] outline-none ring-accent/40 focus:ring-2" />

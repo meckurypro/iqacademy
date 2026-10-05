@@ -3,14 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
 import { Avatar, cx } from "./ui";
+import Icon, { type IconName } from "./Icon";
 import { primaryRole, roleLabel, useAuth } from "../lib/auth";
 
-export type NavItem = [to: string, label: string, icon: string];
+export type NavItem = [to: string, label: string, icon: IconName];
 
 // Menu shown to everyone, plus role-specific shortcuts.
 const EXTRA: Record<string, NavItem[]> = {
-  student: [["/enrol", "Enrol in a course", "🎓"]],
-  centre_director: [["/team", "My team", "🤝"]],
+  student: [["/enrol", "Enrol in a course", "enrol"]],
+  centre_director: [["/team", "My team", "userPlus"]],
 };
 
 export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
@@ -18,7 +19,7 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
   const role = primaryRole(roles);
   const [open, setOpen] = useState(false); const [closing, setClosing] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const items: NavItem[] = [...(tabs ?? [["/", "Home", "🏠"]]), ...(EXTRA[role] ?? [])]; // Profile is reached through the user card above
+  const items: NavItem[] = [...(tabs ?? [["/", "Home", "home"]]), ...(EXTRA[role] ?? [])]; // Profile is reached through the user card above
 
   const close = useCallback(() => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 200); }, []);
 
@@ -46,19 +47,19 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
             <div className="mb-4 flex items-center justify-between">
               <span className="px-1 text-sm font-medium text-muted">Menu</span>
               <button ref={closeRef} onClick={close} aria-label="Close menu" className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-sunken active:scale-95">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                <Icon name="close" size={18} />
               </button>
             </div>
             <NavLink to="/profile" onClick={close} className="mb-4 flex items-center gap-3 rounded-2xl bg-sunken p-3 transition active:scale-[.98]">
               <Avatar name={name || "?"} url={avatar} size={44} />
               <div className="min-w-0 flex-1 leading-tight"><p className="truncate font-medium">{name}</p><p className="text-xs text-muted">{roleLabel[role]}</p></div>
-              <span className="text-muted" aria-hidden="true">›</span>
+              <Icon name="chevronRight" size={18} className="text-muted" />
             </NavLink>
             <nav className="flex-1 space-y-1 overflow-y-auto">
               {items.map(([to, label, icon]) => (
                 <NavLink key={to} to={to} end onClick={close}
                   className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] transition active:scale-[.98]", isActive ? "bg-accent/10 font-semibold text-accent" : "hover:bg-sunken")}>
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-sunken text-base" aria-hidden="true">{icon}</span>{label}
+                  {({ isActive }) => <><span className={cx("grid h-9 w-9 place-items-center rounded-lg transition", isActive ? "bg-accent text-accent-ink" : "bg-sunken text-muted")}><Icon name={icon} size={20} /></span>{label}</>}
                 </NavLink>))}
             </nav>
             <p className="mt-3 px-1 text-xs leading-relaxed text-muted/80">

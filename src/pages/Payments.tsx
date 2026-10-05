@@ -5,6 +5,7 @@ import { supabase, naira, friendly, UserMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const tone = (s: string) => (s === "succeeded" || s === "paid" ? "ok" : s === "failed" ? "bad" : s.includes("refund") || s === "processing" ? "warn" : "muted") as "ok" | "bad" | "warn" | "muted";
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
@@ -87,7 +88,7 @@ export default function Payments() {
           {r.failure_reason && <p className="text-sm text-bad">{r.failure_reason}</p>}</Card>)))}
 
       <Sheet open={!!p} onClose={() => setP(null)} title="Refund a student">
-        {p && (done ? <div className="space-y-4 py-4 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-3xl text-ok">✓</div><p>{done}</p><Button className="w-full" onClick={() => setP(null)}>Done</Button></div> :
+        {p && (done ? <div className="space-y-4 py-4 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div><p>{done}</p><Button className="w-full" onClick={() => setP(null)}>Done</Button></div> :
           <div className="max-h-[75vh] space-y-4 overflow-y-auto">
             <div><p className="font-medium">{name(p)}</p><p className="text-sm text-muted">Paid {naira(p.amount)} · {p.centres && <Place centre={p.centres} nameOnly />}</p></div>
             {left <= 0 ? <p className="text-muted">This payment has already been fully refunded.</p> : <>
@@ -99,7 +100,7 @@ export default function Payments() {
               <p className="text-sm text-muted">Collect the student's bank details. {f.method === "manual" ? "Optional for manual refunds, but keep a note of how you paid." : "We verify the account name before any money moves."}</p>
               <select className={sel} value={f.bank} onChange={(e) => setF({ ...f, bank: e.target.value, accName: "" })}><option value="">{banks.length ? "Bank…" : "Loading banks…"}</option>{banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</select>
               <Field label="Account number" inputMode="numeric" maxLength={10} value={f.acct} onChange={(e) => setF({ ...f, acct: e.target.value.replace(/\D/g, ""), accName: "" })} />
-              {f.accName && <p className="rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">✓ {f.accName}</p>}
+              {f.accName && <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok"><Icon name="check" size={16} className="shrink-0" />{f.accName}</p>}
               {f.method === "manual" && <Field label="How you paid" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. GTB transfer, ref 123456" />}
               <p className="rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">The centre's share of this refund is deducted from their next payout, and the student and centre are notified.</p>
               <Err>{err}</Err>

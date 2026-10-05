@@ -9,6 +9,7 @@ import AssignSheet from "../components/AssignSheet";
 import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
 import { addDays, byStart, classes, clock, first, iso, label, locked, mondayOf, short, where, type P, type S, type Scope } from "../lib/roster";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
@@ -132,9 +133,9 @@ export default function Roster() {
 
         {view === "week" && !gaps && week && (
           <div className="flex items-center justify-between">
-            <button aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken">‹</button>
+            <button aria-label="Previous week" onClick={() => setWeek(addDays(week, -7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken"><Icon name="chevronLeft" size={20} /></button>
             <button onClick={() => setWeek(mondayOf(iso(new Date())))} className="text-sm font-medium"><span className="num">{short(week)} – {short(addDays(week, 6))}</span></button>
-            <button aria-label="Next week" onClick={() => setWeek(addDays(week, 7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken">›</button>
+            <button aria-label="Next week" onClick={() => setWeek(addDays(week, 7))} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sunken"><Icon name="chevronRight" size={20} /></button>
           </div>)}
 
         {view === "week" && (days.length === 0

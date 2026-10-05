@@ -6,6 +6,7 @@ import { mapDuplicate, ok, touched } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton } from "../components/ui";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const empty = { id: "", name: "", code: "", address: "", city: "Lagos", state: "Lagos", capacity: "", share: "0", contact: "", phone: "", lat: "", lng: "", active: true };
 export default function Centres() {
@@ -98,7 +99,7 @@ export default function Centres() {
         {f && <div className="space-y-3"><Field label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /><Field label="Short code" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} placeholder="e.g. YABA" />
           <Field label="Address" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /><div className="grid grid-cols-2 gap-3"><Field label="City" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /><Field label="State" value={f.state} onChange={(e) => setF({ ...f, state: e.target.value })} /></div>
           <div className="grid grid-cols-2 gap-3"><Field label="Contact person" value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} /><Field label="Contact phone" type="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
-          <Button variant="secondary" className="h-10 w-full text-sm" onClick={() => navigator.geolocation?.getCurrentPosition((g) => setF({ ...f, lat: g.coords.latitude.toFixed(6), lng: g.coords.longitude.toFixed(6) }))}>{f.lat ? `📍 ${f.lat}, ${f.lng}` : "📍 Use my current location (when at the centre)"}</Button>
+          <Button variant="secondary" className="h-10 w-full text-sm" onClick={() => navigator.geolocation?.getCurrentPosition((g) => setF({ ...f, lat: g.coords.latitude.toFixed(6), lng: g.coords.longitude.toFixed(6) }))}><span className="inline-flex items-center gap-2"><Icon name="pin" size={16} />{f.lat ? `${f.lat}, ${f.lng}` : "Use my current location (when at the centre)"}</span></Button>
           <Field label="Capacity" type="number" value={f.capacity} onChange={(e) => setF({ ...f, capacity: e.target.value })} />
           <Field label="Centre's share of tuition (%)" type="number" step="0.5" min="0" max="100" value={f.share} onChange={(e) => setF({ ...f, share: e.target.value })} />
           <label className="flex items-start gap-3 rounded-xl bg-sunken p-3 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5 accent-[rgb(var(--accent))]" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} />
@@ -109,7 +110,7 @@ export default function Centres() {
       <Sheet open={!!bank} onClose={() => setBank(null)} title={`Bank account · ${bank?.name ?? ""}`}>
         <div className="space-y-3"><select value={acct.code} onChange={(e) => { setAcct({ ...acct, code: e.target.value }); setAccName(""); }} className="h-12 w-full rounded-xl bg-sunken px-4 outline-none"><option value="">{banks.length ? "Choose bank…" : "Loading banks…"}</option>{banks.map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</select>
           <Field label="Account number" inputMode="numeric" maxLength={10} value={acct.number} onChange={(e) => { setAcct({ ...acct, number: e.target.value.replace(/\D/g, "") }); setAccName(""); }} />
-          {accName && <p className="rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">✓ {accName}</p>}<Err>{err}</Err>
+          {accName && <p className="flex items-center gap-2 rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok"><Icon name="check" size={16} className="shrink-0" />{accName}</p>}<Err>{err}</Err>
           {!accName ? <Button className="w-full" disabled={!acct.code || acct.number.length !== 10} onClick={resolve}>Verify account</Button>
             : <Button className="w-full" onClick={saveBank}>Save payout account</Button>}</div>
       </Sheet>

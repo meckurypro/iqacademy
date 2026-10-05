@@ -6,6 +6,7 @@ import { Button, Card, Err } from "./ui";
 import { useFeedback } from "./feedback";
 import { BUCKET, MAX_MEDIA_BYTES, MEDIA_TYPES } from "../lib/messages";
 
+import Icon from "./Icon";
 export default function ClassComposer({ sessionId, joined, onSent }: { sessionId: string; joined?: number; onSent?: () => void }) {
   const { run } = useFeedback();
   const [text, setText] = useState(""); const [file, setFile] = useState<File | null>(null); const [preview, setPreview] = useState(""); const [err, setErr] = useState("");
@@ -41,11 +42,11 @@ export default function ClassComposer({ sessionId, joined, onSent }: { sessionId
       {file && <div className="flex items-center gap-3 rounded-xl bg-sunken p-2">
         <img src={preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
         <p className="min-w-0 flex-1 truncate text-sm">{file.name}</p>
-        <button onClick={() => setFile(null)} aria-label="Remove image" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface">✕</button></div>}
+        <button onClick={() => setFile(null)} aria-label="Remove image" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface"><Icon name="close" size={16} /></button></div>}
       <Err>{err}</Err>
       <div className="flex items-center gap-2">
         <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-sunken px-4 text-sm font-medium transition active:scale-[.98]">
-          <span aria-hidden="true">🖼️</span>{file ? "Change image" : "Add image"}
+          <Icon name="image" size={18} />{file ? "Change image" : "Add image"}
           <input type="file" accept={MEDIA_TYPES.join(",")} className="sr-only" onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ""; }} /></label>
         <span className="flex-1" />
         <Button disabled={!text.trim() && !file} onClick={send}>Send</Button>

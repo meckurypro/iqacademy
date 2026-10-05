@@ -7,17 +7,14 @@ import { clearPending, getPending, inboxLink, setPending } from "../lib/verify";
 import { Button, Card, Err, Field } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 
+import Icon from "../components/Icon";
 const COOLDOWN = 60;
 const cdKey = (e: string) => `iq:resend-at:${e}`;
 const remaining = (email: string) => {
   try { return Math.max(0, COOLDOWN - Math.floor((Date.now() - Number(localStorage.getItem(cdKey(email)) || 0)) / 1000)); } catch { return 0; }
 };
 
-const Mail = () => (
-  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 7 8 6 8-6" />
-  </svg>
-);
+const Mail = () => <Icon name="mail" size={30} />;
 
 export default function VerifyEmail() {
   const { session, name } = useAuth(); const nav = useNavigate(); const loc = useLocation(); const { run } = useFeedback();
@@ -55,7 +52,7 @@ export default function VerifyEmail() {
     const first = (name || "").split(" ")[0];
     return (
       <Shell>
-        <div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-3xl text-ok">✓</div>
+        <div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div>
         <div className="space-y-1.5 text-center">
           <h1 className="text-2xl">You're verified{first ? `, ${first}` : ""}</h1>
           <p className="text-muted">Your email is confirmed and your account is ready.</p>
@@ -73,7 +70,7 @@ export default function VerifyEmail() {
         <Field label="Email" type="email" required autoComplete="email" value={typed} onChange={(e) => setTyped(e.target.value)} />
         <Button type="submit" className="w-full">Send verification link</Button>
       </form></Card>
-      <button className="text-sm text-muted" onClick={() => nav("/", { replace: true })}>← Back to sign in</button>
+      <button className="text-sm text-muted" onClick={() => nav("/", { replace: true })}><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back to sign in</span></button>
     </Shell>
   );
 

@@ -7,6 +7,7 @@ import { useFeedback } from "./feedback";
 import Place from "./Place";
 import { Button, Card, Err, Sheet, Skeleton, cx } from "./ui";
 
+import Icon from "./Icon";
 // Any student can buy a course on its own. The price is set by admin per course (a second price applies when the
 // prerequisite isn't completed) and is worked out by the database, never here.
 export type Offer = { course_id: string; title: string; summary: string | null; price: number | null; prereq_met: boolean; has_prereq: boolean; taken: boolean; needs: string | null; blocked: string | null };
@@ -90,7 +91,7 @@ export function SoloSheet({ open, onClose, offers }: { open: boolean; onClose: (
       ) : (
         <div className="space-y-4">
           <div>
-            <button onClick={() => setPick(null)} className="mb-2 text-sm text-muted">← Courses</button>
+            <button onClick={() => setPick(null)} className="mb-2 text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Courses</span></button>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0"><h2 className="text-lg leading-snug">{pick.title}</h2>
                 {pick.taken && <span className="mt-1 inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Retake</span>}</div>
@@ -106,7 +107,7 @@ export function SoloSheet({ open, onClose, offers }: { open: boolean; onClose: (
                   className={cx("flex w-full items-center gap-3 rounded-2xl p-4 text-left ring-1 transition active:scale-[.99] disabled:opacity-50", centre === c.id ? "bg-accent/10 ring-2 ring-accent" : "bg-surface ring-line")}>
                   <div className="min-w-0 flex-1"><p className="text-[17px] leading-snug"><Place centre={c} /></p>
                     <p className={cx("mt-0.5 text-sm", d ? "font-medium text-accent" : "text-muted")}>{d ? startsLabel(d) : "No classes scheduled yet"}</p></div>
-                  <span className={cx("grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]", centre === c.id ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{centre === c.id && "✓"}</span>
+                  <span className={cx("grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px]", centre === c.id ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{centre === c.id && <Icon name="check" size={12} strokeWidth={3} />}</span>
                 </button>);
             })}
           </div>

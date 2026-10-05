@@ -8,6 +8,7 @@ import { Badge, Button, Card, Skeleton, cx } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import { Stat } from "./InstructorHome";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const sum = (a: any[], k: string) => a.reduce((n, x) => n + Number(x?.[k] ?? 0), 0);
@@ -124,7 +125,7 @@ export default function DirectorHome() {
           {view.flatMap((d) => d.recent_refunds ?? []).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5).map((r: any, i: number) => (
             <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{new Date(r.created_at).toLocaleDateString()} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</section>}
 
-        <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><span className="text-muted">›</span></Card></Link>
+        <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></Card></Link>
 
         <section className="space-y-2"><h2 className="text-lg">Payouts</h2>
           {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (

@@ -6,6 +6,7 @@ import { place } from "../lib/centre";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Err, Field, Sheet, Skeleton } from "../components/ui";
 
+import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAY = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
@@ -158,7 +159,7 @@ export default function Schedule() {
             <div key={i} className="space-y-2 rounded-xl bg-sunken p-3">
               <div className="flex gap-2"><select value={d.day} onChange={(e) => setDayForm(dayForm.map((x, j) => j === i ? { ...x, day: e.target.value } : x))} className="h-11 flex-1 rounded-xl bg-surface px-3 outline-none">
                 {DAY.slice(1).map((n, k) => <option key={n} value={k + 1}>{n}</option>)}</select>
-                {dayForm.length > 1 && <button className="px-3 text-bad" aria-label="Remove day" onClick={() => setDayForm(dayForm.filter((_, j) => j !== i))}>✕</button>}</div>
+                {dayForm.length > 1 && <button className="px-3 text-bad" aria-label="Remove day" onClick={() => setDayForm(dayForm.filter((_, j) => j !== i))}><Icon name="close" size={18} /></button>}</div>
               <div className="grid grid-cols-2 gap-2"><Field label="Starts" type="time" value={d.start} onChange={(e) => setDayForm(dayForm.map((x, j) => j === i ? { ...x, start: e.target.value } : x))} />
                 <Field label="Ends" type="time" value={d.end} onChange={(e) => setDayForm(dayForm.map((x, j) => j === i ? { ...x, end: e.target.value } : x))} /></div>
             </div>))}

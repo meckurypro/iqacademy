@@ -8,6 +8,7 @@ import { Button, Card, Err, Field } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import { PasswordCreator, PasswordField } from "../components/PasswordFields";
 
+import Icon from "../components/Icon";
 type Mode = "in" | "up" | "forgot";
 export default function Login() {
   const nav = useNavigate(); const loc = useLocation(); const { run } = useFeedback();
@@ -62,7 +63,7 @@ export default function Login() {
         </form>
       </Card>
       <button className="text-sm text-muted" onClick={() => go(mode === "in" ? "up" : "in")}>
-        {mode === "in" ? "New here? Create an account" : mode === "up" ? "Already have an account? Sign in" : "← Back to sign in"}
+        {mode === "in" ? "New here? Create an account" : mode === "up" ? "Already have an account? Sign in" : <span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back to sign in</span>}
       </button>
     </div>
   );

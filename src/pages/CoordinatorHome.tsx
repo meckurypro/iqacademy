@@ -20,7 +20,7 @@ export default function CoordinatorHome() {
   if (!centre || !today || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-24" /></div>;
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl">Hi {name.split(" ")[0]} 👋</h1><p className="text-muted">{centre.name}</p></div>
+      <div><h1 className="text-2xl">Hi {name.split(" ")[0]}</h1><p className="text-muted">{centre.name}</p></div>
       <Card className="flex items-center gap-4"><div className="rounded-xl bg-white p-2"><QRCodeSVG value={location.origin} size={96} /></div>
         <div><p className="font-medium">Invite students</p><p className="text-sm text-muted">Let them scan this to open the app, create an account and enrol themselves.</p></div></Card>
       <section className="space-y-2"><h2 className="text-lg">Classes today</h2>

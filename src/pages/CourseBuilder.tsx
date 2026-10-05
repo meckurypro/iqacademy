@@ -5,6 +5,7 @@ import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
 import { Badge, Button, Card, Field, Sheet, Skeleton, cx } from "../components/ui";
 
+import Icon from "../components/Icon";
 // Admin: create courses and build each one class by class.
 // A course has details (name, summary, visibility), prerequisites, and an outline: the admin picks how many
 // classes it has and writes a topic and a short description for each. Instructors teach from the outline and
@@ -123,7 +124,7 @@ function CourseList() {
             <Card onClick={() => {}} className="flex items-center justify-between gap-3">
               <div className="min-w-0"><p className="font-medium">{c.title}</p>
                 <p className="text-sm text-muted">{c.code} · {c.total_sessions} {c.total_sessions === 1 ? "class" : "classes"} · {described} of {c.course_lessons.length} described</p></div>
-              <div className="flex shrink-0 items-center gap-2">{!c.is_active && <Badge>Hidden</Badge>}<span className="text-muted">›</span></div>
+              <div className="flex shrink-0 items-center gap-2">{!c.is_active && <Badge>Hidden</Badge>}<Icon name="chevronRight" size={18} className="shrink-0 text-muted" /></div>
             </Card>
           </Link>);
       })}
@@ -174,7 +175,7 @@ function Editor({ id }: { id: string }) {
   };
 
   if (loadErr) return (
-    <div className="space-y-3"><button onClick={() => nav("/courses")} className="text-sm text-muted">← All courses</button>
+    <div className="space-y-3"><button onClick={() => nav("/courses")} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />All courses</span></button>
       <p role="alert" className="rounded-xl bg-bad/10 px-3 py-2 text-sm text-bad">{loadErr}</p><Button variant="secondary" onClick={load}>Try again</Button></div>);
   if (!d || !base) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-40" /></div>;
 
@@ -247,7 +248,7 @@ function Editor({ id }: { id: string }) {
   const described = d.rows.filter((r) => r.description.trim()).length;
   return (
     <div className="space-y-5 pb-24">
-      <button onClick={back} className="text-sm text-muted">← All courses</button>
+      <button onClick={back} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />All courses</span></button>
       <div><h1 className="text-2xl">{base.details.title}</h1><p className="text-sm text-muted">{base.details.code} · {d.rows.length} {d.rows.length === 1 ? "class" : "classes"} · {described} described</p></div>
 
       <Card className="space-y-3">
@@ -298,9 +299,9 @@ function Editor({ id }: { id: string }) {
                 <div className="flex items-center gap-2">
                   <span className="num grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent/10 text-sm font-semibold text-accent">{i + 1}</span>
                   <span className="flex-1 text-sm font-medium">Class {i + 1}</span>
-                  <IconBtn label={`Move class ${i + 1} up`} disabled={i === 0} onClick={() => move(i, i - 1)}>▲</IconBtn>
-                  <IconBtn label={`Move class ${i + 1} down`} disabled={i === d.rows.length - 1} onClick={() => move(i, i + 1)}>▼</IconBtn>
-                  <IconBtn label={`Remove class ${i + 1}`} danger disabled={d.rows.length <= 1} onClick={() => removeRow(i)}>✕</IconBtn>
+                  <IconBtn label={`Move class ${i + 1} up`} disabled={i === 0} onClick={() => move(i, i - 1)}><Icon name="chevronUp" size={18} /></IconBtn>
+                  <IconBtn label={`Move class ${i + 1} down`} disabled={i === d.rows.length - 1} onClick={() => move(i, i + 1)}><Icon name="chevronDown" size={18} /></IconBtn>
+                  <IconBtn label={`Remove class ${i + 1}`} danger disabled={d.rows.length <= 1} onClick={() => removeRow(i)}><Icon name="close" size={18} /></IconBtn>
                 </div>
                 <input className={cx(field, "h-12", show && !r.title.trim() && "ring-2 ring-bad/50")} placeholder="Topic" maxLength={120} value={r.title} onChange={(e) => setRow(i, { title: e.target.value })} />
                 <textarea className={cx(field, "min-h-[88px] py-3")} placeholder="What will be covered in this class?" maxLength={1000} value={r.description} onChange={(e) => setRow(i, { description: e.target.value })} />
