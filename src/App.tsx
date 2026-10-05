@@ -6,6 +6,7 @@ import { getPending, clearPending } from "./lib/verify";
 import { supabase } from "./lib/supabase";
 import { Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
+import ErrorBoundary from "./components/ErrorBoundary";
 import VerifyEmail from "./pages/VerifyEmail";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
@@ -95,6 +96,7 @@ function TabBar({ role }: { role: string }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { roles } = useAuth();
+  const { pathname } = useLocation();
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-24">
       <header className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-1 bg-bg/80 px-4 py-3 backdrop-blur-md">
@@ -103,7 +105,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <Bell />
         <NavMenu tabs={NAV[primaryRole(roles)]} />
       </header>
-      {children}
+      <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
       <TabBar role={primaryRole(roles)} />
     </div>
   );

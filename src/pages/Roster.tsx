@@ -5,152 +5,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
-import { place } from "../lib/centre";
-import { useFeedback } from "../components/feedback";
-import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton, cx } from "../components/ui";
+import AssignSheet from "../components/AssignSheet";
+import { Avatar, Badge, Button, Card, Err, Skeleton, cx } from "../components/ui";
+import { addDays, byStart, classes, clock, first, iso, label, locked, mondayOf, short, where, type P, type S, type Scope } from "../lib/roster";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type S = {
-  id: string; session_date: string; start_at: string; end_at: string; status: string; session_no: number;
-  centre_id: string; centre_name: string; centre_city: string | null; centre_address: string | null;
-  course_id: string; course_title: string; instructor_id: string | null; lesson_title: string | null; run_id: string | null;
-};
-type P = { id: string; name: string; avatar: string | null };
-type Scope = "class" | "later" | "centre" | "all";
-
-const iso = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const addDays = (s: string, n: number) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() + n); return iso(d); };
-const mondayOf = (s: string) => { const d = new Date(`${s}T00:00:00`); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
-const label = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
-const short = (s: string) => new Date(`${s}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" });
-const clock = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-const classes = (n: number) => `${n} ${n === 1 ? "class" : "classes"}`;
-const first = (n: string) => n.split(" ")[0];
-const where = (s: S) => place({ name: s.centre_name, city: s.centre_city, address: s.centre_address });
-const locked = (s: S) => s.status !== "scheduled" || Date.parse(s.start_at) <= Date.now();
-const overlap = (a: S, b: S) => Date.parse(a.start_at) < Date.parse(b.end_at) && Date.parse(b.start_at) < Date.parse(a.end_at);
-const byStart = (a: S, b: S) => Date.parse(a.start_at) - Date.parse(b.start_at) || a.id.localeCompare(b.id);
-
-/** The classes a choice of scope would touch (never classes that already started). */
-const pick = (ses: S[], a: S, scope: Scope) => ses.filter((s) => !locked(s) && (
-  scope === "class" ? s.id === a.id
-    : scope === "later" ? !!a.run_id && s.run_id === a.run_id && s.session_no >= a.session_no
-    : scope === "centre" ? s.course_id === a.course_id && s.centre_id === a.centre_id
-    : s.course_id === a.course_id)).sort(byStart);
-
-/** What would happen if `who` took `targets`: which go through, which clash with something they already teach. */
-function plan(ses: S[], who: string, targets: S[]) {
-  const mine = ses.filter((s) => s.instructor_id === who);
-  const ok: S[] = [], clash: S[] = []; let same = 0;
-  for (const t of targets) {
-    if (t.instructor_id === who) { same++; continue; }
-    if (mine.some((m) => m.id !== t.id && overlap(m, t))) { clash.push(t); continue; }
-    ok.push(t); mine.push(t);
-  }
-  return { ok, clash, same };
-}
-
-function AssignSheet({ anchor, scope0, ses, people, onClose, onSaved }:
-  { anchor: S; scope0: Scope; ses: S[]; people: P[]; onClose: () => void; onSaved: () => Promise<void> }) {
-  const { run, toast } = useFeedback();
-  const [scope, setScope] = useState<Scope>(scope0);
-  const [who, setWho] = useState(anchor.instructor_id ?? "");
-  const [err, setErr] = useState("");
-
-  const counts = useMemo<Record<Scope, number>>(() => ({
-    class: pick(ses, anchor, "class").length, later: pick(ses, anchor, "later").length,
-    centre: pick(ses, anchor, "centre").length, all: pick(ses, anchor, "all").length }), [ses, anchor]);
-  // Hide choices that would do exactly what a neighbouring one does
-  const show: Record<Scope, boolean> = {
-    class: true,
-    later: !!anchor.run_id && counts.later > counts.class && counts.later < counts.centre,
-    centre: counts.centre > counts.class,
-    all: counts.all > counts.centre };
-  const sc: Scope = show[scope] ? scope : show.centre ? "centre" : "class";
-  const opts: { k: Scope; text: string }[] = [
-    { k: "class", text: "This class" }, { k: "later", text: "This and later" },
-    { k: "centre", text: `Whole course · ${where(anchor)}` }, { k: "all", text: "Whole course · every centre" }];
-
-  const targets = useMemo(() => pick(ses, anchor, sc), [ses, anchor, sc]);
-  const fit = useMemo(() => new Map(people.map((p) => [p.id, plan(ses, p.id, targets)])), [people, ses, targets]);
-  const pl = who ? fit.get(who) : undefined;
-  const chosen = people.find((p) => p.id === who);
-  const staffed = targets.filter((t) => t.instructor_id).length;
-  const replaced = pl ? pl.ok.filter((t) => t.instructor_id).length : 0;
-
-  const save = async (instr: string | null) => {
-    setErr("");
-    const body = sc === "class" || sc === "later"
-      ? { p_scope: "sessions", p_instructor_id: instr, p_session_ids: targets.map((t) => t.id), p_course_id: null, p_centre_id: null }
-      : { p_scope: sc === "centre" ? "course_centre" : "course_all", p_instructor_id: instr, p_session_ids: null, p_course_id: anchor.course_id, p_centre_id: sc === "centre" ? anchor.centre_id : null };
-    const r = await run(instr ? "Assigning…" : "Clearing…", async () => {
-      const { data, error } = await supabase.rpc("roster_assign", body); if (error) throw error;
-      await onSaved(); return data as any;
-    }, { quiet: true });
-    if (!r.ok) return setErr(r.message);
-    const skipped = r.data?.clashes?.length ?? 0, done = r.data?.assigned ?? 0;
-    toast(skipped ? `${done} done, ${skipped} skipped because of a clash` : done === 0 ? "Nothing needed changing" : instr ? `${classes(done)} assigned` : "Instructor cleared", skipped ? "bad" : "ok");
-    onClose();
-  };
-
-  return (
-    <Sheet open onClose={onClose} title={anchor.course_title}>
-      <div className="space-y-4">
-        <div className="space-y-0.5 text-sm text-muted">
-          <p>Class {anchor.session_no}{anchor.lesson_title ? ` · ${anchor.lesson_title}` : ""}</p>
-          <p><span className="num">{label(anchor.session_date)} · {clock(anchor.start_at)} – {clock(anchor.end_at)}</span> · {where(anchor)}</p>
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="text-sm text-muted">Apply to</p>
-          <div className="flex flex-wrap gap-2">
-            {opts.filter((o) => show[o.k]).map((o) => (
-              <button key={o.k} onClick={() => setScope(o.k)}
-                className={cx("rounded-full px-3.5 py-2 text-sm ring-1 transition active:scale-[.98]", sc === o.k ? "bg-accent/10 font-medium ring-2 ring-accent" : "bg-surface ring-line")}>
-                {o.text} <span className="num text-muted">{counts[o.k]}</span>
-              </button>))}
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <p className="text-sm text-muted">Instructor</p>
-          {people.length === 0 ? <p className="rounded-xl bg-sunken p-3 text-sm text-muted">No instructors yet. Promote someone to instructor on the Users page.</p>
-            : <div className="max-h-[36dvh] space-y-2 overflow-y-auto pr-1">
-              {people.map((p) => {
-                const f = fit.get(p.id)!; const n = targets.length;
-                const dead = f.ok.length === 0 && f.same === 0;
-                const hint = f.same === n && n > 0 ? "Already teaching these" : f.clash.length === n && n > 0 ? "Busy at these times"
-                  : f.clash.length > 0 ? `Free for ${f.ok.length + f.same}, busy for ${f.clash.length}` : "Free";
-                return (
-                  <button key={p.id} disabled={dead} onClick={() => setWho(p.id)}
-                    className={cx("flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition active:scale-[.99] disabled:opacity-50", who === p.id ? "bg-accent/10 ring-2 ring-accent" : "bg-surface ring-line")}>
-                    <Avatar name={p.name} url={p.avatar} size={36} />
-                    <div className="min-w-0 flex-1"><p className="truncate font-medium">{p.name}</p><p className={cx("text-xs", f.clash.length ? "text-warn" : "text-muted")}>{hint}</p></div>
-                    <span className={cx("grid h-5 w-5 place-items-center rounded-full text-[11px]", who === p.id ? "bg-accent text-accent-ink" : "ring-1 ring-line")}>{who === p.id && "✓"}</span>
-                  </button>);
-              })}
-            </div>}
-        </div>
-
-        {pl && chosen && (
-          <p className="text-sm text-muted">
-            {pl.ok.length > 0
-              ? <><span className="font-medium text-ink">{first(chosen.name)}</span> will teach {classes(pl.ok.length)}{pl.ok.length > 1 ? ` (${short(pl.ok[0].session_date)} to ${short(pl.ok[pl.ok.length - 1].session_date)})` : ""}.</>
-              : "Nothing to change."}
-            {pl.same > 0 && pl.ok.length > 0 && ` ${pl.same} already theirs.`}
-            {replaced > 0 && ` This replaces ${replaced === 1 ? "the current instructor" : `${replaced} current assignments`}, who will be told.`}
-            {pl.clash.length > 0 && ` ${pl.clash.length} skipped: they teach something else at ${pl.clash.length === 1 ? "that time" : "those times"}.`}
-          </p>)}
-
-        <Err>{err}</Err>
-        <Button className="w-full" disabled={!pl || pl.ok.length === 0} onClick={() => save(who)}>
-          {!who || !pl ? "Choose an instructor" : pl.ok.length === 0 ? (pl.same > 0 ? "Already assigned" : "Can't assign") : `Assign ${first(chosen?.name ?? "")}${pl.ok.length > 1 ? ` to ${pl.ok.length} classes` : ""}`}
-        </Button>
-        {staffed > 0 && <Button variant="ghost" className="w-full text-bad" onClick={() => save(null)}>Clear instructor{staffed > 1 ? ` on ${staffed} classes` : ""}</Button>}
-      </div>
-    </Sheet>
-  );
-}
 
 const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
   <button onClick={onClick} className={cx("shrink-0 rounded-full px-3.5 py-1.5 text-sm ring-1 transition active:scale-[.98]", on ? "bg-accent text-accent-ink ring-accent" : "bg-surface ring-line")}>{children}</button>
@@ -168,6 +27,7 @@ export default function Roster() {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(deepCourse && deepCentre ? [`${deepCourse}:${deepCentre}`] : []));
   const [edit, setEdit] = useState<{ anchor: S; scope: Scope } | null>(null);
   const [loadErr, setLoadErr] = useState("");
+  const [peopleErr, setPeopleErr] = useState("");
 
   const load = useCallback(async () => {
     setLoadErr("");
@@ -178,14 +38,17 @@ export default function Roster() {
     setSes((r.data as S[]) ?? []);
   }, []);
 
-  useEffect(() => {
-    load();
-    supabase.from("user_roles").select("user_id,profiles!user_roles_user_id_fkey(full_name,avatar_url)").eq("role", "instructor").eq("is_active", true).then((r) => {
-      const m = new Map<string, P>();
-      (r.data ?? []).forEach((x: any) => m.set(x.user_id, { id: x.user_id, name: x.profiles?.full_name || "Instructor", avatar: x.profiles?.avatar_url ?? null }));
-      setPeople([...m.values()].sort((a, b) => a.name.localeCompare(b.name)));
-    });
-  }, [load]);
+  const loadPeople = useCallback(async () => {
+    setPeopleErr("");
+    const r = await supabase.from("user_roles")
+      .select("user_id,profiles!user_roles_user_id_fkey(full_name,avatar_url)").eq("role", "instructor").eq("is_active", true);
+    if (r.error) { setPeopleErr(friendly(r.error)); return; }
+    const m = new Map<string, P>();
+    (r.data ?? []).forEach((x: any) => m.set(x.user_id, { id: x.user_id, name: x.profiles?.full_name || "Instructor", avatar: x.profiles?.avatar_url ?? null }));
+    setPeople([...m.values()].sort((a, b) => a.name.localeCompare(b.name)));
+  }, []);
+
+  useEffect(() => { load(); loadPeople(); }, [load, loadPeople]);
 
   const pmap = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const centres = useMemo(() => {
@@ -205,11 +68,15 @@ export default function Roster() {
     setWeek(busy || !nextUp ? thisWeek : mondayOf(nextUp.session_date));
   }, [ses, week]);
 
+  // `week` is "" until the effect above picks one. Computing addDays("", 7) throws RangeError and blanks the page,
+  // so until a week is chosen the weekly view simply matches nothing.
+  const weekEnd = useMemo(() => (week ? addDays(week, 7) : ""), [week]);
   const days = useMemo(() => {
-    const list = gaps ? upcoming.filter((s) => !s.instructor_id) : inCentre.filter((s) => s.session_date >= week && s.session_date < addDays(week, 7));
+    const list = gaps ? upcoming.filter((s) => !s.instructor_id)
+      : inCentre.filter((s) => !!week && s.session_date >= week && s.session_date < weekEnd);
     const m = new Map<string, S[]>(); [...list].sort(byStart).forEach((s) => m.set(s.session_date, [...(m.get(s.session_date) ?? []), s]));
     return [...m];
-  }, [gaps, upcoming, inCentre, week]);
+  }, [gaps, upcoming, inCentre, week, weekEnd]);
 
   const courses = useMemo(() => {
     const m = new Map<string, { id: string; title: string; groups: Map<string, { id: string; name: string; list: S[] }> }>();
@@ -247,6 +114,7 @@ export default function Roster() {
     <div className="space-y-4">
       <h1 className="text-2xl">Roster</h1>
       {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
+      {peopleErr && <div className="space-y-2"><Err>Couldn't load instructors: {peopleErr}</Err><Button variant="secondary" onClick={loadPeople}>Try again</Button></div>}
 
       {ses.length === 0 && !loadErr ? <Card className="space-y-2 py-8 text-center"><p className="font-medium">No classes to staff yet</p><p className="text-sm text-muted">Schedule a course run first. Its classes will appear here.</p><Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link></Card> : <>
         {centres.length > 1 && <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1"><Chip on={!centre} onClick={() => setCentre("")}>All centres</Chip>{centres.map(([id, name]) => <Chip key={id} on={centre === id} onClick={() => setCentre(id)}>{name}</Chip>)}</div>}
