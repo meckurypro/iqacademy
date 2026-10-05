@@ -1,6 +1,6 @@
 // src/pages/StudentHome.tsx
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
@@ -12,9 +12,10 @@ import CourseOutline from "../components/CourseOutline";
 import MakeupCard from "../components/MakeupCard";
 import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
+import type { MyOffline } from "../lib/offline";
 
-type Inst = { id: string; number: number; amount: number; status: string; label: string };
-type Enr = { id: string; status: string; balance: number; total_amount: number; centres: { name: string; city: string | null; address: string | null } | null; packages: { name: string } | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; enrolment_instalments: Inst[] };
+type Inst = { id: string; number: number; amount: number; status: string; label: string; due_date: string | null };
+type Enr = { id: string; status: string; balance: number; total_amount: number; starts_on: string | null; packages: { name: string } | null; enrolment_courses: { sequence_no: number; courses: { title: string } | null }[]; centres: { name: string; city: string | null; address: string | null } | null; enrolment_instalments: Inst[] };
 type Sess = { id: string; start_at: string; end_at: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; room: string | null };
 type Ref = { id: string; amount: number; status: string; created_at: string };
 type Lesson = { enrolment_id: string; course_id: string; lesson_no: number; title: string; summary: string | null; state: "attended" | "missed" | "upcoming" };
@@ -23,13 +24,15 @@ type Prog = { enrolment_id: string; course_id: string; course_title: string; ses
 export default function StudentHome() {
   const { name } = useAuth(); const { run, confirm } = useFeedback();
   const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [next, setNext] = useState<Sess | null>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
+  const [claims, setClaims] = useState<MyOffline[]>([]); const nav = useNavigate();
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
   const [scan, setScan] = useState(false); const [err, setErr] = useState(""); const [ok, setOk] = useState(false);
 
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
+    supabase.rpc("my_offline_payments").then((r) => setClaims((r.data as MyOffline[]) ?? []));
     const [e, s, p, ls] = await Promise.all([
-      supabase.from("enrolments").select("id,status,balance,total_amount,centres(name,city,address),packages(name),enrolment_courses(sequence_no,courses(title)),enrolment_instalments(id,number,amount,status,label)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
+      supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,packages(name),enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_session_details").select("id,start_at,end_at,centre_name,centre_city,centre_address,course_title,lesson_title,room").in("status", ["scheduled", "in_progress"]).gte("end_at", new Date().toISOString()).order("start_at").limit(1),
       supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
       supabase.from("v_lesson_progress").select("enrolment_id,course_id,lesson_no,title,summary,state").eq("enrolment_status", "active").order("lesson_no"),
@@ -53,10 +56,32 @@ export default function StudentHome() {
     const r = await run("Opening secure payment…", async () => { await startPayment(id); await sleep(10000); }, { quiet: true });
     if (!r.ok) setErr(r.message);
   };
-  // A saved but unpaid registration can be dropped, so the student can pick a different pack, courses or centre.
-  const cancelReg = async (id: string) => {
+  // Switching to Paystack closes the offline request first, so the same instalment can't be paid twice.
+  const payOnlineInstead = async (claimId: string, instalmentId: string) => {
+    const ok = await confirm({ title: "Pay online instead?", message: "Your offline request will be cancelled and you'll go to secure online payment.", confirmLabel: "Pay online" });
+    if (!ok) return;
     setErr("");
-    const yes = await confirm({ title: "Cancel this registration?", message: "Nothing has been charged. Your pack, courses and centre won't be kept, and you can register again whenever you're ready.", confirmLabel: "Cancel registration", cancelLabel: "Keep it", danger: true });
+    const r = await run("Opening secure payment…", async () => {
+      const { error } = await supabase.rpc("cancel_offline_request", { p_payment_id: claimId }); if (error) throw error;
+      await startPayment(instalmentId); await sleep(10000);
+    }, { quiet: true });
+    if (!r.ok) setErr(r.message);
+  };
+  const payOffline = async (instalmentId: string) => {
+    setErr("");
+    let paymentId = "";
+    const r = await run("Saving…", async () => {
+      const { data, error } = await supabase.rpc("request_offline_payment", { p_instalment_id: instalmentId }); if (error) throw error;
+      paymentId = data as string;
+    }, { quiet: true });
+    if (!r.ok) return setErr(r.message);
+    nav(`/pay/offline/${paymentId}`);
+  };
+  // A saved but unpaid registration can be dropped so the student can pick a different pack, courses or centre.
+  // Not offered once a receipt is under review: that money may already be on its way, so the team handles it.
+  const cancelReg = async (id: string, hadRequest: boolean) => {
+    setErr("");
+    const yes = await confirm({ title: "Cancel this registration?", message: `Nothing has been charged.${hadRequest ? " Your offline payment request will be closed too." : ""} Your pack, courses and centre won't be kept, and you can register again whenever you're ready.`, confirmLabel: "Cancel registration", cancelLabel: "Keep it", danger: true });
     if (!yes) return;
     const r = await run("Cancelling…", async () => { const { error } = await supabase.rpc("cancel_enrolment", { p_enrolment_id: id, p_reason: "Cancelled by student" }); if (error) throw error; await load(); }, { success: "Registration cancelled" });
     if (!r.ok) setErr(r.message);
@@ -65,6 +90,8 @@ export default function StudentHome() {
 
   if (!enr) return <div className="space-y-4"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-28" /></div>;
   const owing = enr.flatMap((e) => e.enrolment_instalments.filter((i) => i.status === "pending").sort((a, b) => a.number - b.number).slice(0, 1).map((i) => ({ e, i })));
+  const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, o);
+  const todayIso = new Date().toLocaleDateString("en-CA");
   const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   return (
@@ -73,22 +100,45 @@ export default function StudentHome() {
 
       {enr.length === 0 && <CourseOutline />}
 
-      {owing.map(({ e, i }) => (
+      {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (
+        <Card key={e.id} className="anim-rise space-y-1">
+          <p className="text-sm text-muted">Your first class</p>
+          <p className="text-lg font-semibold">{d0(e.starts_on!, { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className="text-sm text-muted">{e.enrolment_courses?.find((c) => c.sequence_no === 1)?.courses?.title}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
+        </Card>))}
+
+      {owing.map(({ e, i }) => {
+        const claim = claims.find((c) => c.instalment_id === i.id);
+        if (claim) return (
+          <Card key={i.id} className="anim-rise space-y-3">
+            <div className="flex items-center justify-between gap-3"><p className="font-medium">Offline payment</p><Badge tone={claim.receipt ? "ok" : "warn"}>{claim.receipt ? "Awaiting confirmation" : "Receipt needed"}</Badge></div>
+            <p className="text-sm text-muted">{naira(claim.amount)} · {claim.instalment_label ?? "Payment"} · reference <span className="num font-medium text-ink">{claim.reference}</span></p>
+            <p className="text-sm text-muted">{claim.receipt ? "The team has your receipt and will confirm once the money arrives. You'll get a notification." : "Pay by cash or transfer, then send your receipt so we can confirm it."}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link to={`/pay/offline/${claim.id}`}><Button className="w-full">{claim.receipt ? "View details" : "Send receipt"}</Button></Link>
+              <Button variant="secondary" onClick={() => payOnlineInstead(claim.id, i.id)}>Pay online</Button>
+            </div>
+            {e.status === "pending_payment" && !claim.receipt && <button onClick={() => cancelReg(e.id, true)} className="mx-auto block text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-ink">Cancel registration</button>}
+          </Card>);
+        return (
         <Card key={i.id} className="anim-rise space-y-3">
           <div className="flex items-center justify-between"><p className="font-medium">{e.status === "pending_payment" ? "Finish your enrolment" : "Next instalment"}</p><Badge tone="warn">{naira(i.amount)} due</Badge></div>
-          <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>
-          {e.status === "pending_payment" && (e.packages || e.enrolment_courses.length > 0) && <p className="text-sm text-muted">{[e.packages?.name, [...e.enrolment_courses].sort((a, b) => a.sequence_no - b.sequence_no).map((c) => c.courses?.title).filter(Boolean).join(" + ")].filter(Boolean).join(" · ")}</p>}
-          <Button className="w-full" onClick={() => pay(i.id)}>Pay {naira(i.amount)}</Button>
-          {e.status === "pending_payment" && <button onClick={() => cancelReg(e.id)} className="mx-auto block text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-ink">Cancel registration</button>}
-        </Card>))}
+          <p className="text-sm text-muted">{i.label}{e.centres && <> · <Place centre={e.centres} townOnly /></>}{e.status === "pending_payment" && e.starts_on ? ` · classes start ${d0(e.starts_on, { day: "numeric", month: "short" })}` : i.due_date && i.number > 1 ? ` · due ${d0(i.due_date, { day: "numeric", month: "short" })}` : ""}</p>
+          {e.status === "pending_payment" && <p className="text-sm text-muted">{[e.packages?.name, [...e.enrolment_courses].sort((a, b) => a.sequence_no - b.sequence_no).map((c) => c.courses?.title).filter(Boolean).join(" + ")].filter(Boolean).join(" · ")}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={() => pay(i.id)}>Pay online</Button>
+            <Button variant="secondary" onClick={() => payOffline(i.id)}>Pay offline</Button>
+          </div>
+          {e.status === "pending_payment" && <button onClick={() => cancelReg(e.id, false)} className="mx-auto block text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-ink">Cancel registration</button>}
+        </Card>); })}
       <Err>{!open && err}</Err>
 
       {next && (
         <Card className="anim-rise space-y-3 bg-accent text-accent-ink ring-0">
-          <p className="text-sm opacity-80">Next class · {new Date(next.start_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}</p>
-          <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-80">{next.lesson_title}</p>}</div>
-          <p className="text-sm opacity-90">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
-          <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-white/20 font-medium backdrop-blur transition active:scale-[.98]">Check in</button>
+          <p className="text-sm font-medium opacity-95">Next class · {new Date(next.start_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })}</p>
+          <div><h2 className="text-xl">{next.course_title}</h2>{next.lesson_title && <p className="opacity-95">{next.lesson_title}</p>}</div>
+          <p className="text-sm opacity-95">{t(next.start_at)} – {t(next.end_at)} · <Place centre={{ name: next.centre_name, city: next.centre_city, address: next.centre_address }} />{next.room ? ` · ${next.room}` : ""}</p>
+          <button onClick={() => setOpen(true)} className="h-12 w-full rounded-xl bg-accent-ink font-semibold text-accent shadow-card transition active:scale-[.98]">Check in</button>
         </Card>)}
 
       {prog.length > 0 && (

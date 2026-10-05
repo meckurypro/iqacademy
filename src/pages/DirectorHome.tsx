@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { place } from "../lib/centre";
+import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Link } from "react-router-dom";
-import { Badge, Card, Skeleton, cx } from "../components/ui";
+import { Badge, Button, Card, Skeleton, cx } from "../components/ui";
+import { useFeedback } from "../components/feedback";
 import { Stat } from "./InstructorHome";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14,47 +17,100 @@ export default function DirectorHome() {
   const { roles } = useAuth();
   const ids = useMemo(() => [...new Set(roles.filter((r) => r.role === "centre_director" && r.centre_id).map((r) => r.centre_id as string))], [roles]);
   const [sel, setSel] = useState<string>("all");
-  const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const { run, confirm } = useFeedback();
   const [ds, setDs] = useState<any[]>();
-  useEffect(() => {
-    if (!ids.length) return; setDs(undefined);
-    const m = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}-01`;
-    Promise.all(ids.map((id) => supabase.rpc("centre_dashboard", { p_centre_id: id, p_month: m }))).then((rs) => setDs(rs.map((r) => r.data).filter(Boolean)));
-  }, [ids, month]);
-  const shift = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1));
+  const [inc, setInc] = useState<any[]>();
+  const [month, setMonth] = useState("");
+  const load = useCallback(async () => {
+    if (!ids.length) return;
+    const [d, i] = await Promise.all([
+      Promise.all(ids.map((id) => supabase.rpc("centre_dashboard", { p_centre_id: id }))),
+      Promise.all(ids.map((id) => supabase.rpc("centre_income_months", { p_centre_id: id }))),
+    ]);
+    setDs(d.map((r) => r.data).filter(Boolean)); setInc(i.map((r) => r.data).filter(Boolean));
+  }, [ids]);
+  useEffect(() => { setDs(undefined); setInc(undefined); load(); }, [load]);
+
+  // Months a director may see: this month, last month, and older ones only while money is still waiting there.
+  const months = useMemo(() => [...new Set((inc ?? []).flatMap((c) => (c.months ?? []).map((m: any) => m.month as string)))].sort().reverse(), [inc]);
+  const thisMonth = inc?.[0]?.today ? String(inc[0].today).slice(0, 7) + "-01" : "";
+  useEffect(() => { if (months.length && !months.includes(month)) setMonth(months.includes(thisMonth) ? thisMonth : months[0]); }, [months, month, thisMonth]);
+  const monthLabel = (m: string) => new Date(`${m}T00:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const niceDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "long" });
+  const rows = useMemo(() => (inc ?? []).filter((c) => sel === "all" || c.centre_id === sel)
+    .map((c) => ({ c, m: (c.months ?? []).find((x: any) => x.month === month), d: (ds ?? []).find((x) => x.centre?.id === c.centre_id) })).filter((r) => r.m), [inc, ds, sel, month]);
+
+  const netOf = (id?: string) => { const m = (inc ?? []).find((c) => c.centre_id === id)?.months?.find((x: any) => x.month === month); return m ? Number(m.earned) - Number(m.refunds) + Number(m.adjustments) : 0; };
+  const withdraw = async (centreId: string, label: string, m: any) => {
+    if (!(await confirm({ title: `Withdraw ${naira(m.available)}?`, message: `Your ${monthLabel(m.month)} share${label ? ` from ${label}` : ""} will be sent to your bank account once we approve it. You can cancel until then.`, confirmLabel: "Withdraw" }))) return;
+    await run("Requesting…", async () => { const { error } = await supabase.rpc("request_withdrawal", { p_centre_id: centreId, p_month: m.month }); if (error) throw error; await load(); }, { success: "Withdrawal requested" });
+  };
+  const cancelReq = async (id: string) => {
+    if (!(await confirm({ title: "Cancel this withdrawal?", message: "The money stays in your balance. You can withdraw it again later.", confirmLabel: "Cancel request", cancelLabel: "Keep it" }))) return;
+    await run("Cancelling…", async () => { const { error } = await supabase.rpc("cancel_withdrawal", { p_payout_id: id }); if (error) throw error; await load(); }, { success: "Request cancelled" });
+  };
 
   const view = useMemo(() => (ds ? (sel === "all" ? ds : ds.filter((d) => d.centre?.id === sel)) : []), [ds, sel]);
   const days = [1, 2, 3, 4, 5, 6, 7].map((n) => sum(view.flatMap((d) => (d.by_weekday ?? []).filter((x: any) => x.day_of_week === n)), "students"));
   const maxDay = Math.max(1, ...days);
   const courses = useMemo(() => { const m = new Map<string, any>(); view.forEach((d) => (d.by_course ?? []).forEach((c: any) => m.set(c.course_id, { ...c, students: (m.get(c.course_id)?.students ?? 0) + c.students }))); return [...m.values()].sort((a, b) => b.students - a.students); }, [view]);
-  const balance = sum(view, "balance_owed");
+  const earned = rows.reduce((n, r) => n + Number(r.m.earned), 0);
+  const refunds = rows.reduce((n, r) => n + Number(r.m.refunds), 0);
+  const waiting = rows.reduce((n, r) => n + Number(r.m.available), 0);
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl">{ids.length > 1 ? "Your branches" : view[0]?.centre?.name ?? "Your centre"}</h1>
+      <div><h1 className="text-2xl">{ids.length > 1 ? "Your branches" : view[0]?.centre ? place(view[0].centre) : "Your centre"}</h1>
+        {ids.length === 1 && view[0]?.centre && place(view[0].centre) !== view[0].centre.name && <p className="text-sm text-muted">{view[0].centre.name}</p>}
         <p className="text-muted">{view.length === 1 ? `Your share here: ${view[0].share_pct}% of student payments` : "Each branch has its own agreed share"}</p></div>
 
       {ids.length > 1 && <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {[{ id: "all", name: "All branches" }, ...(ds ?? []).map((d) => ({ id: d.centre?.id, name: d.centre?.name }))].map((c) => (
+        {[{ id: "all", name: "All branches" }, ...(ds ?? []).map((d) => ({ id: d.centre?.id, name: d.centre ? place(d.centre) : "" }))].map((c) => (
           <button key={c.id} onClick={() => setSel(c.id)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", sel === c.id ? "bg-accent text-accent-ink" : "bg-sunken")}>{c.name}</button>))}</div>}
 
-      <div className="flex items-center justify-between rounded-2xl bg-surface px-2 py-1 ring-1 ring-line">
-        <button onClick={() => shift(-1)} className="h-10 w-10 rounded-full hover:bg-sunken">‹</button>
-        <p className="font-medium">{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</p>
-        <button onClick={() => shift(1)} className="h-10 w-10 rounded-full hover:bg-sunken">›</button></div>
+      {months.length > 1 && <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        {months.map((m) => (
+          <button key={m} onClick={() => setMonth(m)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", month === m ? "bg-accent text-accent-ink" : "bg-sunken")}>
+            {m === thisMonth ? "This month" : monthLabel(m)}</button>))}</div>}
 
-      {!ds ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
+      {!ds || !inc ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
         <div className="grid grid-cols-2 gap-3">
-          <Stat label="Earned this month" value={naira(sum(view, "earned_month"))} />
-          <Stat label="Refunds deducted" value={sum(view, "refunds_month") ? "−" + naira(sum(view, "refunds_month")) : naira(0)} sub="Student refunds reduce your share" />
-          <Stat label={balance < 0 ? "To be offset" : "Waiting to be paid"} value={naira(Math.abs(balance))} sub={balance < 0 ? "Carried into your next payout" : "Paid out monthly"} />
+          <Stat label={month === thisMonth ? "Earned this month" : `Earned in ${month ? monthLabel(month).split(" ")[0] : ""}`} value={naira(earned)} />
+          <Stat label="Refunds deducted" value={refunds ? "−" + naira(refunds) : naira(0)} sub="Student refunds reduce your share" />
+          <Stat label={waiting < 0 ? "To be offset" : "Available"} value={naira(Math.abs(waiting))} sub={waiting < 0 ? "Refunds are higher than income" : "Yours to withdraw"} />
           <Stat label="Active students" value={sum(view, "students_active")} sub={`${sum(view, "students_total")} all time`} />
         </div>
 
+        <section className="space-y-2"><h2 className="text-lg">{month ? monthLabel(month) : "Income"}</h2>
+          {rows.map(({ c, m, d }) => {
+            const po = m.payout; const label = ids.length > 1 && d?.centre ? place(d.centre) : "";
+            return (
+              <Card key={c.centre_id} className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">{label && <p className="font-semibold">{label}</p>}
+                    <p className="num text-2xl font-semibold">{naira(m.available)}</p>
+                    <p className="text-sm text-muted">{m.withdrawn ? `${naira(m.withdrawn)} already withdrawn` : "Available to withdraw"}</p></div>
+                  {po && <Badge tone={po.status === "paid" ? "ok" : po.status === "failed" ? "bad" : "warn"}>{po.status === "draft" ? "Requested" : po.status === "processing" ? "On its way" : po.status === "paid" ? "Paid" : po.status}</Badge>}
+                </div>
+                {po?.status === "draft"
+                  ? <div className="flex items-center justify-between gap-3"><p className="text-sm text-muted">Waiting for approval.</p><button className="text-sm font-medium text-accent" onClick={() => cancelReq(po.id)}>Cancel</button></div>
+                  : po?.status === "processing" ? <p className="text-sm text-muted">Approved. It's on its way to your bank.</p>
+                  : <>
+                      <Button className="w-full" disabled={!m.can_withdraw} onClick={() => withdraw(c.centre_id, label, m)}>Withdraw {m.available > 0 ? naira(m.available) : ""}</Button>
+                      <p className="text-sm text-muted">
+                        {m.available <= 0 ? "Nothing to withdraw yet."
+                          : !c.account?.ready ? "Add your bank details with an admin first."
+                          : !m.can_withdraw ? `Opens ${niceDay(m.opens_on)}, when the month ends.`
+                          : "You can also leave it here and withdraw later."}</p>
+                    </>}
+              </Card>);
+          })}
+        </section>
+
         {sel === "all" && ds.length > 1 && <section className="space-y-2"><h2 className="text-lg">By branch</h2>
           {ds.map((d) => <Card key={d.centre?.id} onClick={() => setSel(d.centre?.id)} className="flex items-center justify-between py-3">
-            <div><p className="font-medium">{d.centre?.name}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
-            <div className="text-right"><p className="num font-semibold">{naira(d.earnings_month)}</p><p className="text-xs text-muted">net this month</p></div></Card>)}</section>}
+            <div><p className="font-semibold">{d.centre && <Place centre={d.centre} nameOnly />}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
+            <div className="text-right"><p className="num font-semibold">{naira(netOf(d.centre?.id))}</p><p className="text-xs text-muted">{month === thisMonth ? "net this month" : "net"}</p></div></Card>)}</section>}
 
         <section className="space-y-2"><h2 className="text-lg">Students by day</h2>
           <Card className="flex h-36 items-end gap-2">{days.map((v, i) => (
@@ -71,7 +127,7 @@ export default function DirectorHome() {
         <Link to="/team"><Card onClick={() => {}} className="flex items-center justify-between"><div><p className="font-medium">My team</p><p className="text-sm text-muted">Add or remove your centre's coordinators</p></div><span className="text-muted">›</span></Card></Link>
 
         <section className="space-y-2"><h2 className="text-lg">Payouts</h2>
-          {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre?.name }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
+          {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
             <Card key={p.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(p.amount)}</p><p className="text-sm text-muted">{ids.length > 1 ? `${p.centre} · ` : ""}{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : "Pending"}</p></div>
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
           {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</section>

@@ -13,3 +13,6 @@ export const placeSub = (c: CentreLike) => {
   const street = clean(c.city) && clean(c.address) ? clean(c.address) : "";
   return [head === c.name ? "" : c.name, street].filter(Boolean).join(" · ");
 };
+
+/** Plain-text label for <select> options and search: "Okota · Brainstorm Academy". */
+export const placeLabel = (c: CentreLike) => [place(c), place(c) === c.name ? "" : c.name].filter(Boolean).join(" · ");

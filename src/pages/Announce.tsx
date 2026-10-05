@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase, friendly, rawMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
-import { Button, Card, Err, Field, cx } from "../components/ui";
+import { Button, Card, Err, Field, Sheet, Skeleton, cx } from "../components/ui";
 import { useUserSearch } from "./Users";
 
 type Opt = { id: string; name: string };
@@ -14,7 +14,7 @@ const Chips = ({ items, on, toggle }: { items: Opt[]; on: string[]; toggle: (id:
     <button key={i.id} onClick={() => toggle(i.id)} className={cx("rounded-full px-3 py-1.5 text-sm transition active:scale-95", on.includes(i.id) ? "bg-accent text-accent-ink" : "bg-sunken")}>{i.name}</button>))}</div>
 );
 
-export default function Announce() {
+function Compose({ onSeeSent }: { onSeeSent: () => void }) {
   const { run, confirm } = useFeedback();
   const [rules, setRules] = useState<Rule[]>([blank()]);
   const [centres, setCentres] = useState<Opt[]>([]); const [courses, setCourses] = useState<Opt[]>([]);
@@ -49,7 +49,7 @@ export default function Announce() {
     const n = preview?.count ?? 0;
     if (!(await confirm({
       title: `Send to ${n} ${n === 1 ? "person" : "people"}?`,
-      message: "It goes straight to their notification bell and can't be unsent.", confirmLabel: "Send now",
+      message: "It goes straight to their notification bell. You can still edit or remove it afterwards from the Sent tab.", confirmLabel: "Send now",
     }))) return;
     const r = await run("Sending announcement…", async () => {
       const { data, error } = await supabase.rpc("send_broadcast", { p_title: title, p_body: body || null, p_audience: audience });
@@ -63,11 +63,11 @@ export default function Announce() {
   if (sent !== null) return (
     <Card className="anim-rise mx-auto mt-10 max-w-sm space-y-4 p-8 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-3xl text-ok">✓</div>
       <h1 className="text-xl">Sent to {sent} {sent === 1 ? "person" : "people"}</h1><p className="text-muted">It's on their notification bell now.</p>
-      <Button className="w-full" onClick={() => { setSent(null); setTitle(""); setBody(""); setRules([blank()]); }}>Write another</Button></Card>);
+      <Button className="w-full" onClick={() => { setSent(null); setTitle(""); setBody(""); setRules([blank()]); }}>Write another</Button>
+      <Button variant="ghost" className="w-full" onClick={onSeeSent}>See sent announcements</Button></Card>);
 
   return (
     <div className="space-y-5 pb-32">
-      <h1 className="text-2xl">New announcement</h1>
       {rules.map((r, i) => (
         <Card key={i} className="anim-fade space-y-3">
           <div className="flex items-center justify-between"><p className="text-sm font-medium text-muted">{i === 0 ? "Send to" : "Also send to"}</p>
@@ -95,6 +95,96 @@ export default function Announce() {
           <Button disabled={!title.trim() || !preview || preview.count === 0} onClick={send}>Send</Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ───────────── sent announcements: review, correct, retract ─────────────
+type SentRow = { id: string; title: string; body: string | null; recipient_count: number; created_at: string };
+
+function SentList() {
+  const { run, confirm, toast } = useFeedback();
+  const [rows, setRows] = useState<SentRow[]>(); const [loadErr, setLoadErr] = useState("");
+  const [ed, setEd] = useState<{ id: string; title: string; body: string; n: number } | null>(null); const [err, setErr] = useState("");
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase.from("broadcasts").select("id,title,body,recipient_count,created_at").order("created_at", { ascending: false }).limit(50);
+    if (error) { setLoadErr(friendly(error)); return setRows([]); }
+    setLoadErr(""); setRows((data as SentRow[]) ?? []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const people = (n: number) => `${n} ${n === 1 ? "person" : "people"}`;
+
+  const save = async () => {
+    if (!ed) return; setErr("");
+    const sent = ed;
+    const r = await run("Saving announcement…", async () => {
+      const { error } = await supabase.rpc("edit_broadcast", { p_id: sent.id, p_title: sent.title, p_body: sent.body.trim() || null });
+      if (error) throw error;
+      // Read it back: only call it saved if the database really holds the new wording.
+      const back = await supabase.from("broadcasts").select("title,body").eq("id", sent.id).maybeSingle();
+      if (back.error) throw back.error;
+      if (!back.data || back.data.title !== sent.title.trim() || (back.data.body ?? "") !== sent.body.trim()) throw new Error("not_saved");
+      await load();
+    }, { success: "Updated for everyone who received it", quiet: true });
+    if (!r.ok) return setErr(r.message);
+    setEd(null);
+  };
+
+  const remove = async (b: SentRow) => {
+    const yes = await confirm({
+      title: "Remove this announcement?",
+      message: <>“{b.title}” disappears from the notifications of the {people(b.recipient_count)} who received it, including anyone who hasn't read it yet. This can't be undone.</>,
+      confirmLabel: "Remove announcement", danger: true,
+    });
+    if (!yes) return;
+    const r = await run("Removing announcement…", async () => {
+      const { data, error } = await supabase.rpc("delete_broadcast", { p_id: b.id });
+      if (error) throw error;
+      await load();
+      return data as number;
+    });
+    if (r.ok) toast(`Removed from ${people(r.data)}'s notifications`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div><h1 className="text-2xl">Sent announcements</h1><p className="text-sm text-muted">Fix a typo or take one back. Changes apply to everyone who received it, and nobody is notified again.</p></div>
+      {loadErr && <div className="space-y-2"><Err>{loadErr}</Err><Button variant="secondary" onClick={load}>Try again</Button></div>}
+      {!rows ? <><Skeleton className="h-24" /><Skeleton className="h-24" /></> : rows.length === 0 && !loadErr ? <Card className="text-center text-muted">Nothing sent yet.</Card> : rows.map((b) => (
+        <Card key={b.id} className="space-y-2">
+          <div><p className="font-medium">{b.title}</p><p className="text-sm text-muted">{new Date(b.created_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · sent to {people(b.recipient_count)}</p></div>
+          {b.body && <p className="line-clamp-3 whitespace-pre-line text-[15px]">{b.body}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" className="h-10" onClick={() => { setErr(""); setEd({ id: b.id, title: b.title, body: b.body ?? "", n: b.recipient_count }); }}>Edit</Button>
+            <Button variant="secondary" className="h-10 text-bad" onClick={() => remove(b)}>Remove</Button></div>
+        </Card>))}
+
+      <Sheet open={!!ed} onClose={() => setEd(null)} title="Edit announcement">
+        {ed && <div className="space-y-3">
+          <Field label="Title" value={ed.title} maxLength={120} onChange={(e) => setEd({ ...ed, title: e.target.value })} />
+          <label className="block"><span className="mb-1.5 block text-sm text-muted">Message</span>
+            <textarea value={ed.body} onChange={(e) => setEd({ ...ed, body: e.target.value })} maxLength={2000} rows={5} className="w-full rounded-xl bg-sunken p-4 text-[15px] outline-none ring-accent/40 focus:ring-2" /></label>
+          <p className="text-sm text-muted">This changes the wording for all {ed.n} {ed.n === 1 ? "person" : "people"} who received it. They aren't notified again.</p>
+          <Err>{err}</Err>
+          <Button className="w-full" disabled={!ed.title.trim()} onClick={save}>Save changes</Button>
+        </div>}
+      </Sheet>
+    </div>
+  );
+}
+
+export default function Announce() {
+  const [tab, setTab] = useState<"new" | "sent">("new");
+  return (
+    <div className="space-y-4">
+      <div role="tablist" className="grid grid-cols-2 gap-1 rounded-2xl bg-sunken p-1">
+        {([["new", "New announcement"], ["sent", "Sent"]] as const).map(([k, l]) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={cx("h-10 rounded-xl text-sm font-medium transition", tab === k ? "bg-surface shadow-card" : "text-muted")}>{l}</button>))}
+      </div>
+      {tab === "new" ? <Compose onSeeSent={() => setTab("sent")} /> : <SentList />}
     </div>
   );
 }

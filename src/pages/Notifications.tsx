@@ -79,7 +79,7 @@ export default function Notifications() {
                 </div>
                 <p className="font-medium leading-snug">{n.title}</p>
                 {n.type.startsWith("run_") && n.type !== "run_cancelled" && <Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link>}
-                {["class_assigned", "class_unassigned", "class_changed"].includes(n.type) && <Link to="/schedule" className="text-sm font-medium text-accent">Open my classes</Link>}
+                {["class_assigned", "class_unassigned", "class_changed"].includes(n.type) && <Link to="/my-classes" className="text-sm font-medium text-accent">Open my classes</Link>}
                 {n.body && <p className="select-text whitespace-pre-wrap break-words text-sm leading-relaxed text-muted">{n.body}</p>}
               </Card>))}
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show older</Button>}

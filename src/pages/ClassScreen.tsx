@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import Place from "../components/Place";
 import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
@@ -6,10 +7,11 @@ import { Avatar, Badge, Button, Card, Err, Sheet, Skeleton } from "../components
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
 import MessageBubble from "../components/MessageBubble";
-import { BUCKET, MAX_MEDIA_BYTES, MEDIA_TYPES, type ClassMessage } from "../lib/messages";
+import ClassComposer from "../components/ClassComposer";
+import { type ClassMessage } from "../lib/messages";
 
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
-type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
+type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 
 export default function ClassScreen() {
@@ -18,7 +20,6 @@ export default function ClassScreen() {
   const [s, setS] = useState<Sess>(); const [roster, setRoster] = useState<Row[]>();
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
   const [pick, setPick] = useState<Row | null>(null); const [err, setErr] = useState("");
-  const [text, setText] = useState(""); const [file, setFile] = useState<File | null>(null); const [preview, setPreview] = useState(""); const [msgErr, setMsgErr] = useState("");
   const [sent, setSent] = useState<ClassMessage[]>([]);
 
   const loadSent = useCallback(async () => {
@@ -26,11 +27,10 @@ export default function ClassScreen() {
     setSent((data as ClassMessage[]) ?? []);
   }, [id]);
   useEffect(() => { supabase.from("class_sessions").select("instructor_id").eq("id", id!).maybeSingle().then((r) => setTeacher((r.data?.instructor_id as string) ?? null)); }, [id]);
-  useEffect(() => { if (!file) { setPreview(""); return; } const u = URL.createObjectURL(file); setPreview(u); return () => URL.revokeObjectURL(u); }, [file]);
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
+      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
       supabase.rpc("session_attendance_roster", { p_session_id: id }),
     ]);
     setS(a.data as Sess); setRoster((b.data as Row[]) ?? []);
@@ -67,32 +67,9 @@ export default function ClassScreen() {
 
   // Only the instructor of this class (or an admin) can message it; coordinators and directors can view the class but not send.
   const canSend = roles.some((r) => r.role === "admin" || r.role === "super_admin") || (!!teacher && teacher === session?.user.id);
-  const pickFile = (f: File | undefined) => {
-    setMsgErr(""); if (!f) return;
-    if (!MEDIA_TYPES.includes(f.type) || f.size > MAX_MEDIA_BYTES) return setMsgErr(friendly(new Error("invalid_media")));
-    setFile(f);
-  };
-  const sendMsg = async () => {
-    const body = text.trim(); if (!body && !file) return; setMsgErr("");
-    const r = await run("Sending message…", async () => {
-      let media: { path: string; name: string; mime: string; size: number } | null = null;
-      if (file) {
-        const safe = file.name.normalize("NFKD").replace(/[^\w.-]+/g, "_").slice(-80) || "image";
-        const path = `${id}/${crypto.randomUUID()}-${safe}`;
-        const up = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-        if (up.error) throw up.error;
-        media = { path, name: file.name, mime: file.type, size: file.size };
-      }
-      const { error } = await supabase.rpc("send_class_message", { p_session_id: id, p_body: body || null, p_media_path: media?.path ?? null, p_media_name: media?.name ?? null, p_media_mime: media?.mime ?? null, p_media_size: media?.size ?? null });
-      if (error) throw error;
-      await loadSent();
-    }, { success: "Sent to the class", quiet: true });
-    if (!r.ok) return setMsgErr(r.message);
-    setText(""); setFile(null);
-  };
-
   if (!s || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-32" /><Skeleton className="h-48" /></div>;
   const present = roster.filter((r) => r.status === "present").length;
+  const joined = roster.filter((r) => r.status === "present" && r.method === "qr_scan").length;
   const closed = s.status === "completed" || s.status === "cancelled";
   const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -100,7 +77,7 @@ export default function ClassScreen() {
     <div className="space-y-5">
       <button onClick={() => nav(-1)} className="text-sm text-muted">← Back</button>
       <div><h1 className="text-2xl">{s.course_title}</h1>
-        <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · {s.centre_name}{s.room ? ` · ${s.room}` : ""}</p></div>
+        <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 
       {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
         <p className="text-sm text-muted">Today's topic</p>
@@ -126,27 +103,11 @@ export default function ClassScreen() {
             <Avatar name={r.full_name} size={36} /><p className="flex-1 truncate font-medium">{r.full_name}</p>
             <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
       </section>
-      {canSend && s.status !== "cancelled" && <section className="space-y-3">
-        <h2 className="text-lg">Message the class</h2>
-        <Card className="space-y-3">
-          <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} rows={4} aria-label="Message to the class"
-            placeholder="Share a prompt, instructions or a link for today's class…"
-            className="w-full resize-none rounded-xl bg-sunken p-3 text-[15px] leading-relaxed outline-none ring-accent/40 transition focus:ring-2" />
-          {file && <div className="flex items-center gap-3 rounded-xl bg-sunken p-2">
-            <img src={preview} alt="" className="h-12 w-12 rounded-lg object-cover" />
-            <p className="min-w-0 flex-1 truncate text-sm">{file.name}</p>
-            <button onClick={() => setFile(null)} aria-label="Remove image" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-surface">✕</button></div>}
-          <Err>{msgErr}</Err>
-          <div className="flex items-center gap-2">
-            <label className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-sunken px-4 text-sm font-medium transition active:scale-[.98]">
-              <span aria-hidden="true">🖼️</span>{file ? "Change image" : "Add image"}
-              <input type="file" accept={MEDIA_TYPES.join(",")} className="sr-only" onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ""; }} /></label>
-            <span className="flex-1" />
-            <Button disabled={!text.trim() && !file} onClick={sendMsg}>Send</Button>
-          </div>
-          <p className="text-xs leading-relaxed text-muted">Goes to the students marked present ({present} so far). Anyone who checks in later gets it too. Students can't reply, and only an admin can delete a message.</p>
-        </Card>
-        {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent to this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
+      {canSend && (s.status === "in_progress" || sent.length > 0 || s.status === "scheduled") && <section className="space-y-3">
+        <h2 className="text-lg">Messages</h2>
+        {s.status === "in_progress" ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
+          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. Show the class code to start it.</Card>}
+        {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
       </section>}
       {!closed && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
 

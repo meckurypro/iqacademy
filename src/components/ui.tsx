@@ -16,8 +16,11 @@ export function Button({ variant = "primary", loading, className, children, disa
   );
 }
 
+// A Card paints its own surface and ring unless the caller supplies a background or ring. Without this, "bg-accent"
+// and the default "bg-surface" fight and the stylesheet order decides, which left white text on a white card.
 export const Card = ({ className, children, onClick }: { className?: string; children: ReactNode; onClick?: () => void }) => (
-  <div onClick={onClick} className={cx("rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line", onClick && "cursor-pointer transition active:scale-[.99]", className)}>{children}</div>
+  <div onClick={onClick} className={cx("rounded-2xl p-4 shadow-card", !/(^|\s)bg-/.test(className ?? "") && "bg-surface", !/(^|\s)ring-/.test(className ?? "") && "ring-1 ring-line",
+    onClick && "cursor-pointer transition active:scale-[.99]", className)}>{children}</div>
 );
 
 export const Skeleton = ({ className }: { className?: string }) => <div className={cx("skeleton h-5 w-full", className)} />;

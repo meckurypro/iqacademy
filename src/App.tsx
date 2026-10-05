@@ -26,14 +26,19 @@ import DirectorHome from "./pages/DirectorHome";
 import Manage from "./pages/Manage";
 import Centres from "./pages/Centres";
 import Schedule from "./pages/Schedule";
+import Roster from "./pages/Roster";
+import MyClasses from "./pages/MyClasses";
 import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
+import OfflinePayments from "./pages/OfflinePayments";
+import OfflinePay from "./pages/OfflinePay";
 import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
 import Notifications from "./pages/Notifications";
 import Messages from "./pages/Messages";
+import InstructorMessages from "./pages/InstructorMessages";
 import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
 import { useUnreadMessages } from "./lib/messages";
 
@@ -68,7 +73,7 @@ function UnreadDot() {
 
 const NAV: Record<string, [string, string, string][]> = {
   student: [["/", "Home", "🏠"], ["/messages", "Messages", "💬"]],
-  instructor: [["/", "Today", "📅"], ["/schedule", "Schedule", "🗓️"], ["/history", "History", "🕘"]],
+  instructor: [["/", "Today", "📅"], ["/my-classes", "My classes", "📋"], ["/schedule", "Schedule", "🗓️"], ["/history", "History", "🕘"], ["/messages", "Messages", "💬"]],
   admin: [["/", "Overview", "📊"], ["/users", "Users", "👥"], ["/announce", "Announce", "📣"], ["/manage", "Manage", "⚙️"]],
 };
 NAV.super_admin = NAV.admin;
@@ -81,7 +86,7 @@ function TabBar({ role }: { role: string }) {
       <div className="mx-auto flex max-w-3xl">
         {items.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end className={({ isActive }) => `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs transition ${isActive ? "font-semibold text-accent" : "text-muted"}`}>
-            <span className="relative text-lg leading-none">{icon}{to === "/messages" && <UnreadDot />}</span>{label}
+            <span className="relative text-lg leading-none">{icon}{role === "student" && to === "/messages" && <UnreadDot />}</span>{label}
           </NavLink>))}
       </div>
     </nav>
@@ -147,17 +152,21 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/announce" element={<Announce />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/messages" element={role === "student" ? <Messages /> : <Navigate to="/" replace />} />
+        <Route path="/messages" element={role === "student" ? <Messages /> : role === "instructor" ? <InstructorMessages /> : <Navigate to="/" replace />} />
         <Route path="/class-messages" element={role === "admin" || role === "super_admin" ? <ClassMessagesAdmin /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />
+        <Route path="/roster" element={role === "admin" || role === "super_admin" ? <Roster /> : <Navigate to="/" replace />} />
+        <Route path="/my-classes" element={role === "instructor" ? <MyClasses /> : <Navigate to="/" replace />} />
         <Route path="/schedule" element={role === "student" ? <Navigate to="/" replace /> : <Schedule />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/prices" element={<Prices />} />
         <Route path="/courses" element={<CourseBuilder />} />
         <Route path="/courses/:id" element={<CourseBuilder />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/offline-payments" element={<OfflinePayments />} />
+        <Route path="/pay/offline/:id" element={<OfflinePay />} />
         <Route path="/team" element={<Team />} />
         <Route path="/team/:centreId" element={<Team />} />
         <Route path="/instructors" element={<Instructors />} />
