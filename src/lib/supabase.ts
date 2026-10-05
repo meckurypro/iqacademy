@@ -77,11 +77,15 @@ const MESSAGES: Record<string, string> = {
   course_code_invalid: "Use 2–20 letters, numbers, - or _ for the course code.",
   course_code_taken: "That course code is already used.",
   course_in_use: "Students or classes still use this course, so it can't be deleted. Hide it instead (turn off “Visible to students”).",
+  course_has_content: "Lesson materials have been uploaded for this course, so it can't be deleted. Hide it instead.",
+  broadcast_not_found: "That announcement was already removed.",
+  invalid_title: "Give it a title (up to 120 characters).",
+  body_too_long: "Keep the message under 2,000 characters.",
+  no_recipients: "No one matches that audience yet.",
   course_is_prerequisite: "Other courses list this one as a prerequisite. Remove it from them first, or hide this course instead.",
   prerequisite_cycle: "Those prerequisites would make two courses depend on each other.",
   prerequisite_invalid: "A prerequisite points at a course that doesn't exist.",
   centre_code_taken: "That centre code is already used.",
-  centre_in_use: "This centre still has students, classes, cohorts or team members, so it can't be deleted. Hide it instead.",
   centre_has_history: "This centre has students, payments or attendance on record, so it can't be deleted. Hide it instead (turn off “Open for students”).",
   no_days: "Add at least one class day.",
   duplicate_day: "Each weekday can only appear once.",
@@ -100,11 +104,6 @@ const MESSAGES: Record<string, string> = {
   centre_not_available: "That centre isn't open.",
   centre_not_found: "That centre no longer exists.",
   package_in_use: "Students have enrolled on this package, so it can't be deleted. Hide it instead (turn off “On sale”).",
-  cohort_code_taken: "That cohort code is already used.",
-  cohort_in_use: "Students are enrolled in this cohort, so it can't be deleted. Close enrolment instead.",
-  cohort_not_found: "That cohort no longer exists.",
-  slot_not_found: "That class slot no longer exists.",
-  slot_invalid: "Check the day and times for this class slot.",
 };
 
 /** A message that is already written for people. friendly() passes it through untouched. */

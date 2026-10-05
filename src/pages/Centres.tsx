@@ -50,7 +50,7 @@ export default function Centres() {
     if (!f?.id) return;
     const yes = await confirm({
       title: `Delete ${f.name || "this centre"}?`,
-      message: "This permanently removes the centre, its revenue share and its payout account. A centre that has students, classes, cohorts or team members can't be deleted. Hide it instead.",
+      message: "This permanently deletes the centre with its class days, course runs, team roles and payout account. It can't be deleted once it has students enrolled, payments or attendance on record. Hide it instead (turn off “Open for students”).",
       confirmLabel: "Delete centre", danger: true,
     });
     if (!yes) return; setErr("");
