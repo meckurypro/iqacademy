@@ -57,7 +57,7 @@ export default function InstructorMessages() {
 
       {active === null ? <Skeleton className="h-40" />
         : active.length === 0 ? <Card className="space-y-1 py-6 text-center"><p className="font-medium">No class in progress</p>
-            <p className="text-sm text-muted">You can message a class once it has started. Open it from <Link to="/" className="font-medium text-accent">Today</Link> and show the class code.</p></Card>
+            <p className="text-sm text-muted">You can message a class once it has started. The centre opens check-in 30 minutes before. You can follow arrivals from <Link to="/" className="font-medium text-accent">Today</Link>.</p></Card>
         : active.map((c) => (
             <section key={c.id} className="space-y-2">
               <div className="flex items-baseline justify-between gap-3 px-1"><h2 className="text-lg">{c.course_title}</h2><span className="text-xs text-muted">{c.centre_name}</span></div>

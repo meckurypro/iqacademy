@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Badge, Button, Card, Skeleton, cx } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import { Stat } from "./InstructorHome";
+import DoorToday from "../components/DoorToday";
 
 import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -73,6 +74,8 @@ export default function DirectorHome() {
         {months.map((m) => (
           <button key={m} onClick={() => setMonth(m)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", month === m ? "bg-accent text-accent-ink" : "bg-sunken")}>
             {m === thisMonth ? "This month" : monthLabel(m)}</button>))}</div>}
+
+      <DoorToday centreIds={sel === "all" ? ids : [sel]} showCentre={ids.length > 1 && sel === "all"} />
 
       {!ds || !inc ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
         <div className="grid grid-cols-2 gap-3">

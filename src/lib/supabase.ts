@@ -9,8 +9,9 @@ export const supabase = createClient(url || "http://localhost:54321", key || "mi
 });
 const MESSAGES: Record<string, string> = {
   invalid_code: "That code isn't right. Check it and try again.",
-  code_expired: "That code has expired. Ask your instructor for a new one.",
-  outside_checkin_window: "Check-in isn't open for this class right now.",
+  code_expired: "That code has expired. Ask the centre for a new one.",
+  outside_checkin_window: "Check-in isn't open for this class right now. It opens 30 minutes before the class and stays open until it ends.",
+  session_closed: "This class has already ended.",
   not_enrolled: "You're not enrolled in this class.",
   payment_required: "Please pay your next instalment to attend this course.",
   session_cancelled: "This class was cancelled.",
@@ -50,7 +51,7 @@ const MESSAGES: Record<string, string> = {
   solo_price_not_set: "This course can't be bought on its own yet.",
   course_not_available: "That course isn't available right now.",
   prices_invalid: "Something is wrong with those prices. Please check and try again.",
-  session_not_active: "You can message a class while it's in progress. Show the class code to start it.",
+  session_not_active: "You can message a class while it's in progress. The class starts when the centre opens check-in.",
   message_empty: "Write a message or attach an image first.",
   message_too_long: "Keep the message under 4,000 characters.",
   invalid_media: "That image can't be sent. Use a JPG, PNG, WebP or GIF under 10 MB.",

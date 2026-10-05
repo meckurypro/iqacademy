@@ -9,11 +9,14 @@ import { useAuth } from "../lib/auth";
 import MessageBubble from "../components/MessageBubble";
 import ClassComposer from "../components/ClassComposer";
 import { type ClassMessage } from "../lib/messages";
+import { doorState, opensAt, REASON_LABEL } from "../lib/checkin";
 
 import Icon from "../components/Icon";
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
-type Sess = { id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
+type Denied = { student_id: string; full_name: string; reason: string; attempts: number; last_at: string };
+type Sess = { id: string; centre_id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
+const HOW: Record<string, string> = { qr_scan: "Scanned", centre_staff: "By centre staff", instructor: "By instructor", admin: "By admin" };
 
 export default function ClassScreen() {
   const { id } = useParams(); const nav = useNavigate(); const { run, confirm } = useFeedback();
@@ -22,6 +25,8 @@ export default function ClassScreen() {
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
   const [pick, setPick] = useState<Row | null>(null); const [err, setErr] = useState("");
   const [sent, setSent] = useState<ClassMessage[]>([]);
+  const [denied, setDenied] = useState<Denied[]>([]); const [now, setNow] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(i); }, []);
 
   const loadSent = useCallback(async () => {
     const { data } = await supabase.from("class_messages").select("id,session_id,sender_label,body,media_path,media_name,media_mime,media_size,created_at").eq("session_id", id!).order("created_at");
@@ -31,7 +36,7 @@ export default function ClassScreen() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("v_session_details").select("id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
+      supabase.from("v_session_details").select("id,centre_id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
       supabase.rpc("session_attendance_roster", { p_session_id: id }),
     ]);
     setS(a.data as Sess); setRoster((b.data as Row[]) ?? []);
@@ -42,16 +47,29 @@ export default function ClassScreen() {
     return () => { supabase.removeChannel(ch); };
   }, [id, load, loadSent]);
 
+  // Door staff (this centre's coordinator or director, or an admin) open check-in and see who was turned away.
+  const isDoor = !!s && roles.some((r) => r.role === "admin" || r.role === "super_admin" || ((r.role === "coordinator" || r.role === "centre_director") && r.centre_id === s.centre_id));
+  const loadDenied = useCallback(async () => {
+    const { data } = await supabase.rpc("session_denied_attempts", { p_session_id: id });
+    setDenied((data as Denied[]) ?? []);
+  }, [id]);
+  useEffect(() => {
+    if (!isDoor) return;
+    loadDenied();
+    const ch = supabase.channel(`door-${id}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "checkin_denials", filter: `session_id=eq.${id}` }, loadDenied).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [isDoor, id, loadDenied]);
+
   const act = async (label: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void, success?: string) => {
     setErr("");
     const r = await run(label, async () => { const { error } = await fn(); if (error) throw error; await load(); }, { success, quiet: true });
     if (!r.ok) return setErr(r.message);
     after?.();
   };
-  const newCode = async () => {
+  const newCode = async (rotate = false) => {
     setErr("");
-    const r = await run("Generating class code…", async () => {
-      const { data, error } = await supabase.rpc("generate_checkin_token", { p_session_id: id }); if (error) throw error;
+    const r = await run(rotate ? "Making a new code…" : "Opening check-in…", async () => {
+      const { data, error } = await supabase.rpc("generate_checkin_token", { p_session_id: id, p_rotate: rotate }); if (error) throw error;
       await load(); return data as string;
     }, { quiet: true });
     if (!r.ok) return setErr(r.message);
@@ -67,11 +85,14 @@ export default function ClassScreen() {
   };
 
   // Only the instructor of this class (or an admin) can message it; coordinators and directors can view the class but not send.
+  const isTeacher = !!teacher && teacher === session?.user.id;
+  const canMark = isDoor || isTeacher;
   const canSend = roles.some((r) => r.role === "admin" || r.role === "super_admin") || (!!teacher && teacher === session?.user.id);
   if (!s || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-32" /><Skeleton className="h-48" /></div>;
   const present = roster.filter((r) => r.status === "present").length;
   const joined = roster.filter((r) => r.status === "present" && r.method === "qr_scan").length;
   const closed = s.status === "completed" || s.status === "cancelled";
+  const door = doorState(s.start_at, s.end_at, now);
   const t = (d: string) => new Date(d).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   return (
@@ -92,37 +113,51 @@ export default function ClassScreen() {
         <div><p className="font-medium">{present} of {roster.length} here</p><p className="text-sm text-muted">{closed ? (s.status === "cancelled" ? "Class cancelled" : "Class closed") : "Updates live as students check in"}</p></div>
       </Card>
 
-      {!closed && <div className="grid grid-cols-2 gap-3">
-        <Button onClick={newCode}>Show class code</Button>
-        <Button variant="secondary" onClick={endClass}>End class</Button></div>}
+      {!closed && isDoor && <Card className="space-y-3">
+        <div className="flex items-center justify-between gap-3"><p className="font-medium">Check-in</p><Badge tone={door === "open" ? "ok" : "muted"}>{door === "open" ? "Open" : door === "early" ? "Not yet" : "Ended"}</Badge></div>
+        <p className="text-sm text-muted">{door === "early" ? `You can open check-in from ${opensAt(s.start_at)}, 30 minutes before the class starts.` : door === "ended" ? "This class has ended, so check-in is closed. End the class to finish up." : "Show the code or QR to students as they arrive. The class starts when you open check-in."}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Button disabled={door !== "open"} onClick={() => newCode(false)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Show class code</span></Button>
+          <Button variant="secondary" onClick={endClass}>End class</Button></div>
+      </Card>}
+      {!closed && !isDoor && isTeacher && <div className="space-y-2">
+        <Card className="text-sm text-muted">{s.status === "in_progress" ? "Check-in is open. Students appear below as they arrive." : "The centre opens check-in 30 minutes before the class. Students appear below as they arrive."}</Card>
+        <Button variant="secondary" className="w-full" onClick={endClass}>End class</Button></div>}
       <Err>{err}</Err>
 
       <section className="space-y-2"><h2 className="text-lg">Students</h2>
         {roster.length === 0 && <Card className="text-center text-muted">No students are enrolled in this class yet.</Card>}
         {roster.map((r) => (
-          <Card key={r.student_id} onClick={closed && s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
-            <Avatar name={r.full_name} size={36} /><p className="flex-1 truncate font-medium">{r.full_name}</p>
+          <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
+            <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
             <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
       </section>
+      {isDoor && denied.length > 0 && <section className="space-y-2"><h2 className="text-lg">Turned away <span className="num text-muted">({denied.length})</span></h2>
+        <p className="px-1 text-sm text-muted">People who tried the code but aren't cleared for this class.</p>
+        {denied.map((d) => (
+          <Card key={d.student_id} className="flex items-center gap-3 py-3">
+            <Avatar name={d.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{d.full_name}</p><p className="text-xs text-muted">{REASON_LABEL[d.reason] ?? "Not cleared"}{d.attempts > 1 ? ` · ${d.attempts} tries` : ""} · {t(d.last_at)}</p></div>
+            <Badge tone="bad">Red</Badge></Card>))}
+      </section>}
       {canSend && (s.status === "in_progress" || sent.length > 0 || s.status === "scheduled") && <section className="space-y-3">
         <h2 className="text-lg">Messages</h2>
         {s.status === "in_progress" ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
-          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. Show the class code to start it.</Card>}
+          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. The class starts when the centre opens check-in.</Card>}
         {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
       </section>}
-      {!closed && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
+      {!closed && (isTeacher || roles.some((r) => r.role === "admin" || r.role === "super_admin")) && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
 
       <Sheet open={showCode} onClose={() => setShowCode(false)} title="Class code">
         <div className="space-y-4 text-center">
           <div className="mx-auto w-fit rounded-2xl bg-white p-4"><QRCodeSVG value={code} size={200} /></div>
           <p className="num text-4xl font-semibold tracking-[.25em]">{code}</p>
-          <p className="text-sm text-muted">Students scan the QR or type this code in their app.</p>
-          <Button variant="secondary" className="w-full" onClick={newCode}>Get a new code</Button>
+          <p className="text-sm text-muted">Students scan the QR or type this code in their app. It stops working when the class ends.</p>
+          <Button variant="secondary" className="w-full" onClick={() => newCode(true)}>Make a new code</Button>
         </div>
       </Sheet>
 
       <Sheet open={!!pick} onClose={() => setPick(null)} title={pick?.full_name}>
-        <div className="space-y-2"><p className="text-sm text-muted">Set attendance manually (for example if a phone died).</p>
+        <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Students marked by hand don't receive class messages.</p>
           {(["present", "absent", "excused"] as const).map((st) => (
             <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize"
               onClick={() => act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}

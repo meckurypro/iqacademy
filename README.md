@@ -53,7 +53,7 @@ A person can hold more than one role. The highest one decides their home screen 
 - **Enrol in four steps:** pack, courses, centre, payment. Courses are locked until their prerequisites are done.
 - **Pay** in full or by instalment, online with Paystack or offline by cash/transfer with a receipt upload.
 - **Home screen:** next class, the next instalment to pay, progress per course, the full class-by-class outline with a tick for each class attended, refunds, and any offline payment waiting on confirmation.
-- **Check in** to a class by scanning the instructor's QR with the camera or typing the code.
+- **Check in** to a class by scanning the QR shown at the centre or typing the code. The whole screen turns green ("You're in!") or red (not registered, payment due, make-up rules) so door staff can see the answer at a glance.
 - **Make-up classes:** a free catch-up window for classes missed.
 - **Buy a single course** from the registration page or the home screen. Courses taken before are marked Retake.
 - **Messages tab:** receive-only class messages from instructors, with an unread badge.
@@ -61,14 +61,14 @@ A person can hold more than one role. The highest one decides their home screen 
 
 ### Instructor
 - **Today:** the day's classes plus stats (classes taught, students taught, average per class, all time).
-- **Live class screen:** shows the check-in code and QR, a real-time attendance roster, manual attendance marking, and end/cancel class. It also shows today's topic from the course outline.
+- **Live class screen:** a real-time attendance roster, manual attendance marking and end class. The instructor no longer creates the code; the centre does (see Check-in). It also shows today's topic from the course outline.
 - **My classes:** the classes an admin assigned to them, grouped by course and centre. It updates live when the roster changes.
 - **Schedule:** schedule the next run of a course they teach.
 - **History** of classes taught.
 - **Messages:** send text and/or an image to the students in a class that is running.
 
 ### Coordinator
-- Their centre's classes today with attendance, and the student list with Active/Unpaid status.
+- Their centre's classes today, each opening a check-in screen where they show the class code and QR, see who was turned away, mark attendance by hand and end the class. The student list shows Active/Unpaid status.
 - An "Invite students" QR that opens the app so students can sign up and enrol themselves.
 
 ### Centre director
@@ -113,7 +113,9 @@ A person can hold more than one role. The highest one decides their home screen 
 A student's clock starts on the day of the first class of their first course, not when they pay. That date drives access, visibility, absences, progress and reminders.
 
 ### Check-in
-The instructor opens the class and shows a short-lived code and QR. Students scan or type it. Attendance appears on the instructor's screen in real time, and the instructor can mark anyone manually. Ending a class can mark absentees.
+The centre's **coordinator or director** (or an admin) opens check-in on the class screen. That is possible from 30 minutes before the class starts until it ends (`checkin_opens_minutes_before`), and opening it starts the class. They show a short code and QR. The code stops working when the class ends.
+
+Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand. Ending a class can mark absentees.
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
@@ -123,7 +125,7 @@ The instructor opens the class and shows a short-lived code and QR. Students sca
 An emergency class is a one-off class at a centre that isn't part of any course run. **Instructors** start one for themselves and **admins** start one and choose the instructor (Manage → Emergency classes, or the Emergency class card on an instructor's home). The centre, course, topic (one of the course's classes) and start time all come from dropdowns. Students with an active registration at that centre are notified and can check in whatever course they are on; their attendance counts toward progress only if they are on that course. Centre staff at the centre are notified too, because check-in follows the door rules (centre staff or an admin issue the class code). Nobody is marked absent when it ends, and Roster bulk assignment by course or centre never moves it. The rules live in `create_emergency_class`, `check_in` and `emergency_classes_for_me` (migration 43).
 
 ### Class messages
-Instructors can message a class only **while it is in progress**, and only students who **joined with the code or QR** receive it. Students can't reply, edit or delete. Only admins can delete. Images (JPG, PNG, WebP, GIF, up to 10 MB) live in a private bucket and are downloaded through short-lived signed links minted when the student taps. Students can also copy or share a message.
+Instructors can message a class only **while it is in progress**, and only students who **checked in with the code or QR** receive it (students marked by hand don't). Students can't reply, edit or delete. Only admins can delete. Images (JPG, PNG, WebP, GIF, up to 10 MB) live in a private bucket and are downloaded through short-lived signed links minted when the student taps. Students can also copy or share a message.
 
 ### Money going out
 - Each payment books the centre's revenue share.
