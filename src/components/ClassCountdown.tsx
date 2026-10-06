@@ -52,6 +52,8 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
   const toStart = start - now, toEnd = end - now;
   const copy = roleCopy[c.as_role];
   const doorOpen = phase === "checkin" || phase === "live";
+  // Whoever runs the door (centre staff, or the instructor of a custom class) gets the class code and QR on the class screen, so say so
+  const showsCode = doorOpen && (c.as_role === "staff" || (c.as_role === "instructor" && c.is_emergency));
   const label = phase === "live" ? "In progress" : phase === "checkin" ? "Check-in is open" : `Next class · ${relativeDay(c.start_at, { weekday: "long", day: "numeric", month: "short" })}`;
   const progress = phase === "live" ? (now - start) / Math.max(end - start, 1)
     : phase === "checkin" ? 1 - toStart / (CHECKIN_OPENS_MIN * 60000) : 0;
@@ -68,7 +70,7 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
         ? <button onClick={() => onCheckIn?.(c)} className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">Check in</button>
         : <p className="rounded-xl bg-sunken/80 px-3 py-3 text-center text-sm font-medium text-ink">{copy.early(c)}</p>)
     : (doorOpen
-        ? <Link to={`/class/${c.id}`} className="grid h-12 w-full place-items-center rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">{copy.open}</Link>
+        ? <Link to={`/class/${c.id}${showsCode ? "?reveal=1" : ""}`} className="grid h-12 w-full place-items-center rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">{showsCode ? "Reveal code" : copy.open}</Link>
         : <Link to={`/class/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-sunken/80 text-sm font-medium text-ink transition active:scale-[.98]">{copy.early(c) || "View class"}</Link>);
 
   return (

@@ -1,7 +1,7 @@
 // src/pages/ClassScreen.tsx
 import { useCallback, useEffect, useState } from "react";
 import Place from "../components/Place";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, Empty, Err, Sheet, Skeleton, Section } from "../components/ui";
@@ -22,7 +22,7 @@ const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 const HOW: Record<string, string> = { qr_scan: "Scanned", centre_staff: "By centre staff", instructor: "By instructor", admin: "By admin" };
 
 export default function ClassScreen() {
-  const { id } = useParams(); const nav = useNavigate(); const { run, confirm } = useFeedback();
+  const { id } = useParams(); const nav = useNavigate(); const [params, setParams] = useSearchParams(); const { run, confirm } = useFeedback();
   const { session, roles } = useAuth(); const [teacher, setTeacher] = useState<string | null>(null);
   const [s, setS] = useState<Sess>(); const [roster, setRoster] = useState<Row[]>();
   const [code, setCode] = useState(""); const [showCode, setShowCode] = useState(false);
@@ -81,6 +81,11 @@ export default function ClassScreen() {
     })();
     return () => { alive = false; };
   }, [isDoor, door0, status0, id]);
+
+  // "Reveal code" on the dashboard lands here with ?reveal=1: show the QR full screen as soon as the code is ready
+  useEffect(() => {
+    if (params.get("reveal") && code) { setShowCode(true); setParams({}, { replace: true }); }
+  }, [params, code, setParams]);
 
   const act = async (label: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void, success?: string) => {
     setErr("");
@@ -146,11 +151,14 @@ export default function ClassScreen() {
       <Err>{err}</Err>
 
       <Section title="Students">
+        {canMark && !closed && roster.some((r) => !r.status) && <p className="px-1 text-sm text-muted">Tap Check in for anyone who can't scan the code. Tap a name to mark absent or excused.</p>}
         {roster.length === 0 && <Empty title="No students are enrolled in this class yet." />}
         {roster.map((r) => (
           <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
             <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
-            <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge></Card>))}
+            {canMark && !closed && !r.status
+              ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); act("Checking in…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: r.student_id, p_status: "present" }), undefined, `${r.full_name.split(" ")[0]} checked in`); }}>Check in</Button>
+              : <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge>}</Card>))}
       </Section>
       {isDoor && denied.length > 0 && <Section title="Turned away" aside={<span className="num">{denied.length}</span>}>
         <p className="px-1 text-sm text-muted">People who tried the code but aren't cleared for this class.</p>
