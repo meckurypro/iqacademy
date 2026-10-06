@@ -4,7 +4,7 @@ import Place from "../components/Place";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
-import { Avatar, Badge, Button, Card, Empty, Err, Sheet, Skeleton, Section } from "../components/ui";
+import { Avatar, Badge, Button, Card, Empty, Err, NavRow, Sheet, Skeleton, Section } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
 import MessageBubble from "../components/MessageBubble";
@@ -167,13 +167,18 @@ export default function ClassScreen() {
             <Avatar name={d.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{d.full_name}</p><p className="text-xs text-muted">{REASON_LABEL[d.reason] ?? "Not cleared"}{d.attempts > 1 ? ` · ${d.attempts} tries` : ""} · {t(d.last_at)}</p></div>
             <Badge tone="bad">Red</Badge></Card>))}
       </Section>}
-      {canSend && s.status !== "cancelled" && <section className="space-y-3">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Class channel</h2>
-        {s.status === "in_progress" || s.status === "completed" || door === "open"
-          ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
-          : <Card className="text-sm text-muted">This class's channel opens with check-in, at {opensAt(s.start_at)}. After the class ends you can still post to it.</Card>}
-        {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
-      </section>}
+      {canSend && s.status !== "cancelled" && (() => {
+        const open = s.status === "in_progress" || s.status === "completed" || door === "open";
+        // the teaching instructor opens the channel as a chat; an admin who isn't teaching it keeps the inline composer
+        if (isTeacher) return open
+          ? <NavRow to={`/messages/${id}`} icon="messages" title="Class channel" hint={sent.length ? `${sent.length} message${sent.length === 1 ? "" : "s"} sent · open chat` : "Message your students"} />
+          : <Card className="text-sm text-muted">This class's channel opens with check-in, at {opensAt(s.start_at)}. After the class ends you can still post to it.</Card>;
+        return <section className="space-y-3">
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Class channel</h2>
+          {open ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} /> : <Card className="text-sm text-muted">This class's channel opens with check-in, at {opensAt(s.start_at)}.</Card>}
+          {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
+        </section>;
+      })()}
       {!closed && (isTeacher || roles.some((r) => r.role === "admin" || r.role === "super_admin")) && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
 
       <Sheet open={showCode} onClose={() => setShowCode(false)} title="Class code">
