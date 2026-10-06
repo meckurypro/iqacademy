@@ -70,7 +70,7 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
       <div className="flex items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-sm font-medium text-muted">
           {phase === "live" && <span className="h-2 w-2 rounded-full bg-ok animate-pulse motion-reduce:animate-none" />}
-          {label}{c.is_emergency && " · Emergency"}
+          {label}{c.is_emergency && " · Custom"}
         </p>
         {phase === "checkin" && <span className="inline-flex items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok"><span className="h-1.5 w-1.5 rounded-full bg-ok" />Door open</span>}
       </div>

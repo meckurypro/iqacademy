@@ -117,12 +117,17 @@ const MESSAGES: Record<string, string> = {
   nothing_selected: "Pick at least one class first.",
   bad_scope: "Something went wrong with that selection. Please try again.",
   instructor_required: "Choose which instructor will teach it.",
-  emergency_no_topic: "Choose a topic that belongs to that course.",
-  emergency_bad_time: "Choose when the class starts.",
-  emergency_time_passed: "That start time has already passed. Choose a time from now on.",
-  emergency_too_far: "An emergency class can be set up to 30 days ahead.",
-  emergency_bad_length: "A class can run from 15 minutes to 8 hours.",
-  emergency_note_long: "Keep the note under 300 characters.",
+  custom_no_topic: "Choose a topic that belongs to that course.",
+  custom_bad_time: "Choose when the class starts.",
+  custom_time_passed: "That start time has already passed. Choose a time from now on.",
+  custom_too_far: "A custom class can be set up to 30 days ahead.",
+  custom_bad_length: "A class can run from 15 minutes to 8 hours.",
+  custom_note_long: "Keep the note under 300 characters.",
+  custom_locked: "This class starts soon, so its details and invitations can't be changed any more.",
+  custom_not_editable: "This class can't be changed any more.",
+  custom_too_many: "A class can have up to 500 students.",
+  custom_has_attendance: "Students have already checked in, so the centre and course can't be changed.",
+  not_invited: "That student hasn't been invited to this class.",
 };
 
 /** A message that is already written for people. friendly() passes it through untouched. */

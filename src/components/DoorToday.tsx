@@ -33,7 +33,7 @@ export default function DoorToday({ centreIds, showCentre }: { centreIds: string
         const st = s.status === "completed" ? "done" : doorState(s.start_at, s.end_at, now);
         return (
           <Link key={s.id} to={`/class/${s.id}`} className="block"><Card onClick={() => {}} className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3"><p className="font-medium">{s.course_title}{s.is_emergency && <span className="ml-2 text-xs font-normal text-warn">Emergency</span>}</p>
+            <div className="flex items-center justify-between gap-3"><p className="font-medium">{s.course_title}{s.is_emergency && <span className="ml-2 text-xs font-normal text-info">Custom</span>}</p>
               <Badge tone={s.status === "completed" ? "ok" : s.status === "in_progress" ? "info" : st === "open" ? "ok" : "muted"}>{s.status === "completed" ? "Done" : s.status === "in_progress" ? "Live" : st === "open" ? "Check-in open" : "Scheduled"}</Badge></div>
             <p className="text-sm text-muted">{t(s.start_at)} – {t(s.end_at)}{showCentre ? ` · ${s.centre_name}` : ""}{s.instructor_name ? ` · ${s.instructor_name}` : ""}</p>
             {s.status === "completed"

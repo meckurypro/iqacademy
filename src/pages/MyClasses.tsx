@@ -91,9 +91,9 @@ export default function MyClasses() {
                     <Card key={c.id} className="anim-fade space-y-1" onClick={openable ? () => {} : undefined}>
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-medium">{c.course_title}</p>
-                        <span className="flex shrink-0 gap-1">{c.is_emergency && <Badge tone="bad">Emergency</Badge>}{live ? <Badge tone="warn">Live</Badge> : openable ? <Badge tone="ok">Today</Badge> : null}</span>
+                        <span className="flex shrink-0 gap-1">{c.is_emergency && <Badge tone="info">Custom</Badge>}{live ? <Badge tone="warn">Live</Badge> : openable ? <Badge tone="ok">Today</Badge> : null}</span>
                       </div>
-                      <p className="text-sm text-muted">{c.is_emergency ? "Emergency class" : `Class ${c.session_no} of ${c.total_sessions}`}{c.lesson_title ? ` · ${c.lesson_title}` : ""}</p>
+                      <p className="text-sm text-muted">{c.is_emergency ? "Custom class" : `Class ${c.session_no} of ${c.total_sessions}`}{c.lesson_title ? ` · ${c.lesson_title}` : ""}</p>
                       <p className="num text-sm">{time(c.start_at)} – {time(c.end_at)}</p>
                       <p className="text-sm text-muted"><Place centre={centreOf(c)} /></p>
                     </Card>);

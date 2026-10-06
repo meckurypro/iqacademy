@@ -10,7 +10,7 @@ import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
 import MakeupCard from "../components/MakeupCard";
-import EmergencyClassCard from "../components/EmergencyClassCard";
+import CustomClassCard from "../components/CustomClassCard";
 import ClassCountdown from "../components/ClassCountdown";
 import CheckInVerdict from "../components/CheckInVerdict";
 import type { Verdict } from "../lib/checkin";
@@ -142,7 +142,7 @@ export default function StudentHome() {
         </Card>); })}
       <Err>{!open && err}</Err>
 
-      <EmergencyClassCard onCheckIn={() => setOpen(true)} refreshKey={verdict} />
+      <CustomClassCard onCheckIn={() => setOpen(true)} refreshKey={verdict} />
 
       <ClassCountdown student onCheckIn={() => setOpen(true)} />
 

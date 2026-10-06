@@ -6,7 +6,7 @@ import ClassCountdown from "../components/ClassCountdown";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Badge, Card, Empty, List, NavRow, PageHeader, Section, Skeleton, Stat } from "../components/ui";
+import { Badge, Card, Empty, PageHeader, Section, Skeleton, Stat } from "../components/ui";
 
 import Icon from "../components/Icon";
 import { fmtClock, fmtWhen } from "../lib/time";
@@ -25,7 +25,6 @@ export default function InstructorHome() {
       <PageHeader title={`Hi ${name.split(" ")[0]}`} />
       <RunReminder />
       <ClassCountdown />
-      <List><NavRow to="/emergency" icon="alert" tone="warn" title="Emergency class" hint="Start an extra class at a centre" /></List>
       <div className="grid grid-cols-2 gap-3">
         <Stat tone="info" label="Classes this month" value={d.sessions_taught ?? 0} sub={`${d.lifetime?.sessions_taught ?? 0} all time`} />
         <Stat tone="ok" label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people · avg ${d.avg_students_per_class ?? 0} per class`} />

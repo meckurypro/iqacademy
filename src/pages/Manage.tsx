@@ -10,7 +10,7 @@ const GROUPS: [title: string, items: Item[]][] = [
   ["Classes", [
     ["/schedule", "Schedule", "schedule", "Class days and course start and end dates", "info"],
     ["/roster", "Roster", "roster", "Who teaches which class", "info"],
-    ["/emergency", "Emergency classes", "alert", "Start an extra class at a centre", "warn"],
+    ["/custom", "Custom classes", "calendarPlus", "Create a class and choose who is invited", "info"],
     ["/courses", "Course builder", "courses", "Classes in each course and what they cover", "info"],
   ]],
   ["Money", [

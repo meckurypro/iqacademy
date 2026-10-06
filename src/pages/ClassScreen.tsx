@@ -52,7 +52,7 @@ export default function ClassScreen() {
   }, [id, load, loadSent]);
 
   // Door staff (this centre's coordinator or director, or an admin) open check-in and see who was turned away.
-  // The instructor teaching an emergency class opens its check-in too: there may be no staff at the centre for a short-notice class.
+  // The instructor teaching a custom class opens its check-in too: there may be no staff at the centre for a short-notice class.
   const isDoor = !!s && (roles.some((r) => r.role === "admin" || r.role === "super_admin" || ((r.role === "coordinator" || r.role === "centre_director") && r.centre_id === s.centre_id)) || (s.is_emergency && !!teacher && teacher === session?.user.id));
   const loadDenied = useCallback(async () => {
     const { data } = await supabase.rpc("session_denied_attempts", { p_session_id: id });
@@ -116,7 +116,7 @@ export default function ClassScreen() {
     <div className="space-y-5">
       <button onClick={() => nav(-1)} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back</span></button>
       <div><h1 className="text-[26px] leading-tight">{s.course_title}</h1>
-        <p className="text-muted">{s.is_emergency ? "Emergency class · " : ""}{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
+        <p className="text-muted">{s.is_emergency ? "Custom class · " : ""}{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 
       {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
         <p className="text-sm text-muted">Today's topic</p>

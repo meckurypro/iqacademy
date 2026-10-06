@@ -14,6 +14,7 @@ export type NavItem = [to: string, label: string, icon: IconName];
 const EXTRA: Record<string, NavItem[]> = {
   student: [["/enrol", "Enrol in a course", "enrol"]],
   centre_director: [["/team", "My team", "userPlus"]],
+  instructor: [["/custom", "Custom class", "calendarPlus"]],
 };
 
 export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {

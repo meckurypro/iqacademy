@@ -16,7 +16,7 @@ export default function CheckInVerdict({ v, onDone, onRetry }: { v: Verdict; onD
   }, [v]);
   const name = v.first_name ? `, ${v.first_name}` : "";
   const d = deniedText(v.reason);
-  const title = v.ok ? (v.already_checked_in ? `Already in${name}` : v.makeup ? `Make-up class${name}` : v.emergency ? `Emergency class${name}` : `You're in${name}!`) : `${d.title}${v.reason === "not_enrolled" || v.reason === "payment_required" ? name : ""}`;
+  const title = v.ok ? (v.already_checked_in ? `Already in${name}` : v.makeup ? `Make-up class${name}` : v.emergency ? `Custom class${name}` : `You're in${name}!`) : `${d.title}${v.reason === "not_enrolled" || v.reason === "not_invited" || v.reason === "payment_required" ? name : ""}`;
   const sub = v.ok ? (v.already_checked_in ? "You're already marked present. Go on in." : "You're cleared for this class. Go on in!") : d.detail;
   return createPortal(
     <div role="alertdialog" aria-modal="true" aria-live="assertive" aria-label={v.ok ? "Checked in" : "Check-in refused"}

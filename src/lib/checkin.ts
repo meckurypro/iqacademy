@@ -4,7 +4,7 @@ import { fmtClock, now } from "./time";
 
 export type Verdict = {
   ok: boolean;
-  reason?: "not_enrolled" | "payment_required" | "makeup_not_open" | "not_a_missed_class" | "makeup_limit_reached";
+  reason?: "not_enrolled" | "not_invited" | "payment_required" | "makeup_not_open" | "not_a_missed_class" | "makeup_limit_reached";
   already_checked_in?: boolean; makeup?: boolean; emergency?: boolean;
   first_name?: string | null; course_title?: string | null; lesson_title?: string | null; centre_name?: string | null;
 };
@@ -12,6 +12,7 @@ export type Verdict = {
 /** Red-screen wording per reason. */
 export const DENIED: Record<string, { title: string; detail: string }> = {
   not_enrolled: { title: "Not on the list", detail: "You're not registered for this class at this centre." },
+  not_invited: { title: "Not invited", detail: "This class is for invited students only. Ask your instructor if you should be here." },
   payment_required: { title: "Payment due", detail: "Pay your next instalment to join this class." },
   makeup_not_open: { title: "Not yet", detail: "Make-up classes open once your own classes have ended." },
   not_a_missed_class: { title: "Not your class", detail: "This isn't a class you missed, so there's nothing to make up." },
@@ -30,6 +31,6 @@ export function doorState(start: string, end: string, at = now()): DoorState {
 export const opensAt = (start: string) => fmtClock(Date.parse(start) - CHECKIN_OPENS_MIN * 60000);
 
 export const REASON_LABEL: Record<string, string> = {
-  not_enrolled: "Not registered", payment_required: "Payment due", makeup_not_open: "Make-up not open",
+  not_enrolled: "Not registered", not_invited: "Not invited", payment_required: "Payment due", makeup_not_open: "Make-up not open",
   not_a_missed_class: "Not a missed class", makeup_limit_reached: "No make-ups left",
 };
