@@ -54,7 +54,7 @@ const MESSAGES: Record<string, string> = {
   session_not_active: "A class's channel opens when its check-in opens. You can message it from then on, including after the class.",
   message_empty: "Write a message or attach an image first.",
   message_too_long: "Keep the message under 4,000 characters.",
-  invalid_media: "That image can't be sent. Use a JPG, PNG, WebP or GIF under 10 MB.",
+  invalid_media: "That file can't be sent. Files must be under 25 MB.",
   message_not_found: "That message was already deleted.",
   download_failed: "Couldn't download that file. Check your connection and try again.",
   copy_failed: "Couldn't copy. Select the text and copy it by hand.",

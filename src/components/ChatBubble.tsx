@@ -7,7 +7,7 @@ import { cx, Button, Sheet } from "./ui";
 import { useFeedback } from "./feedback";
 import Icon from "./Icon";
 import { friendly } from "../lib/supabase";
-import { copyText, downloadMedia, fileSize, shareMessage, type ClassMessage } from "../lib/messages";
+import { copyText, downloadMedia, fileSize, isImageMime, shareMessage, type ClassMessage } from "../lib/messages";
 import { fmtClock } from "../lib/time";
 
 export default function ChatBubble({ m, out, first, showName }: { m: ClassMessage; out?: boolean; first?: boolean; showName?: boolean }) {
@@ -31,10 +31,10 @@ export default function ChatBubble({ m, out, first, showName }: { m: ClassMessag
           out ? "bg-accent/15 text-ink" : "bg-surface text-ink", first && (out ? "rounded-tr-md" : "rounded-tl-md"))}>
           {showName && <p className="mb-0.5 text-[12.5px] font-semibold text-accent">{m.sender_label}</p>}
           {m.media_path && (
-            <button onClick={(e) => { e.stopPropagation(); save(); }} disabled={busy === "save"} aria-label={`Download ${m.media_name ?? "image"}`}
+            <button onClick={(e) => { e.stopPropagation(); save(); }} disabled={busy === "save"} aria-label={`Download ${m.media_name ?? "file"}`}
               className={cx("mb-1.5 flex w-full min-w-[12rem] items-center gap-2.5 rounded-xl bg-sunken/80 p-2 text-left transition active:scale-[.99] disabled:opacity-60")}>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface text-muted" aria-hidden="true"><Icon name="image" size={20} /></span>
-              <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium">{m.media_name ?? "Image"}</span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-surface text-muted" aria-hidden="true"><Icon name={isImageMime(m.media_mime) ? "image" : "file"} size={20} /></span>
+              <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium">{m.media_name ?? "File"}</span>
                 <span className="text-xs text-muted">{[fileSize(m.media_size), "Tap to download"].filter(Boolean).join(" · ")}</span></span>
               <Icon name="download" size={18} className="shrink-0 text-accent" />
             </button>)}
@@ -47,7 +47,7 @@ export default function ChatBubble({ m, out, first, showName }: { m: ClassMessag
           {m.body && <p className="mb-3 line-clamp-3 rounded-xl bg-sunken px-3.5 py-2.5 text-sm text-muted">{m.body}</p>}
           {m.body && <Button variant="secondary" className="w-full" loading={busy === "copy"} onClick={copy}>Copy text</Button>}
           <Button variant="secondary" className="w-full" loading={busy === "share"} onClick={share}>Share</Button>
-          {m.media_path && <Button variant="secondary" className="w-full" loading={busy === "save"} onClick={save}>Save image</Button>}
+          {m.media_path && <Button variant="secondary" className="w-full" loading={busy === "save"} onClick={save}>Save file</Button>}
         </div>
       </Sheet>
     </>

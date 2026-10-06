@@ -29,7 +29,7 @@ export default function Messages() {
 
   return (
     <div className="space-y-4">
-      <div><h1 className="text-[26px] leading-tight">Messages</h1><p className="text-sm text-muted">Each class has its own channel. Your instructor posts here; you can't reply.</p></div>
+      <h1 className="text-[26px] leading-tight">Messages</h1>
       {rows === null ? <div className="space-y-3"><Skeleton className="h-20" /><Skeleton className="h-20" /></div>
         : rows.length === 0 ? <Empty icon="messages" title="No class channels yet" hint="Check in to a class and its channel appears here." />
         : <div className="space-y-3">{rows.map((c) => <ChannelRow key={c.session_id} c={c} />)}</div>}

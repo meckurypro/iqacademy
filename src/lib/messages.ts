@@ -5,8 +5,9 @@ import { supabase } from "./supabase";
 import { useAuth } from "./auth";
 
 export const BUCKET = "class-messages";
-export const MAX_MEDIA_BYTES = 10 * 1024 * 1024;
-export const MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+export const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
+/** Any kind of file can be attached. Images get a picture icon, everything else a file icon. */
+export const isImageMime = (mime: string | null | undefined) => !!mime && mime.startsWith("image/");
 
 export type ClassMessage = {
   id: string; session_id: string; sender_label: string; body: string | null;

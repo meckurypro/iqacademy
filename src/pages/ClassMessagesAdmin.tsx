@@ -30,7 +30,7 @@ export default function ClassMessagesAdmin() {
   };
 
   const remove = async (m: ClassMessage) => {
-    const preview = m.body ? `“${m.body.slice(0, 80)}${m.body.length > 80 ? "…" : ""}”` : m.media_name ?? "this image";
+    const preview = m.body ? `“${m.body.slice(0, 80)}${m.body.length > 80 ? "…" : ""}”` : m.media_name ?? "this file";
     if (!(await confirm({ title: "Delete this message?", message: <>It disappears for every student who received it, and can't be brought back. {preview}</>, confirmLabel: "Delete message", danger: true }))) return;
     const r = await run("Deleting message…", async () => {
       const path = ok(await supabase.rpc("admin_delete_class_message", { p_id: m.id })) as string | null;
@@ -38,7 +38,7 @@ export default function ClassMessagesAdmin() {
       setMsgs((o) => (o ?? []).filter((x) => x.id !== m.id));
     }, { quiet: true });
     if (!r.ok) {
-      if (/file_not_removed/.test(String((r.error as Error)?.message))) { setMsgs((o) => (o ?? []).filter((x) => x.id !== m.id)); return toast("Message deleted, but its image file couldn't be removed from storage.", "bad"); }
+      if (/file_not_removed/.test(String((r.error as Error)?.message))) { setMsgs((o) => (o ?? []).filter((x) => x.id !== m.id)); return toast("Message deleted, but its file couldn't be removed from storage.", "bad"); }
       return toast(r.message, "bad");
     }
     toast("Message deleted");

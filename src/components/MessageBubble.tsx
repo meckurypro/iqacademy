@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Avatar, cx } from "./ui";
 import { useFeedback } from "./feedback";
 import { friendly } from "../lib/supabase";
-import { copyText, downloadMedia, fileSize, shareMessage, type ClassMessage } from "../lib/messages";
+import { copyText, downloadMedia, fileSize, isImageMime, shareMessage, type ClassMessage } from "../lib/messages";
 
 import Icon from "./Icon";
 import { fmtClock } from "../lib/time";
@@ -36,10 +36,10 @@ export default function MessageBubble({ m, context, footer }: { m: ClassMessage;
         <div className="rounded-2xl rounded-tl-md bg-surface p-3.5 shadow-card ring-1 ring-line">
           {m.body && <p className="select-text whitespace-pre-wrap break-words text-[15px] leading-relaxed [-webkit-user-select:text]">{m.body}</p>}
           {m.media_path && (
-            <button onClick={save} disabled={busy === "save"} aria-label={`Download ${m.media_name ?? "image"}`}
+            <button onClick={save} disabled={busy === "save"} aria-label={`Download ${m.media_name ?? "file"}`}
               className={cx("flex w-full items-center gap-3 rounded-xl bg-sunken p-3 text-left transition active:scale-[.99] disabled:opacity-60", m.body && "mt-3")}>
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface text-muted ring-1 ring-line" aria-hidden="true"><Icon name="image" size={22} /></span>
-              <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium">{m.media_name ?? "Image"}</span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface text-muted ring-1 ring-line" aria-hidden="true"><Icon name={isImageMime(m.media_mime) ? "image" : "file"} size={22} /></span>
+              <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-medium">{m.media_name ?? "File"}</span>
                 <span className="text-xs text-muted">{[fileSize(m.media_size), "Tap to download"].filter(Boolean).join(" · ")}</span></span>
               <Icon name="download" size={18} className="shrink-0 text-accent" />
             </button>)}

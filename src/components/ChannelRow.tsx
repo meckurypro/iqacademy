@@ -17,7 +17,7 @@ export default function ChannelRow({ c, instructor }: { c: Channel; instructor?:
           {live ? <Badge tone="ok">Live</Badge> : !!c.unread && <Badge tone="accent">{c.unread} new</Badge>}
         </div>
         <div className="flex items-center justify-between gap-3">
-          <p className={`min-w-0 flex-1 truncate text-sm ${c.unread ? "font-medium text-ink" : "text-muted"}`}>{channelPreview(c)}</p>
+          <p className={`min-w-0 flex-1 truncate text-sm ${c.unread ? "font-medium text-ink" : "text-muted"}`}>{instructor ? channelPreview(c) : c.instructor_first_name ? `Instructor ${c.instructor_first_name}` : "Your instructor"}</p>
           <span className="shrink-0 text-xs text-muted">{instructor && c.joined !== undefined ? `${c.joined} joined${stamp ? " · " : ""}` : ""}{stamp}</span>
         </div>
       </Card>

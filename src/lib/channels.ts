@@ -13,6 +13,6 @@ export const channelDate = (c: Pick<Channel, "session_date" | "start_at">) =>
   `${fmtDay(c.session_date, { weekday: "short", day: "numeric", month: "short" })} · ${fmtClock(c.start_at)}`;
 
 export const channelPreview = (c: Pick<Channel, "message_count" | "last_body" | "last_has_media">) =>
-  c.message_count === 0 ? "No messages yet" : c.last_body?.trim() ? c.last_body.trim() : c.last_has_media ? "Photo" : "Message";
+  c.message_count === 0 ? "No messages yet" : c.last_body?.trim() ? c.last_body.trim() : c.last_has_media ? "Attachment" : "Message";
 
 export const channelWhen = (iso: string | null) => (iso ? relativeDay(iso, { day: "numeric", month: "short" }) : "");
