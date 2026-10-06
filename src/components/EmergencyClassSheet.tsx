@@ -24,7 +24,7 @@ const Label = ({ text, children }: { text: string; children: React.ReactNode }) 
 );
 
 export default function EmergencyClassSheet({ admin, onClose, onCreated }: { admin: boolean; onClose: () => void; onCreated: (id: string) => void }) {
-  const { run } = useFeedback();
+  const { run, toast } = useFeedback();
   const [centres, setCentres] = useState<Centre[]>();
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -33,6 +33,7 @@ export default function EmergencyClassSheet({ admin, onClose, onCreated }: { adm
   const [centre, setCentre] = useState(""); const [course, setCourse] = useState(""); const [lesson, setLesson] = useState("");
   const [who, setWho] = useState(""); const [start, setStart] = useState(() => toWallInput(nextFive())); const [minutes, setMinutes] = useState(120);
   const [note, setNote] = useState(""); const [err, setErr] = useState("");
+  const [aud, setAud] = useState<{ students: number; on_course: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -55,6 +56,15 @@ export default function EmergencyClassSheet({ admin, onClose, onCreated }: { adm
     supabase.from("course_lessons").select("id,lesson_no,title").eq("course_id", course).order("lesson_no").then((r) => setLessons((r.data as Lesson[]) ?? []));
   }, [course]);
 
+  // Who will be told: shown before the class is created, so an empty centre is never a surprise
+  useEffect(() => {
+    setAud(null);
+    if (!centre || !course) return;
+    let alive = true;
+    supabase.rpc("emergency_audience", { p_centre_id: centre, p_course_id: course }).then((r) => { if (alive && !r.error) setAud(r.data as { students: number; on_course: number }); });
+    return () => { alive = false; };
+  }, [centre, course]);
+
   const min = useMemo(() => toWallInput(now()), []);
   const max = useMemo(() => toWallInput(now() + 29 * 864e5), []);
   const ready = !!centre && !!course && !!lesson && !!start && (!admin || !!who);
@@ -67,16 +77,18 @@ export default function EmergencyClassSheet({ admin, onClose, onCreated }: { adm
         p_minutes: minutes, p_instructor_id: admin ? who : null, p_note: note.trim() || null,
       });
       if (error) throw error;
-      return data as string;
-    }, { quiet: true, success: "Emergency class created" });
+      return data as { id: string; notified: number; on_course: number };
+    }, { quiet: true });
     if (!r.ok) return setErr(r.message);
-    onCreated(r.data); onClose();
+    const n = r.data.notified;
+    toast(n === 0 ? "Emergency class created. No students are registered at this centre yet, so nobody was notified." : `Emergency class created. ${n} ${n === 1 ? "student" : "students"} notified.`);
+    onCreated(r.data.id); onClose();
   };
 
   return (
     <Sheet open onClose={onClose} title="New emergency class">
       <div className="space-y-4">
-        <p className="text-sm text-muted">Students registered at the centre are told straight away. Centre staff or an admin open check-in with the class code when students arrive.</p>
+        <p className="text-sm text-muted">Students registered at the centre are told straight away. The class code appears 30 minutes before the start, for the centre's staff and for the instructor teaching the class.</p>
         <Err>{loadErr}</Err>
         <Label text="Centre">
           <select className={sel} value={centre} onChange={(e) => setCentre(e.target.value)} disabled={!centres}>
@@ -96,6 +108,9 @@ export default function EmergencyClassSheet({ admin, onClose, onCreated }: { adm
             {lessons.map((l) => <option key={l.id} value={l.id}>{l.lesson_no}. {l.title}</option>)}
           </select>
         </Label>
+        {aud && <p className={`text-sm ${aud.students === 0 ? "text-warn" : "text-muted"}`}>{aud.students === 0
+          ? "No students are registered and active at this centre yet, so nobody would be notified."
+          : `${aud.students} ${aud.students === 1 ? "student" : "students"} at this centre will be notified${aud.on_course ? `, ${aud.on_course} on this course` : ""}.`}</p>}
         {admin && <Label text="Instructor">
           <select className={sel} value={who} onChange={(e) => setWho(e.target.value)}>
             <option value="">Choose an instructor</option>

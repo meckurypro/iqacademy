@@ -9,6 +9,7 @@ import { useTheme, type ThemePref } from "../lib/theme";
 import { MatchHint, PasswordCreator, PasswordField } from "../components/PasswordFields";
 
 import Icon, { type IconName } from "../components/Icon";
+import MyCentres from "../components/MyCentres";
 export default function Profile() {
   const { session, name, avatar, roles, refresh } = useAuth(); const { run } = useFeedback();
   const uid = session!.user.id;
@@ -51,6 +52,7 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} /></label>
         <p className="text-sm text-muted">{roleLabel[primaryRole(roles)]} · {session!.user.email}</p>
       </Card>
+      <MyCentres />
       <Card className="space-y-4">
         <Field label="Full name" value={full} onChange={(e) => setFull(e.target.value)} />
         <Field label="Phone" type="tel" placeholder="Optional" value={phone} onChange={(e) => setPhone(e.target.value)} />

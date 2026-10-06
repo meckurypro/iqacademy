@@ -16,7 +16,7 @@ import { fmtClock } from "../lib/time";
 import { now as tNow } from "../lib/time";
 type Row = { student_id: string; full_name: string; status: "present" | "absent" | "excused" | null; method: string | null };
 type Denied = { student_id: string; full_name: string; reason: string; attempts: number; last_at: string };
-type Sess = { id: string; centre_id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null };
+type Sess = { id: string; centre_id: string; start_at: string; end_at: string; status: string; centre_name: string; centre_city: string | null; centre_address: string | null; course_title: string; lesson_title: string | null; lesson_summary: string | null; room: string | null; is_emergency: boolean };
 const tone = { present: "ok", absent: "bad", excused: "warn" } as const;
 const HOW: Record<string, string> = { qr_scan: "Scanned", centre_staff: "By centre staff", instructor: "By instructor", admin: "By admin" };
 
@@ -38,7 +38,7 @@ export default function ClassScreen() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("v_session_details").select("id,centre_id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room").eq("id", id!).single(),
+      supabase.from("v_session_details").select("id,centre_id,start_at,end_at,status,centre_name,centre_city,centre_address,course_title,lesson_title,lesson_summary,room,is_emergency").eq("id", id!).single(),
       supabase.rpc("session_attendance_roster", { p_session_id: id }),
     ]);
     setS(a.data as Sess); setRoster((b.data as Row[]) ?? []);
@@ -52,7 +52,8 @@ export default function ClassScreen() {
   }, [id, load, loadSent]);
 
   // Door staff (this centre's coordinator or director, or an admin) open check-in and see who was turned away.
-  const isDoor = !!s && roles.some((r) => r.role === "admin" || r.role === "super_admin" || ((r.role === "coordinator" || r.role === "centre_director") && r.centre_id === s.centre_id));
+  // The instructor teaching an emergency class opens its check-in too: there may be no staff at the centre for a short-notice class.
+  const isDoor = !!s && (roles.some((r) => r.role === "admin" || r.role === "super_admin" || ((r.role === "coordinator" || r.role === "centre_director") && r.centre_id === s.centre_id)) || (s.is_emergency && !!teacher && teacher === session?.user.id));
   const loadDenied = useCallback(async () => {
     const { data } = await supabase.rpc("session_denied_attempts", { p_session_id: id });
     setDenied((data as Denied[]) ?? []);
@@ -115,7 +116,7 @@ export default function ClassScreen() {
     <div className="space-y-5">
       <button onClick={() => nav(-1)} className="text-sm text-muted"><span className="inline-flex items-center gap-1.5"><Icon name="arrowLeft" size={16} />Back</span></button>
       <div><h1 className="text-[26px] leading-tight">{s.course_title}</h1>
-        <p className="text-muted">{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
+        <p className="text-muted">{s.is_emergency ? "Emergency class · " : ""}{s.lesson_title ? `${s.lesson_title} · ` : ""}{t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly />{s.room ? ` · ${s.room}` : ""}</p></div>
 
       {(s.lesson_title || s.lesson_summary) && <Card className="space-y-1">
         <p className="text-sm text-muted">Today's topic</p>

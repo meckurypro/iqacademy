@@ -16,6 +16,7 @@ import CheckInVerdict from "../components/CheckInVerdict";
 import type { Verdict } from "../lib/checkin";
 import SoloCourses from "../components/SoloCourses";
 import Place from "../components/Place";
+import { placeLabel } from "../lib/centre";
 import type { MyOffline } from "../lib/offline";
 
 import Icon from "../components/Icon";
@@ -97,10 +98,14 @@ export default function StudentHome() {
   const owing = enr.flatMap((e) => e.enrolment_instalments.filter((i) => i.status === "pending").sort((a, b) => a.number - b.number).slice(0, 1).map((i) => ({ e, i })));
   const d0 = (iso: string, o: Intl.DateTimeFormatOptions) => fmtDay(iso, o);
   const todayIso = today();
+  // Where the student is registered: current registrations first, finished ones only if that is all there is
+  const mine = enr.filter((e) => e.centres && e.status !== "completed"); const here = mine.length ? mine : enr.filter((e) => e.centres);
+  const centreLabel = [...new Set(here.map((e) => placeLabel(e.centres!)))].join(", ");
 
   return (
     <div className="space-y-6">
       <PageHeader title={`Hi ${name.split(" ")[0]}`} />
+      {centreLabel && <Link to="/profile" className="-mt-3 flex items-center gap-1.5 text-[15px] text-muted transition hover:text-ink"><Icon name="pin" size={15} /><span className="min-w-0 truncate">{centreLabel}</span></Link>}
 
       {enr.length === 0 && <CourseOutline />}
 
