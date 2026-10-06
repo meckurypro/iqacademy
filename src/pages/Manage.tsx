@@ -32,13 +32,13 @@ export default function Manage() {
   return (
     <div className="space-y-7">
       <PageHeader title="Manage" />
-      {GROUPS.map(([title, items]) => (
+      <div className="space-y-7 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-6 lg:gap-y-7 lg:space-y-0">{GROUPS.map(([title, items]) => (
         <Section key={title} title={title}>
           <List>{items.map(([to, t, icon, hint, tone]) => (
             <NavRow key={to} to={to} icon={icon} title={t} hint={hint} tone={tone}
               badge={to === "/offline-payments" && open > 0 ? <Badge tone="warn">{open} waiting</Badge> : undefined} />))}
           </List>
-        </Section>))}
+        </Section>))}</div>
     </div>
   );
 }

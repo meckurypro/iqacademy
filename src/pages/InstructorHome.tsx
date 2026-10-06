@@ -6,7 +6,7 @@ import ClassCountdown from "../components/ClassCountdown";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Badge, Card, Empty, PageHeader, Section, Skeleton, Stat } from "../components/ui";
+import { Badge, Card, Empty, PageHeader, Section, Skeleton, Stat, Main, Rail, Split } from "../components/ui";
 
 import Icon from "../components/Icon";
 import { fmtClock, fmtWhen } from "../lib/time";
@@ -23,12 +23,14 @@ export default function InstructorHome() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Hi ${name.split(" ")[0]}`} />
+      <Split><Rail>
       <RunReminder />
       <ClassCountdown />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
         <Stat tone="info" label="Classes this month" value={d.sessions_taught ?? 0} sub={`${d.lifetime?.sessions_taught ?? 0} all time`} />
         <Stat tone="ok" label="Students taught" value={d.student_attendances ?? 0} sub={`${d.unique_students ?? 0} different people · avg ${d.avg_students_per_class ?? 0} per class`} />
       </div>
+      </Rail><Main>
       <Section title="Today">
         {today.length === 0 ? <Empty icon="today" title="No classes today" hint="Enjoy the break." /> :
           today.map((s) => (
@@ -45,6 +47,7 @@ export default function InstructorHome() {
             <p className="text-sm text-muted">{fmtWhen(s.start_at, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} nameOnly /></p>
             {s.centre_address && <p className="text-xs text-muted">{s.centre_address}</p>}</Card>))}
       </Section>
+      </Main></Split>
     </div>
   );
 }

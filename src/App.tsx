@@ -1,11 +1,13 @@
 // src/App.tsx
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate, NavLink, Route, Routes, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth, primaryRole } from "./lib/auth";
 import { getPending, clearPending } from "./lib/verify";
 import { supabase } from "./lib/supabase";
 import { Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
+import Sidebar, { SIDEBAR_OPEN, SIDEBAR_RAIL, useSidebar } from "./components/Sidebar";
+import MessagesRoute from "./components/MessagesRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ClockNotice, { useClockSync } from "./components/ClockWatch";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -40,27 +42,16 @@ import Payments from "./pages/Payments";
 import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
 import Notifications from "./pages/Notifications";
-import Messages from "./pages/Messages";
-import ClassChannel from "./pages/ClassChannel";
-import InstructorMessages from "./pages/InstructorMessages";
 import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
 import { useUnreadMessages } from "./lib/messages";
+import { useNotificationCount } from "./lib/notifications";
+import { useDesktop } from "./lib/useMedia";
+import { TABS, pageWidth } from "./lib/nav";
 
-import Icon, { type IconName } from "./components/Icon";
+import Icon from "./components/Icon";
 // The bell only shows the unread count; the list itself lives on the /notifications page.
 function Bell() {
-  const { session } = useAuth();
-  const [count, setCount] = useState(0);
-  const load = useCallback(() => { supabase.rpc("unread_notification_count").then((c) => setCount((c.data as number) ?? 0)); }, []);
-
-  useEffect(() => {
-    if (!session) return;
-    load();
-    const ch = supabase.channel("my-notes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${session.user.id}` }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [session, load]);
+  const count = useNotificationCount();
 
   return (
     <NavLink to="/notifications" aria-label={count > 0 ? `Notifications, ${count} unread` : "Notifications"}
@@ -76,15 +67,8 @@ function UnreadDot() {
   return n > 0 ? <span className="anim-pop absolute right-1 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{n > 99 ? "99+" : n}</span> : null;
 }
 
-const NAV: Record<string, [string, string, IconName][]> = {
-  student: [["/", "Home", "home"], ["/messages", "Messages", "messages"]],
-  instructor: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"]],
-  admin: [["/", "Overview", "overview"], ["/users", "Users", "users"], ["/announce", "Announce", "announce"], ["/manage", "Manage", "manage"]],
-};
-NAV.super_admin = NAV.admin;
-
 function TabBar({ role }: { role: string }) {
-  const items = NAV[role];
+  const items = TABS[role];
   if (!items) return null;
   return (
     <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
@@ -98,7 +82,7 @@ function TabBar({ role }: { role: string }) {
   );
 }
 
-function Shell({ children, skew }: { children: React.ReactNode; skew: number }) {
+function MobileShell({ children, skew }: { children: React.ReactNode; skew: number }) {
   const { roles } = useAuth();
   const { pathname } = useLocation();
   return (
@@ -107,13 +91,40 @@ function Shell({ children, skew }: { children: React.ReactNode; skew: number }) 
         <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-9 w-9 rounded-[10px]" /><span className="text-xl leading-none">Academy</span></Link>
         <div className="flex-1" />
         <Bell />
-        <NavMenu tabs={NAV[primaryRole(roles)]} />
+        <NavMenu tabs={TABS[primaryRole(roles)]} />
       </header>
       <ClockNotice skew={skew} />
       <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
       <TabBar role={primaryRole(roles)} />
     </div>
   );
+}
+
+const WIDTH = { narrow: "max-w-3xl", wide: "max-w-6xl", full: "max-w-[90rem]" } as const;
+
+// >= 1024px: persistent sidebar, no header or tab bar, content centred in the space that is left.
+// --sbw is the sidebar's current width; fixed bars inside pages use it to stay clear of the sidebar.
+function DesktopShell({ children, skew }: { children: React.ReactNode; skew: number }) {
+  const { pathname } = useLocation();
+  const [collapsed, toggle] = useSidebar();
+  useEffect(() => { scrollTo(0, 0); }, [pathname]);
+  return (
+    <div style={{ "--sbw": collapsed ? SIDEBAR_RAIL : SIDEBAR_OPEN } as React.CSSProperties} className="min-h-screen">
+      <a href="#main" className="sr-only z-[70] rounded-xl bg-accent px-4 py-2 text-accent-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
+      <Sidebar collapsed={collapsed} onToggle={toggle} />
+      <div style={{ paddingLeft: "var(--sbw)" }} className="transition-[padding] duration-200 ease-out">
+        <main id="main" className={`mx-auto w-full px-8 pb-16 pt-8 xl:px-12 ${WIDTH[pageWidth(pathname)]}`}>
+          <ClockNotice skew={skew} />
+          <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function Shell({ children, skew }: { children: React.ReactNode; skew: number }) {
+  // One shell at a time (not both hidden with CSS) so the bell, unread badge and realtime channels exist only once.
+  return useDesktop() ? <DesktopShell skew={skew}>{children}</DesktopShell> : <MobileShell skew={skew}>{children}</MobileShell>;
 }
 
 // Right after a new user confirms their email (in this tab or another), show the "you're verified" screen once.
@@ -160,8 +171,7 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/announce" element={<Announce />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/messages" element={role === "student" ? <Messages /> : role === "instructor" ? <InstructorMessages /> : <Navigate to="/" replace />} />
-        <Route path="/messages/:id" element={role === "student" || role === "instructor" ? <ClassChannel /> : <Navigate to="/" replace />} />
+        <Route path="/messages/:id?" element={<MessagesRoute role={role} />} />
         <Route path="/class-messages" element={role === "admin" || role === "super_admin" ? <ClassMessagesAdmin /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />

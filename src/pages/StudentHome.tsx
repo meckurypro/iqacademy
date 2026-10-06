@@ -5,7 +5,7 @@ import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Err, PageHeader, Section, Sheet, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Err, PageHeader, Section, Sheet, Skeleton, Main, Rail, Split } from "../components/ui";
 import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
@@ -109,6 +109,7 @@ export default function StudentHome() {
 
       {enr.length === 0 && <CourseOutline />}
 
+      <Split><Rail>
       {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (
         <Card key={e.id} className="anim-rise glass space-y-1">
           <p className="text-sm font-medium text-info">Your first class</p>
@@ -145,6 +146,7 @@ export default function StudentHome() {
       <CustomClassCard onCheckIn={() => setOpen(true)} refreshKey={verdict} />
 
       <ClassCountdown student onCheckIn={() => setOpen(true)} />
+      </Rail><Main>
 
       {prog.length > 0 && (
         <Section title="Your progress">
@@ -168,6 +170,8 @@ export default function StudentHome() {
       {refunds.length > 0 && <Section title="Refunds">
         {refunds.map((r) => <Card key={r.id} className="flex items-center justify-between py-3"><div><p className="num font-medium">{naira(r.amount)}</p><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })}</p></div>
           <Badge tone={r.status === "paid" ? "ok" : "info"}>{r.status === "paid" ? "Sent" : "On its way"}</Badge></Card>)}</Section>}
+
+      </Main></Split>
 
       <Sheet open={open} onClose={closeSheet} title="Enter your class code">
         <div className="space-y-4">{scan ? <QrScanner onCode={(c) => { setCode(c.toUpperCase()); checkIn(c.toUpperCase()); }} onClose={() => setScan(false)} /> : <Button variant="secondary" className="w-full" onClick={() => setScan(true)}><span className="inline-flex items-center gap-2"><Icon name="scan" size={18} />Scan the QR code</span></Button>}

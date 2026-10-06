@@ -91,8 +91,8 @@ function Compose({ onSeeSent }: { onSeeSent: () => void }) {
       </Card>
       <Err>{err}</Err>
 
-      <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 bg-bg/80 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
+      <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-20 bg-bg/80 px-4 py-3 backdrop-blur-md lg:bottom-0 lg:left-[var(--sbw)] lg:border-t lg:border-line lg:px-8">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 lg:max-w-[calc(48rem-4rem)]">
           <p className="num flex-1 text-sm">{empty ? "Add at least one person" : preview ? <><b>{preview.count}</b> {preview.count === 1 ? "person" : "people"} will get this{preview.sample[0] ? <span className="text-muted"> · {preview.sample.slice(0, 2).map((s) => s.full_name.split(" ")[0]).join(", ")}…</span> : null}</> : "Counting…"}</p>
           <Button disabled={!title.trim() || !preview || preview.count === 0} onClick={send}>Send</Button>
         </div>

@@ -321,7 +321,7 @@ function Editor({ id }: { id: string }) {
 
       {show && problems.length > 0 && <ul className="space-y-1 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">{problems.map((p) => <li key={p}>• {p}</li>)}</ul>}
       <ErrBox e={err} />
-      <div className="sticky bottom-20 z-20 space-y-1.5">
+      <div className="sticky bottom-20 z-20 space-y-1.5 lg:bottom-4">
         {dirty && <p className="text-center text-xs font-medium text-warn">You have unsaved changes</p>}
         <Button className="w-full" disabled={!dirty} onClick={save}>{dirty ? "Save course" : "All changes saved"}</Button>
       </div>

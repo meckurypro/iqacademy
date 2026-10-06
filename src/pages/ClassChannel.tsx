@@ -81,13 +81,13 @@ export default function ClassChannel() {
       <Empty icon="messages" title="This channel isn't available" hint="Channels are for the students who checked in to a class, and its instructor." />
     </div>);
 
-  const back = <button onClick={() => nav("/messages")} aria-label="Back to messages" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink transition hover:bg-sunken active:scale-95"><Icon name="arrowLeft" size={20} /></button>;
+  const back = <button onClick={() => nav("/messages")} aria-label="Back to messages" className="grid h-9 w-9 shrink-0 lg:hidden place-items-center rounded-full text-ink transition hover:bg-sunken active:scale-95"><Icon name="arrowLeft" size={20} /></button>;
   const who = teaching ? `${info.joined ?? 0} joined` : info.instructor_first_name ?? "Your instructor";
   const outgoing = (m: ClassMessage) => teaching && m.sender_label !== "IQ Academy";
 
   return (
-    <div className="-mt-5 flex min-h-[calc(100dvh-8.5rem)] flex-col">
-      <div className="sticky top-14 z-20 -mx-4 flex items-center gap-2.5 border-b border-line/60 bg-bg/85 px-3 py-2 backdrop-blur-md">
+    <div className="-mt-5 flex min-h-[calc(100dvh-8.5rem)] flex-col lg:mt-0 lg:min-h-[calc(100dvh-4rem)]">
+      <div className="sticky top-14 z-20 -mx-4 flex items-center gap-2.5 border-b border-line/60 bg-bg/85 px-3 py-2 backdrop-blur-md lg:top-0 lg:mx-0 lg:rounded-t-2xl lg:border lg:border-b-line/60 lg:border-line">
         {back}
         <Avatar name={info.course_title} size={40} />
         <div className="min-w-0 flex-1 leading-tight">
@@ -97,7 +97,7 @@ export default function ClassChannel() {
         {info.status === "in_progress" && <Badge tone="ok">Live</Badge>}
       </div>
 
-      <div className="chat-bg -mx-4 flex flex-1 flex-col px-3 pb-4 pt-3">
+      <div className="chat-bg -mx-4 flex flex-1 flex-col px-3 pb-4 pt-3 lg:mx-0 lg:px-6">
         <p className="mx-auto mb-1 max-w-[18rem] rounded-full bg-surface/80 px-3 py-1 text-center text-[11px] leading-snug text-muted shadow-card">
           {teaching ? "Students can't reply to this channel" : "Only your instructor can post here"}</p>
         {more && <Button variant="ghost" className="mx-auto my-2 h-9 px-4 text-xs" loading={loadingMore} onClick={older}>Show earlier messages</Button>}

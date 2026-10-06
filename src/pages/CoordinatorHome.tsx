@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Avatar, Badge, Card, PageHeader, Section, Skeleton } from "../components/ui";
+import { Avatar, Badge, Card, PageHeader, Section, Skeleton, Main, Rail, Split } from "../components/ui";
 import DoorToday from "../components/DoorToday";
 import ClassCountdown from "../components/ClassCountdown";
 
@@ -20,15 +20,18 @@ export default function CoordinatorHome() {
   return (
     <div className="space-y-6">
       <PageHeader title={`Hi ${name.split(" ")[0]}`} sub={centre.name} />
+      <Split><Rail>
       <ClassCountdown />
       <Card className="flex items-center gap-4"><div className="rounded-xl bg-white p-2"><QRCodeSVG value={location.origin} size={96} /></div>
         <div><p className="font-medium">Invite students</p><p className="text-sm text-muted">Let them scan this to open the app, create an account and enrol themselves.</p></div></Card>
       <DoorToday centreIds={[centreId!]} />
+      </Rail><Main>
       <Section title="Students" aside={<span className="num">{roster.length}</span>}>
-        {roster.map((e) => { const p = e.students?.profiles; return (
+        <div className="grid gap-3 xl:grid-cols-2">{roster.map((e) => { const p = e.students?.profiles; return (
           <Card key={e.id} className="flex items-center gap-3 py-3"><Avatar name={p?.full_name ?? "?"} url={p?.avatar_url} size={36} />
             <div className="min-w-0 flex-1"><p className="truncate font-medium">{p?.full_name}</p></div>
-            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</Section>
+            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</div></Section>
+      </Main></Split>
     </div>
   );
 }

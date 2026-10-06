@@ -171,8 +171,8 @@ export default function Enrol() {
         </>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-2xl gap-3">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t border-line bg-bg/90 px-4 py-3 backdrop-blur-md lg:bottom-0 lg:left-[var(--sbw)] lg:px-8">
+        <div className="mx-auto flex max-w-2xl gap-3 lg:max-w-[calc(48rem-4rem)]">
           <Button variant="secondary" onClick={() => (step ? setStep(step - 1) : nav("/"))}>Back</Button>
           {step < 3 ? <Button className="flex-1" disabled={!can} onClick={() => setStep(step + 1)}>Continue</Button>
             : <Button className="flex-1" onClick={pay}>{method === "offline" ? `Continue · pay ${naira(dueNow)} offline` : `Pay ${naira(dueNow)} now`}</Button>}

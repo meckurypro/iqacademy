@@ -4,7 +4,7 @@ import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Link } from "react-router-dom";
-import { Badge, Button, Card, List, NavRow, PageHeader, Section, Skeleton, Stat, cx } from "../components/ui";
+import { Badge, Button, Card, List, NavRow, PageHeader, Section, Skeleton, Stat, cx, Main, Rail, Split } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import DoorToday from "../components/DoorToday";
 import ClassCountdown from "../components/ClassCountdown";
@@ -76,9 +76,11 @@ export default function DirectorHome() {
           <button key={m} onClick={() => setMonth(m)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", month === m ? "bg-accent text-accent-ink" : "bg-sunken")}>
             {m === thisMonth ? "This month" : monthLabel(m)}</button>))}</div>}
 
+      <Split><Rail>
       <ClassCountdown />
 
       <DoorToday centreIds={sel === "all" ? ids : [sel]} showCentre={ids.length > 1 && sel === "all"} />
+      </Rail><Main>
 
       {!ds || !inc ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
         <div className="grid grid-cols-2 gap-3">
@@ -119,6 +121,7 @@ export default function DirectorHome() {
             <div><p className="font-semibold">{d.centre && <Place centre={d.centre} nameOnly />}</p><p className="text-sm text-muted">{d.students_active} active · {d.share_pct}% share</p></div>
             <div className="text-right"><p className="num font-semibold">{naira(netOf(d.centre?.id))}</p><p className="text-xs text-muted">{month === thisMonth ? "net this month" : "net"}</p></div></Card>)}</Section>}
 
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Section title={"Students by day"}>
           <Card className="flex h-36 items-end gap-2">{days.map((v, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1"><span className="num text-xs text-muted">{v || ""}</span>
@@ -126,6 +129,8 @@ export default function DirectorHome() {
 
         <Section title={"Students by course"}>
           {courses.length === 0 ? <p className="text-muted">No active students yet.</p> : courses.map((c) => <Card key={c.course_id} className="flex justify-between py-3"><p>{c.title}</p><p className="num font-semibold">{c.students}</p></Card>)}</Section>
+
+        </div>
 
         {view.some((d) => (d.recent_refunds ?? []).length > 0) && <Section title={"Recent refund deductions"}>
           {view.flatMap((d) => d.recent_refunds ?? []).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5).map((r: any, i: number) => (
@@ -139,6 +144,7 @@ export default function DirectorHome() {
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
           {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</Section>
       </>}
+      </Main></Split>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export function Button({ variant = "primary", loading, className, children, disa
 // and the default "bg-surface" fight and the stylesheet order decides, which left white text on a white card.
 export const Card = ({ className, children, onClick }: { className?: string; children: ReactNode; onClick?: () => void }) => (
   <div onClick={onClick} className={cx("rounded-2xl p-4 shadow-card", !/(^|\s)(bg-|glass)/.test(className ?? "") && "bg-surface", !/(^|\s)(ring-|glass)/.test(className ?? "") && "ring-1 ring-line",
-    onClick && "cursor-pointer transition active:scale-[.99]", className)}>{children}</div>
+    onClick && "cursor-pointer transition active:scale-[.99] lg:hover:shadow-lift", className)}>{children}</div>
 );
 
 export const Skeleton = ({ className }: { className?: string }) => <div className={cx("skeleton h-5 w-full", className)} />;
@@ -131,3 +131,10 @@ export const Stat = ({ label, value, sub, tone }: { label: string; value: string
 );
 
 export const Err = ({ children }: { children?: ReactNode }) => children ? <p role="alert" className="rounded-xl bg-bad/10 px-3.5 py-2.5 text-sm text-bad">{children}</p> : null;
+
+// Dashboard layout. One column on phones. On desktop: a main column and a side rail.
+// Put <Rail> first in the markup so phones keep reading order; on desktop it is moved to the right.
+// An empty Rail (all its children rendered nothing) disappears and Main takes the full width.
+export const Split = ({ children }: { children: ReactNode }) => <div className="flex flex-col gap-6 lg:flex-row lg:items-start">{children}</div>;
+export const Main = ({ children }: { children: ReactNode }) => <div className="min-w-0 space-y-6 lg:order-1 lg:flex-1">{children}</div>;
+export const Rail = ({ children }: { children: ReactNode }) => <div className="space-y-6 empty:hidden lg:order-2 lg:w-[22rem] lg:shrink-0 xl:w-[24rem]">{children}</div>;
