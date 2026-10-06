@@ -58,7 +58,8 @@ A person can hold more than one role. The highest one decides their home screen 
 - **Buy a single course** from the registration page or the home screen. Courses taken before are marked Retake.
 - **Class channels:** every class a student was checked in to (by scan or by hand) has a channel with the instructor's messages, open during and after the class. It closes for the student when their cohort ends: the channel stays in the list, marked Closed, but its messages can't be opened. Copy and share on a message stop working two hours after it arrives.
 - **Review a class** once it has ended: stars, an honest comment, and an optional report about the instructor (admins only). Prompted on the home screen and in the class channel.
-- **Registration number** on the Profile page. Staff ask for it when they have to check the student in by hand.
+- **Check-in PIN:** four digits, chosen on a numeric keypad and typed twice before it is saved. It is **required after a student's first successful payment**: the app blocks until it is set. It is used when someone has to check the student in by hand. Changing it on the Profile page needs the account password typed twice. The PIN is stored only as a hash, so nobody (staff or admin) can read it. The registration number is also shown on the Profile page.
+- **"That wasn't me":** every hand check-in sends the student a notification saying who did it. The button undoes the check-in and alerts the admins.
 - Can cancel an unpaid registration from the home screen.
 
 ### Instructor
@@ -95,6 +96,7 @@ A person can hold more than one role. The highest one decides their home screen 
   - **Payouts:** monthly payments to centres, including withdrawal requests from directors.
   - **Instructors:** classes and students taught per instructor.
   - **Class messages:** read what instructors sent and delete any message.
+  - **Hand check-ins:** every check-in done by hand, who did it, PIN or admin override, per-person totals, and the ones students disputed.
   - **Class reviews:** read every review, see who reported an instructor, and pick up to ten reviews (never a reported one) to show on the landing page.
 
 ### Everyone
@@ -138,7 +140,7 @@ It works from timestamps rather than exact minutes, so a late or missed run catc
 ### Check-in
 The class code and QR appear on the class screen for the centre's **coordinator or director** (or an admin) when check-in opens, with a full-screen view for showing at the door. There is nothing to press, and no manual Start or End button. The code stops working when the class ends. "New code" is still there if a code needs replacing.
 
-Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand. **Marking someone present by hand needs their registration number** (`students.student_number`, shown on their Profile), so it is clear the student agreed. Absent and excused need no number.
+Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand. **Marking someone present by hand needs the student's own PIN**, typed by the student on the staff member's phone (shown as dots). Five wrong PINs pause hand check-in for that student for 15 minutes. An **admin** can instead check a student in with a written reason (the only way for a student who has no PIN); it is logged as an admin override. Every hand check-in is recorded, the student is notified at once and can dispute it, and admins review them under Manage → Hand check-ins. Absent and excused need no PIN.
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
@@ -214,9 +216,9 @@ Visitors who aren't signed in see a landing page with rotating headlines, count-
 | `/team`, `/team/:centreId` | Centre team |
 | `/users`, `/announce` | Admin: users, announcements |
 | `/manage` | Admin hub |
-| `/centres`, `/roster`, `/courses`, `/courses/:id`, `/prices`, `/payments`, `/offline-payments`, `/payouts`, `/instructors`, `/class-messages`, `/reviews` | Admin pages |
+| `/centres`, `/roster`, `/courses`, `/courses/:id`, `/prices`, `/payments`, `/offline-payments`, `/payouts`, `/instructors`, `/class-messages`, `/reviews`, `/check-ins` | Admin pages |
 
-A few routes are also guarded in the browser (`/roster`, `/class-messages` and `/reviews` for admins, `/my-classes` for instructors, `/messages` and `/schedule` by role). Everywhere else, the **database is the gatekeeper**: row-level security and the RPCs refuse anything the user shouldn't do, and the app shows a readable "you don't have permission" message.
+A few routes are also guarded in the browser (`/roster`, `/class-messages`, `/reviews` and `/check-ins` for admins, `/my-classes` for instructors, `/messages` and `/schedule` by role). Everywhere else, the **database is the gatekeeper**: row-level security and the RPCs refuse anything the user shouldn't do, and the app shows a readable "you don't have permission" message.
 
 ---
 
@@ -262,7 +264,7 @@ supabase/migrations/    SQL for the schema changes from migration 19 onward
 ## Backend: database, functions and storage
 
 ### Migrations
-`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster, door check-in, time calibration, the class clock, class channels, end-class reasons and the cohort lock, class reviews, and hand check-in by registration number). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
+`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster, door check-in, time calibration, the class clock, class channels, end-class reasons and the cohort lock, class reviews, and hand check-in by student PIN with a dispute button and an admin audit). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
 
 The base schema (migrations before 19) and the Edge Function source are not in this repository. According to the earlier README they live in the `iq-academy-db` project. Apply migrations to a project that already has that base schema.
 
@@ -339,7 +341,7 @@ If the two required variables are missing, the app shows a setup message instead
 ## Known limits
 
 - **Screenshots can't be blocked from a web app.** A browser gives a page no way to stop screenshots or screen recording. Blocking them needs a native wrapper (for example Capacitor, with Android's secure-window flag and the matching iOS handling). The copy/share limit on class messages stops the app's own buttons, not a photo of the screen.
-- **Registration numbers are sequential** (`IQA-26-00001`), and staff who can see a student can read it from the database. Requiring it for a hand check-in proves the person entering it had the number, not that the student gave it.
+- **A PIN can be watched.** A staff member who sees a student type their PIN could reuse it. The defences are that the student is notified of every hand check-in, can undo it with one tap, and that admins can see who does many or disputed check-ins. A student with no PIN can only be checked in by an admin, with a reason. The PIN gate is enforced in the app; hand check-in itself is enforced in the database.
 - **Reminders are in-app only.** They appear in the notification bell and page, so someone who never opens the app won't see them. Phone push (Web Push) needs a service worker and a send function and isn't built yet. The reminders are ordinary rows in `notifications`, so a push sender can be added without changing how they are created.
 - **The class clock needs `pg_cron`.** If the extension is off, migration 45 prints a notice instead of scheduling the job. Check `select * from cron.job where jobname = 'iqa-class-clock'`.
 - **Staff accounts for new people:** coordinators can't yet register a student on their behalf; students create their own account (the invite QR makes that quick).

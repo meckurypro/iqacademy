@@ -1,4 +1,5 @@
 -- supabase/migrations/51_hand_check_in_reg_number_and_channel_access.sql   (applied to the live DB as "hand_check_in_reg_number_and_channel_access")
+-- NOTE: the registration-number check in section 1 was replaced by the student PIN in migration 52.
 --
 -- 1. MARKING A STUDENT PRESENT BY HAND NEEDS THEIR REGISTRATION NUMBER (students.student_number, e.g. IQA-26-00001). Whoever
 --    checks them in (admin, centre staff or instructor) must type it, which shows the student agreed. Absent / excused need no number.

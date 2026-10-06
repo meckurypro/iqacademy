@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Place from "../components/Place";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { PinInput, PIN_LENGTH } from "../components/PinInput";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, cx, Empty, Err, Field, NavRow, Sheet, Skeleton, Section } from "../components/ui";
@@ -30,8 +31,9 @@ export default function ClassScreen() {
   const [sent, setSent] = useState<ClassMessage[]>([]);
   // ending a class that is running needs a reason
   const [endOpen, setEndOpen] = useState(false); const [endWhy, setEndWhy] = useState(""); const [endErr, setEndErr] = useState("");
-  // checking someone in by hand needs their registration number
-  const [regFor, setRegFor] = useState<Row | null>(null); const [regVal, setRegVal] = useState(""); const [regErr, setRegErr] = useState("");
+  // checking someone in by hand needs the student's own PIN (or, for an admin only, a written reason)
+  const [pinFor, setPinFor] = useState<Row | null>(null); const [pinVal, setPinVal] = useState(""); const [pinErr, setPinErr] = useState("");
+  const [override, setOverride] = useState(false); const [overrideWhy, setOverrideWhy] = useState("");
   const [ended, setEnded] = useState<{ reason: string; at: string } | null>(null);
   const [denied, setDenied] = useState<Denied[]>([]); const [now, setNow] = useState(tNow());
   useEffect(() => { const i = setInterval(() => setNow(tNow()), 30000); return () => clearInterval(i); }, []);
@@ -118,17 +120,23 @@ export default function ClassScreen() {
       act("Cancelling class…", () => supabase.rpc("cancel_session", { p_session_id: id, p_reason: "Cancelled by instructor" }), undefined, "Class cancelled");
   };
 
-  const askReg = (r: Row) => { setPick(null); setRegVal(""); setRegErr(""); setRegFor(r); };
+  const isAdmin = roles.some((r) => r.role === "admin" || r.role === "super_admin");
+  const askPin = (r: Row) => { setPick(null); setPinVal(""); setPinErr(""); setOverride(false); setOverrideWhy(""); setPinFor(r); };
   const checkInByHand = async () => {
-    if (!regFor) return;
-    if (!regVal.trim()) return setRegErr("Enter the student's registration number.");
-    setRegErr("");
+    if (!pinFor) return;
+    const first = pinFor.full_name.split(" ")[0];
+    if (override ? overrideWhy.trim().length < 5 : pinVal.length !== PIN_LENGTH) return setPinErr(override ? "Give a reason, in a few words." : "Enter the 4-digit PIN.");
+    setPinErr(""); let code = "";
     const r = await run("Checking in…", async () => {
-      const { error } = await supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: regFor.student_id, p_status: "present", p_reg_number: regVal.trim() }); if (error) throw error;
+      const { data, error } = await supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pinFor.student_id, p_status: "present", ...(override ? { p_override_reason: overrideWhy.trim() } : { p_pin: pinVal }) });
+      if (error) throw error;
+      if (data !== "ok") { code = String(data); throw new Error(code); }
       await load();
-    }, { success: `${regFor.full_name.split(" ")[0]} checked in`, quiet: true });
-    if (!r.ok) return setRegErr(r.message);
-    setRegFor(null);
+    }, { success: `${first} checked in`, quiet: true });
+    if (r.ok) return setPinFor(null);
+    setPinVal("");
+    if (code === "pin_not_set" && isAdmin) { setOverride(true); setPinErr(`${first} hasn't set a PIN. You can check them in with a reason. They'll be told, and can dispute it.`); }
+    else setPinErr(r.message);
   };
   const REASONS = ["Emergency", "Technical problem", "Not feeling well", "Finished early"];
   const openEnd = () => { setEndWhy(""); setEndErr(""); setEndOpen(true); };
@@ -199,7 +207,7 @@ export default function ClassScreen() {
           <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
             <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
             {canMark && !closed && !r.status
-              ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); askReg(r); }}>Check in</Button>
+              ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); askPin(r); }}>Check in</Button>
               : <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge>}</Card>))}
       </Section>
       {isDoor && denied.length > 0 && <Section title="Turned away" aside={<span className="num">{denied.length}</span>}>
@@ -249,21 +257,34 @@ export default function ClassScreen() {
       </Sheet>
 
       <Sheet open={!!pick} onClose={() => setPick(null)} title={pick?.full_name}>
-        <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Marking someone present needs their registration number.</p>
+        <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Marking someone present needs the student to enter their own PIN.</p>
           {(["present", "absent", "excused"] as const).map((st) => (
             <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize"
-              onClick={() => st === "present" ? askReg(pick!) : act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
+              onClick={() => st === "present" ? askPin(pick!) : act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
         </div>
       </Sheet>
 
-      <Sheet open={!!regFor} onClose={() => setRegFor(null)} title={regFor ? `Check in ${regFor.full_name.split(" ")[0]}` : undefined}>
-        <div className="space-y-4">
-          <p className="text-sm text-muted">Ask {regFor?.full_name.split(" ")[0] ?? "the student"} for their registration number. It's on their Profile in the app. Entering it confirms they agree to be checked in, and they'll get the class messages like everyone else.</p>
-          <Field label="Registration number" value={regVal} autoFocus autoCapitalize="characters" autoComplete="off" spellCheck={false} placeholder="IQA-26-00001"
-            onChange={(e) => { setRegVal(e.target.value.toUpperCase()); setRegErr(""); }} onKeyDown={(e) => { if (e.key === "Enter") checkInByHand(); }} />
-          <Err>{regErr}</Err>
-          <Button className="w-full" disabled={!regVal.trim()} onClick={checkInByHand}>Check in</Button>
-        </div>
+      <Sheet open={!!pinFor} onClose={() => setPinFor(null)} title={pinFor ? `Check in ${pinFor.full_name.split(" ")[0]}` : undefined}>
+        {pinFor && (override ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted">Admin override. {pinFor.full_name.split(" ")[0]} is told right away that you checked them in without their PIN, and can say it wasn't them. It's recorded with your reason.</p>
+            <label className="block">
+              <span className="mb-1.5 flex items-baseline justify-between text-sm font-medium">Reason <span className="text-xs font-normal text-muted">{overrideWhy.length}/300</span></span>
+              <textarea value={overrideWhy} onChange={(e) => { setOverrideWhy(e.target.value); setPinErr(""); }} maxLength={300} rows={3} placeholder="Why can't they enter their PIN?"
+                className="w-full resize-none rounded-xl bg-surface p-3 text-[15px] leading-relaxed outline-none ring-1 ring-line transition placeholder:text-muted/60 focus:ring-2 focus:ring-accent/60" />
+            </label>
+            <Err>{pinErr}</Err>
+            <Button className="w-full" disabled={overrideWhy.trim().length < 5} onClick={checkInByHand}>Check in with a reason</Button>
+            <Button variant="ghost" className="w-full" onClick={() => { setOverride(false); setPinErr(""); }}>Use their PIN instead</Button>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <p className="text-sm text-muted">Hand the phone to {pinFor.full_name.split(" ")[0]}. They type their own 4-digit PIN. Don't ask them to say it out loud.</p>
+            <PinInput value={pinVal} onChange={(v) => { setPinVal(v); setPinErr(""); }} autoFocus invalid={!!pinErr} />
+            <Err>{pinErr}</Err>
+            <Button className="w-full" disabled={pinVal.length !== PIN_LENGTH} onClick={checkInByHand}>Check in</Button>
+            {isAdmin && <button onClick={() => { setOverride(true); setPinErr(""); }} className="block w-full text-center text-sm text-muted underline underline-offset-2">Can't enter a PIN? Check in with a reason</button>}
+          </div>))}
       </Sheet>
     </div>
   );
