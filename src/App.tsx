@@ -70,11 +70,20 @@ function UnreadDot() {
   return n > 0 ? <span className="anim-pop absolute right-1 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{n > 99 ? "99+" : n}</span> : null;
 }
 
+// Solid theme-coloured strips exactly as tall as the phone's status bar and gesture/navigation area (zero height when there is none).
+// Page content scrolls behind them instead of showing through the system bars. They sit under the sticky header and tab bar.
+function BarCaps() {
+  return (<>
+    <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[35] h-[env(safe-area-inset-top)] bg-bg" />
+    <div aria-hidden className="pointer-events-none fixed inset-x-0 bottom-0 z-[35] h-[env(safe-area-inset-bottom)] bg-bg" />
+  </>);
+}
+
 function TabBar({ role }: { role: string }) {
   const items = TABS[role];
   if (!items) return null;
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-2xl px-2 pt-1.5">
         {items.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end className={({ isActive }) => `group flex min-w-0 flex-1 flex-col items-center gap-0.5 pb-2 text-[11px] font-medium transition ${isActive ? "text-accent" : "text-muted hover:text-ink"}`}>
@@ -89,8 +98,8 @@ function MobileShell({ children, skew }: { children: React.ReactNode; skew: numb
   const { roles } = useAuth();
   const { pathname } = useLocation();
   return (
-    <div className="mx-auto min-h-screen max-w-2xl px-4 pb-28">
-      <header className="sticky top-0 z-30 -mx-4 mb-5 flex items-center gap-1 bg-bg/85 px-4 py-2.5 backdrop-blur-md">
+    <div className="mx-auto min-h-[100dvh] max-w-2xl px-4 pb-28">
+      <header className="sticky top-[env(safe-area-inset-top)] z-30 -mx-4 mb-5 flex items-center gap-1 bg-bg px-4 py-2.5">
         <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-9 w-9 rounded-[10px]" /><span className="text-xl leading-none">Academy</span></Link>
         <div className="flex-1" />
         <Bell />
@@ -110,13 +119,14 @@ const WIDTH = { narrow: "max-w-3xl", wide: "max-w-6xl", full: "max-w-[90rem]" } 
 function DesktopShell({ children, skew }: { children: React.ReactNode; skew: number }) {
   const { pathname } = useLocation();
   const [collapsed, toggle] = useSidebar();
+  const width = pageWidth(pathname);
   useEffect(() => { scrollTo(0, 0); }, [pathname]);
   return (
-    <div style={{ "--sbw": collapsed ? SIDEBAR_RAIL : SIDEBAR_OPEN } as React.CSSProperties} className="min-h-screen">
+    <div style={{ "--sbw": collapsed ? SIDEBAR_RAIL : SIDEBAR_OPEN } as React.CSSProperties} className="min-h-[100dvh]">
       <a href="#main" className="sr-only z-[70] rounded-xl bg-accent px-4 py-2 text-accent-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Skip to content</a>
       <Sidebar collapsed={collapsed} onToggle={toggle} />
       <div style={{ paddingLeft: "var(--sbw)" }} className="transition-[padding] duration-200 ease-out">
-        <main id="main" className={`mx-auto w-full px-8 pb-16 pt-8 xl:px-12 ${WIDTH[pageWidth(pathname)]}`}>
+        <main id="main" className={`mx-auto w-full px-8 pt-8 xl:px-12 ${width === "full" ? "pb-8" : "pb-16"} ${WIDTH[width]}`}>
           <ClockNotice skew={skew} />
           <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
         </main>
@@ -161,6 +171,7 @@ export default function App() {
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
   return (
     <>
+    <BarCaps />
     <VerifyRedirect />
     {role === "student" && <PinGate />}
     <Routes>

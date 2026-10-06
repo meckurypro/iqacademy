@@ -21,13 +21,13 @@ export default function InstructorHistory() {
     <div className="space-y-4">
       <h1 className="text-[26px] leading-tight">Teaching history</h1>
       {rows.length === 0 && <Empty title="Classes you teach will appear here." />}
-      {rows.map((r) => (
+      <div className="grid gap-3 lg:grid-cols-2">{rows.map((r) => (
         <Card key={r.id} className="anim-fade flex items-center gap-3">
           <div className="min-w-0 flex-1"><p className="truncate font-medium">{r.course_title}</p>
             <p className="truncate text-sm text-muted">{fmtWhen(r.start_at, { weekday: "short", day: "numeric", month: "short" })} · <Place centre={{ name: r.centre_name, city: r.centre_city, address: r.centre_address }} nameOnly /></p>
             {r.auto_closed && <Badge tone="warn">Auto-closed</Badge>}</div>
           <div className="text-right"><p className="num text-xl font-semibold">{r.students_present}</p><p className="text-xs text-muted">of {r.students_enrolled}</p></div>
-        </Card>))}
+        </Card>))}</div>
       {more && <Button variant="secondary" className="w-full" loading={busy} onClick={() => load(rows.length)}>Load more</Button>}
     </div>
   );

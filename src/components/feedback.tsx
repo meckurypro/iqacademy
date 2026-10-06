@@ -122,7 +122,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {children}
       {ask && <ConfirmDialog o={ask.o} done={ask.done} />}
       {label !== null && <BusyOverlay label={label} />}
-      {createPortal(
+      {toasts.length > 0 && createPortal(
         <div data-live="1" aria-live="polite" className="pointer-events-none fixed inset-x-0 top-0 z-[110] flex flex-col items-center gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           {toasts.map((t) => (
             <div key={t.id} role="status" className={cx("anim-drop pointer-events-auto max-w-sm rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl ring-1",

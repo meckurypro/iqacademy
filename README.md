@@ -194,6 +194,9 @@ Visitors who aren't signed in see a landing page with rotating headlines, count-
 - **Forgot password** emails a link to `/reset-password`. The same page serves the one-time setup link for new staff accounts.
 - Signing out returns visitors to the root, so the next sign-in always opens the dashboard.
 - **Header:** logo, notification bell and a hamburger menu. The menu is a slide-in drawer with the profile card (tap it to open Profile), role navigation and shortcuts. Theme, photo and sign out live on the Profile page.
+- **Phones (under 1024px):** logo, notification bell and a hamburger menu at the top, role tabs at the bottom. The menu is a slide-in drawer with the profile card (tap it to open Profile), role navigation and shortcuts. Theme, photo and sign out live on the Profile page.
+- **Desktop (1024px and up):** a persistent left sidebar replaces the header, hamburger and tab bar. It is built from `lib/nav.ts` (`SIDEBAR`), so each role sees all of its destinations at once; for admins the Manage hub is spread into Classes, Money and People & places groups, with live badges (unread messages, offline payments, notifications). It collapses to an icon rail with tooltips (button or the `[` key), remembers the choice, and starts collapsed below 1280px. Only one shell is mounted at a time (`useDesktop()`), so realtime subscriptions are never doubled. Content is centred and width-limited per route (`pageWidth()` in `lib/nav.ts`: forms stay narrow, dashboards and lists go wide). Dashboards use `Split`/`Main`/`Rail` from `ui.tsx`, which is one column on phones and a main column plus side rail on desktop. Messages is a two-pane inbox (channel list, chat). Anything `fixed` to the bottom of a page uses `lg:left-[var(--sbw)]` to stay clear of the sidebar.
+- **System bars (status bar, gesture/navigation area).** The page paints behind them (`viewport-fit=cover`), so they must be the theme colour. What each platform reads: Android Chrome and Safari up to 18 read `<meta name="theme-color">` (kept in step by `lib/theme.ts`, with the right value on first paint from the script in `index.html`); **Safari 26 ignores that tag** and tints its bars from a full-width, opaque `position: fixed` element at the top and bottom edge (the sticky header and the tab bar are solid `bg-bg` for this reason), else from `<body>`; the strips in `BarCaps` (App.tsx) cover the status bar and gesture area exactly, so scrolling content never shows through them. Rules to keep: safe-area insets belong on the bars themselves (never only on `<body>`, which scrolls away and leaves a sticky header under the clock); keep the header and tab bar opaque; do not leave empty full-width `fixed` layers on the top or bottom edge (the toast layer only exists while a toast is showing); and sticky offsets under the header use `calc(3.5rem + env(safe-area-inset-top))`. iOS home-screen apps draw their own status bar and cannot follow the in-app theme.
 
 ---
 
@@ -246,7 +249,10 @@ src/
     offline.ts          Receipt preparation and upload
     password.ts         Rules, strength and secure generator
     verify.ts           Pending-verification memory and inbox links
-    theme.ts            Light/Dark/System preference
+    theme.ts            Light/Dark/System preference and system-bar colour
+    nav.ts              Phone tabs, desktop sidebar sections, per-route page width
+    useMedia.ts         Media-query hook; useDesktop() is the 1024px switch
+    notifications.ts    Live unread-notification count (bell and sidebar)
     centre.ts           Location-first labels ("Okota" before "Brainstorm Academy")
 supabase/migrations/    SQL for the schema changes from migration 19 onward
 ```

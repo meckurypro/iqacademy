@@ -117,7 +117,7 @@ export default function ClassChannel() {
 
   return (
     <div className="-mt-5 flex min-h-[calc(100dvh-8.5rem)] flex-col lg:mt-0 lg:min-h-[calc(100dvh-4rem)]">
-      <div className="sticky top-14 z-20 -mx-4 flex items-center gap-2.5 border-b border-line/60 bg-bg/85 px-3 py-2 backdrop-blur-md lg:top-0 lg:mx-0 lg:rounded-t-2xl lg:border lg:border-line">
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-20 -mx-4 flex items-center gap-2.5 border-b border-line/60 bg-bg/85 px-3 py-2 backdrop-blur-md lg:top-0 lg:mx-0 lg:rounded-t-2xl lg:border lg:border-line">
         {picked ? <>
           <button onClick={() => setPicked(null)} aria-label="Cancel selection" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink transition hover:bg-sunken active:scale-95"><Icon name="close" size={20} /></button>
           <p className="min-w-0 flex-1 text-[16px] font-semibold leading-tight">{picked.size} selected</p>

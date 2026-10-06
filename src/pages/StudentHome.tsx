@@ -118,7 +118,7 @@ export default function StudentHome() {
       </Card>}
       <ReviewSheet target={reviewing} onClose={() => setReviewing(null)} onDone={load} />
 
-      {enr.length === 0 && <CourseOutline />}
+      {enr.length === 0 && <div className="lg:max-w-3xl"><CourseOutline /></div>}
 
       <Split><Rail>
       {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (

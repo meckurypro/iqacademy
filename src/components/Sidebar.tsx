@@ -40,7 +40,7 @@ export function useSidebar(): [collapsed: boolean, toggle: () => void] {
 }
 
 type Badge = { n: number; tone: "bad" | "warn" } | undefined;
-type TipFn = (label: string) => { onMouseEnter: (e: SyntheticEvent<HTMLElement>) => void; onMouseLeave: () => void; onFocus: (e: SyntheticEvent<HTMLElement>) => void; onBlur: () => void };
+type TipFn = (label: string, always?: boolean) => { onMouseEnter: (e: SyntheticEvent<HTMLElement>) => void; onMouseLeave: () => void; onFocus: (e: SyntheticEvent<HTMLElement>) => void; onBlur: () => void };
 
 const Pill = ({ b }: { b: NonNullable<Badge> }) => (
   <span className={cx("num grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-semibold", b.tone === "bad" ? "bg-bad text-white" : "bg-warn/15 text-warn")}>{b.n > 99 ? "99+" : b.n}</span>
@@ -49,7 +49,7 @@ const Pill = ({ b }: { b: NonNullable<Badge> }) => (
 function Row({ to, label, icon, collapsed, badge, tip }: { to: string; label: string; icon: IconName; collapsed: boolean; badge?: Badge; tip: TipFn }) {
   return (
     <NavLink to={to} end={to === "/"} aria-label={collapsed ? (badge ? `${label}, ${badge.n}` : label) : undefined} {...tip(label)}
-      className={({ isActive }) => cx("relative flex h-10 items-center rounded-xl text-[14px] transition", collapsed ? "justify-center" : "gap-3 px-3",
+      className={({ isActive }) => cx("relative flex h-9 items-center rounded-xl text-[14px] transition", collapsed ? "justify-center" : "gap-3 px-3",
         isActive ? "bg-accent/10 font-medium text-accent" : "text-ink/75 hover:bg-sunken hover:text-ink")}>
       {({ isActive }) => <>
         <span className="relative grid h-6 w-6 shrink-0 place-items-center">
@@ -62,12 +62,11 @@ function Row({ to, label, icon, collapsed, badge, tip }: { to: string; label: st
   );
 }
 
-function Action({ label, icon, collapsed, onClick, tip, hint, danger }: { label: string; icon: IconName; collapsed: boolean; onClick: () => void; tip: TipFn; hint?: string; danger?: boolean }) {
+const iconBtn = "relative grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted transition hover:bg-sunken hover:text-ink";
+function IconButton({ label, icon, onClick, tip, hint, danger }: { label: string; icon: IconName; onClick: () => void; tip: TipFn; hint?: string; danger?: boolean }) {
   return (
-    <button onClick={onClick} aria-label={collapsed ? label : undefined} {...tip(hint ? `${label}  ${hint}` : label)}
-      className={cx("flex h-10 w-full items-center rounded-xl text-[14px] text-muted transition hover:bg-sunken", danger ? "hover:text-bad" : "hover:text-ink", collapsed ? "justify-center" : "gap-3 px-3")}>
-      <span className="grid h-6 w-6 shrink-0 place-items-center"><Icon name={icon} size={20} /></span>
-      {!collapsed && <><span className="min-w-0 flex-1 truncate text-left">{label}</span>{hint && <kbd className="rounded-md bg-sunken px-1.5 py-0.5 font-sans text-[11px] text-muted ring-1 ring-line">{hint}</kbd>}</>}
+    <button onClick={onClick} aria-label={label} {...tip(hint ? `${label}  ${hint}` : label, true)} className={cx(iconBtn, danger && "hover:text-bad")}>
+      <Icon name={icon} size={20} />
     </button>
   );
 }
@@ -94,15 +93,15 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   // One shared tooltip for the icon rail, drawn in a portal so the scrolling nav can't clip it.
   const [tipState, setTipState] = useState<{ label: string; top: number; left: number } | null>(null);
-  const tip: TipFn = (label) => {
+  const tip: TipFn = (label, always) => {
     const show = (e: SyntheticEvent<HTMLElement>) => {
-      if (!collapsed) return;
+      if (!collapsed && !always) return;
       const r = e.currentTarget.getBoundingClientRect();
       setTipState({ label, top: r.top + r.height / 2, left: r.right + 10 });
     };
     return { onMouseEnter: show, onFocus: show, onMouseLeave: () => setTipState(null), onBlur: () => setTipState(null) };
   };
-  useEffect(() => { if (!collapsed) setTipState(null); }, [collapsed]);
+  useEffect(() => { setTipState(null); }, [collapsed]);
 
   const badgeFor = (to: string): Badge =>
     to === "/messages" && role === "student" ? { n: unread, tone: "bad" } : to === "/offline-payments" ? { n: offline, tone: "warn" } : undefined;
@@ -115,27 +114,33 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
         {!collapsed && <span className="text-xl leading-none">Academy</span>}
       </Link>
 
-      <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-2">
+      <nav aria-label="Main" className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-2">
         {sections.map((s, i) => (
           <div key={i} className="space-y-0.5">
-            {s.title && (collapsed ? <div className="mx-2 mb-2 border-t border-line" /> : <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{s.title}</p>)}
+            {s.title && (collapsed ? <div className="mx-2 mb-2 border-t border-line" /> : <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{s.title}</p>)}
             {s.items.map(([to, label, icon]) => <Row key={to} to={to} label={label} icon={icon} collapsed={collapsed} badge={badgeFor(to)} tip={tip} />)}
           </div>))}
       </nav>
 
-      <div className="shrink-0 space-y-0.5 border-t border-line p-3">
-        <Row to="/notifications" label="Notifications" icon="bell" collapsed={collapsed} badge={{ n: notes, tone: "bad" }} tip={tip} />
+      <div className="shrink-0 space-y-2 border-t border-line p-3">
         <NavLink to="/profile" aria-label={collapsed ? `Profile, ${name}` : undefined} {...tip(name || "Profile")}
-          className={({ isActive }) => cx("flex items-center rounded-xl transition", collapsed ? "justify-center py-2" : "gap-3 px-3 py-2", isActive ? "bg-accent/10" : "hover:bg-sunken")}>
+          className={({ isActive }) => cx("flex items-center rounded-xl transition", collapsed ? "justify-center py-1.5" : "gap-3 px-2 py-1.5", isActive ? "bg-accent/10" : "hover:bg-sunken")}>
           <Avatar name={name || "?"} url={avatar} size={collapsed ? 32 : 36} />
           {!collapsed && <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-[14px] font-medium">{name}</span><span className="block text-xs text-muted">{roleLabel[role]}</span></span>}
         </NavLink>
-        <Action label={`Theme: ${THEME_LABEL[theme]}`} icon={THEME_ICON[theme]} collapsed={collapsed} onClick={() => setTheme(THEME_NEXT[theme])} tip={tip} />
-        <Action label="Sign out" icon="arrowLeft" collapsed={collapsed} danger tip={tip} onClick={() => run("Signing out…", () => supabase.auth.signOut())} />
-        <Action label={collapsed ? "Expand sidebar" : "Collapse"} hint="[" icon={collapsed ? "chevronRight" : "chevronLeft"} collapsed={collapsed} onClick={onToggle} tip={tip} />
+        <div className={cx("flex gap-1", collapsed ? "flex-col items-center" : "justify-between px-1")}>
+          <NavLink to="/notifications" aria-label={notes ? `Notifications, ${notes} unread` : "Notifications"} {...tip("Notifications", true)}
+            className={({ isActive }) => cx(iconBtn, isActive && "bg-accent/10 text-accent")}>
+            {({ isActive }) => <><Icon name="bell" size={20} solid={isActive} />
+              {notes > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-surface">{notes > 99 ? "99+" : notes}</span>}</>}
+          </NavLink>
+          <IconButton label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[THEME_NEXT[theme]]}`} icon={THEME_ICON[theme]} onClick={() => setTheme(THEME_NEXT[theme])} tip={tip} />
+          <IconButton label="Sign out" icon="arrowLeft" danger tip={tip} onClick={() => run("Signing out…", () => supabase.auth.signOut())} />
+          <IconButton label={collapsed ? "Expand sidebar" : "Collapse sidebar"} hint="[" icon={collapsed ? "chevronRight" : "chevronLeft"} onClick={onToggle} tip={tip} />
+        </div>
       </div>
 
-      {collapsed && tipState && createPortal(
+      {tipState && createPortal(
         <div role="tooltip" style={{ top: tipState.top, left: tipState.left }}
           className="pointer-events-none fixed z-[60] -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-medium text-bg shadow-lift">{tipState.label}</div>, document.body)}
     </aside>

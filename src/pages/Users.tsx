@@ -61,12 +61,12 @@ export default function Users() {
           className="h-12 w-full rounded-2xl bg-surface pl-11 pr-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" /></div>
       {!rows ? <div className="space-y-2"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div> :
         rows.length === 0 ? <Empty title={`No one matches “${q.trim()}”.`} /> :
-        rows.map((u) => (
+        <div className="grid gap-3 lg:grid-cols-2">{rows.map((u) => (
           <Card key={u.id} onClick={() => open(u)} className="anim-fade flex items-center gap-3 py-3">
             <Avatar name={u.full_name || "?"} url={u.avatar_url} />
             <div className="min-w-0 flex-1"><p className="truncate font-medium">{u.full_name || "(no name)"}{!u.is_active && " · inactive"}</p><p className="truncate text-sm text-muted">{u.email}</p></div>
             <div className="flex flex-wrap justify-end gap-1">{u.roles.filter((r) => r.role !== "student").map((r, i) => <Badge key={i} tone="ok">{roleLabel[r.role]}</Badge>)}</div>
-          </Card>))}
+          </Card>))}</div>}
 
       <Sheet open={!!sel} onClose={() => setSel(null)} title="Change user type">
         {sel && <div className="space-y-4">
