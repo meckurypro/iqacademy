@@ -6,8 +6,9 @@ import { useAuth } from "../lib/auth";
 import { Avatar, Button, Card, Empty, Skeleton, cx } from "../components/ui";
 import { addDays, dayOf, fmtClock, fmtWhen, now, relativeDay, today } from "../lib/time";
 import { useTicker } from "../lib/classClock";
+import { useFeedback } from "../components/feedback";
 
-type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string; data: { start_at?: string } | null };
+type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string; data: { start_at?: string; log_id?: string; disputed?: boolean } | null };
 
 /**
  * A class reminder is written once, when it is sent, but it is read later. So its headline is worked out again from the
@@ -48,7 +49,8 @@ function Sender({ label }: { label: string | null }) {
 }
 
 export default function Notifications() {
-  const { session } = useAuth(); const tick = useTicker(30000);
+  const { session } = useAuth(); const tick = useTicker(30000); const { run } = useFeedback();
+  const [reported, setReported] = useState<Set<string>>(new Set()); // hand check-ins the student has just said were not them
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set()); // unread when this page opened, kept highlighted until you leave
   const [more, setMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
@@ -78,6 +80,10 @@ export default function Notifications() {
     return () => { supabase.removeChannel(ch); };
   }, [session, top]);
 
+  const dispute = async (n: Note) => {
+    const r = await run("Reporting…", async () => { const { error } = await supabase.rpc("dispute_hand_check_in", { p_log_id: n.data!.log_id }); if (error) throw error; }, { success: "Reported. The check-in was undone." });
+    if (r.ok) setReported((s) => new Set(s).add(n.id));
+  };
   const older = async () => {
     if (!notes?.length) return; setLoadingMore(true);
     const rows = await fetchPage(notes[notes.length - 1].created_at);
@@ -100,6 +106,9 @@ export default function Notifications() {
                 {n.type.startsWith("run_") && n.type !== "run_cancelled" && <Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link>}
                 {["class_assigned", "class_unassigned", "class_changed"].includes(n.type) && <Link to="/my-classes" className="text-sm font-medium text-accent">Open my classes</Link>}
                 {["emergency_class", "custom_class_invite", "custom_class_changed"].includes(n.type) && <Link to="/" className="text-sm font-medium text-accent">Go to check-in</Link>}
+                {n.type === "hand_check_in" && n.data?.log_id && (n.data.disputed || reported.has(n.id)
+                  ? <p className="text-sm font-medium text-muted">You said this wasn't you. The check-in was undone and the admins were told.</p>
+                  : <Button variant="secondary" className="h-9 px-4 text-sm text-bad" onClick={() => dispute(n)}>That wasn't me</Button>)}
                 {n.body && <p className="select-text whitespace-pre-wrap break-words text-sm leading-relaxed text-muted">{n.body}</p>}
               </Card>))}
             {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show older</Button>}

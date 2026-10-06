@@ -7,6 +7,8 @@ export type Channel = {
   session_id: string; course_title: string; lesson_title: string | null; session_date: string; start_at: string; end_at: string;
   status: string; centre_name: string; message_count: number; last_message_at: string | null; last_body: string | null; last_has_media: boolean;
   unread?: number; instructor_first_name?: string | null; joined?: number;
+  /** Students only: the cohort has ended, so the chat is closed to them (instructors never see this). */
+  locked?: boolean; my_rating?: number | null;
 };
 
 export const channelDate = (c: Pick<Channel, "session_date" | "start_at">) =>

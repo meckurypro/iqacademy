@@ -18,7 +18,7 @@ const ADMIN: NavSection[] = [
   { items: [["/", "Overview", "overview"], ["/users", "Users", "users"], ["/announce", "Announce", "announce"]] },
   { title: "Classes", items: [["/schedule", "Schedule", "schedule"], ["/roster", "Roster", "roster"], ["/custom", "Custom classes", "calendarPlus"], ["/courses", "Course builder", "courses"]] },
   { title: "Money", items: [["/prices", "Prices & instalments", "prices"], ["/offline-payments", "Offline payments", "cash"], ["/payments", "Payments & refunds", "receipt"], ["/payouts", "Payouts", "payout"]] },
-  { title: "People & places", items: [["/centres", "Centres", "centres"], ["/instructors", "Instructors", "instructor"], ["/class-messages", "Class messages", "messages"]] },
+  { title: "People & places", items: [["/centres", "Centres", "centres"], ["/instructors", "Instructors", "instructor"], ["/class-messages", "Class messages", "messages"], ["/reviews", "Class reviews", "star"], ["/check-ins", "Hand check-ins", "lock"]] },
 ];
 
 export const SIDEBAR: Record<string, NavSection[]> = {

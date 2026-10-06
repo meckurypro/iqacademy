@@ -56,7 +56,10 @@ A person can hold more than one role. The highest one decides their home screen 
 - **Check in** to a class by scanning the QR shown at the centre or typing the code. The whole screen turns green ("You're in!") or red (not registered, payment due, make-up rules) so door staff can see the answer at a glance.
 - **Make-up classes:** a free catch-up window for classes missed.
 - **Buy a single course** from the registration page or the home screen. Courses taken before are marked Retake.
-- **Messages tab:** receive-only class messages from instructors, with an unread badge.
+- **Class channels:** every class a student was checked in to (by scan or by hand) has a channel with the instructor's messages, open during and after the class. It closes for the student when their cohort ends: the channel stays in the list, marked Closed, but its messages can't be opened. Copy and share on a message stop working two hours after it arrives.
+- **Review a class** once it has ended: stars, an honest comment, and an optional report about the instructor (admins only). Prompted on the home screen and in the class channel.
+- **Check-in PIN:** four digits, chosen on a numeric keypad and typed twice before it is saved. It is **required after a student's first successful payment**: the app blocks until it is set. It is used when someone has to check the student in by hand. Changing it on the Profile page needs the account password typed twice. The PIN is stored only as a hash, so nobody (staff or admin) can read it. The registration number is also shown on the Profile page.
+- **"That wasn't me":** every hand check-in sends the student a notification saying who did it. The button undoes the check-in and alerts the admins.
 - Can cancel an unpaid registration from the home screen.
 
 ### Instructor
@@ -65,7 +68,8 @@ A person can hold more than one role. The highest one decides their home screen 
 - **My classes:** the classes an admin assigned to them, grouped by course and centre. It updates live when the roster changes.
 - **Schedule:** schedule the next run of a course they teach.
 - **History** of classes taught.
-- **Messages:** send text and/or an image to the students in a class that is running.
+- **Class channel:** send text and files to the students of a class from check-in onward. The channel stays open after the class ends, for as long as the instructor wants it. Messages can be selected and sent on to other class chats; they arrive as ordinary new messages from the instructor.
+- **Ending a running class early** needs a reason. The class is kept (completed, with its chat), not cancelled.
 
 ### Coordinator
 - Their centre's classes today, each opening a check-in screen where they show the class code and QR, see who was turned away, mark attendance by hand and end the class. The student list shows Active/Unpaid status.
@@ -92,6 +96,8 @@ A person can hold more than one role. The highest one decides their home screen 
   - **Payouts:** monthly payments to centres, including withdrawal requests from directors.
   - **Instructors:** classes and students taught per instructor.
   - **Class messages:** read what instructors sent and delete any message.
+  - **Hand check-ins:** every check-in done by hand, who did it, PIN or admin override, per-person totals, and the ones students disputed.
+  - **Class reviews:** read every review, see who reported an instructor, and pick up to ten reviews (never a reported one) to show on the landing page.
 
 ### Everyone
 - Notification bell with a live unread count, and a notifications page showing who each message is from ("IQ Academy" or "Instructor <first name>").
@@ -134,7 +140,7 @@ It works from timestamps rather than exact minutes, so a late or missed run catc
 ### Check-in
 The class code and QR appear on the class screen for the centre's **coordinator or director** (or an admin) when check-in opens, with a full-screen view for showing at the door. There is nothing to press, and no manual Start or End button. The code stops working when the class ends. "New code" is still there if a code needs replacing.
 
-Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand.
+Students scan or type it. The server decides if they are entitled to that class: an active registration at the centre for the course, payment up to date, or an allowed make-up class. The student's phone shows a full-screen **green** "You're in" or **red** reason. Every red is logged and shown to door staff under "Turned away", which catches people who aren't entitled and gives them somewhere to be sent. Every green marks the student present. Attendance appears on the class screen in real time, and door staff or the instructor can mark anyone by hand. **Marking someone present by hand needs the student's own PIN**, typed by the student on the staff member's phone (shown as dots). Five wrong PINs pause hand check-in for that student for 15 minutes. An **admin** can instead check a student in with a written reason (the only way for a student who has no PIN); it is logged as an admin override. Every hand check-in is recorded, the student is notified at once and can dispute it, and admins review them under Manage → Hand check-ins. Absent and excused need no PIN.
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
@@ -153,8 +159,16 @@ A custom class is a one-off class that isn't part of any course run (a make-up, 
 
 Students also see where they are registered: the centre's town, name and address under their greeting on the home screen and on their profile.
 
-### Class messages
-Instructors can message a class only **while it is in progress**, and only students who **checked in with the code or QR** receive it (students marked by hand don't). Students can't reply, edit or delete. Only admins can delete. Images (JPG, PNG, WebP, GIF, up to 10 MB) live in a private bucket and are downloaded through short-lived signed links minted when the student taps. Students can also copy or share a message.
+### Class channels
+Each class has a channel. It exists for every student who was **checked in, however they were checked in** (scan, centre staff, instructor or admin), and for the class's instructor. Instructors and admins post; students can't reply, edit or delete, and only admins can delete. Files of any type (up to 25 MB) live in a private bucket and are downloaded through short-lived signed links minted when someone taps.
+
+- **Open after class.** A channel stays open when the class ends, including when the instructor ended it early.
+- **Cohort lock.** When the class's course run ends (for a custom class, the student's registration end date), students keep seeing the channel but can no longer read its messages or open its files. This is enforced by row-level security and in the RPCs. Instructors and admins are never locked out.
+- **Copy and share** are offered to students only for two hours after a message arrives. This is a rule in the app, not in the database.
+- **Ending a running class early** (`end_class_early`) needs a reason, 5 to 300 characters, kept on the class and shown on its screen.
+
+### Class reviews
+After a class ends, a student who attended can review it once: 1 to 5 stars, an optional comment, and an optional report about the instructor (with a reason). Reviews can't be edited. Admins see all of them under Manage → Class reviews; instructors don't. Admins choose up to **10** to show on the landing page as swipeable cards (name, photo, stars, words, date). A review that reports an instructor, or has no written comment, can't be featured. The review form tells students their name and photo may be shown.
 
 ### Money going out
 - Each payment books the centre's revenue share.
@@ -167,7 +181,7 @@ One hour before each class, the class clock (above) reminds the class's students
 When a course is about to hold its last class with nothing scheduled after it, admins and the instructors who teach it get a reminder to schedule the next run.
 
 ### Public landing page
-Visitors who aren't signed in see a landing page with rotating headlines, count-up numbers (centres, courses, people trained, calculated from live data on top of a base figure) and Sign in / Get the app buttons. Set `VITE_MOBILE_APP_URL` to point "Get the app" at a store link; until then it opens the web app.
+Visitors who aren't signed in see a landing page with rotating headlines, count-up numbers (centres, courses, people trained, calculated from live data on top of a base figure) and Sign in / Get the app buttons. Below the numbers, the reviews an admin picked appear as cards visitors can swipe through (hidden when none are picked). Set `VITE_MOBILE_APP_URL` to point "Get the app" at a store link; until then it opens the web app.
 
 ---
 
@@ -202,9 +216,9 @@ Visitors who aren't signed in see a landing page with rotating headlines, count-
 | `/team`, `/team/:centreId` | Centre team |
 | `/users`, `/announce` | Admin: users, announcements |
 | `/manage` | Admin hub |
-| `/centres`, `/roster`, `/courses`, `/courses/:id`, `/prices`, `/payments`, `/offline-payments`, `/payouts`, `/instructors`, `/class-messages` | Admin pages |
+| `/centres`, `/roster`, `/courses`, `/courses/:id`, `/prices`, `/payments`, `/offline-payments`, `/payouts`, `/instructors`, `/class-messages`, `/reviews`, `/check-ins` | Admin pages |
 
-A few routes are also guarded in the browser (`/roster` and `/class-messages` for admins, `/my-classes` for instructors, `/messages` and `/schedule` by role). Everywhere else, the **database is the gatekeeper**: row-level security and the RPCs refuse anything the user shouldn't do, and the app shows a readable "you don't have permission" message.
+A few routes are also guarded in the browser (`/roster`, `/class-messages`, `/reviews` and `/check-ins` for admins, `/my-classes` for instructors, `/messages` and `/schedule` by role). Everywhere else, the **database is the gatekeeper**: row-level security and the RPCs refuse anything the user shouldn't do, and the app shows a readable "you don't have permission" message.
 
 ---
 
@@ -250,7 +264,7 @@ supabase/migrations/    SQL for the schema changes from migration 19 onward
 ## Backend: database, functions and storage
 
 ### Migrations
-`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster, door check-in, time calibration, the class clock). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
+`supabase/migrations/` holds the SQL for changes from **19 onward** (pricing admin, centre class days and course runs, course builder, first-class clock, make-up and single-course purchases, sender labels and class messages, offline payments, admin create/edit/delete, editable announcements, director income months and withdrawals, roster, door check-in, time calibration, the class clock, class channels, end-class reasons and the cohort lock, class reviews, and hand check-in by student PIN with a dispute button and an admin audit). Files are numbered in the order they were written. Some were recorded in the live database under a different number, which is noted at the top of each file (for example `34_offline_payments.sql` is recorded as `31_offline_payments`), and there is no file 31 in this repo.
 
 The base schema (migrations before 19) and the Edge Function source are not in this repository. According to the earlier README they live in the `iq-academy-db` project. Apply migrations to a project that already has that base schema.
 
@@ -326,6 +340,8 @@ If the two required variables are missing, the app shows a setup message instead
 
 ## Known limits
 
+- **Screenshots can't be blocked from a web app.** A browser gives a page no way to stop screenshots or screen recording. Blocking them needs a native wrapper (for example Capacitor, with Android's secure-window flag and the matching iOS handling). The copy/share limit on class messages stops the app's own buttons, not a photo of the screen.
+- **A PIN can be watched.** A staff member who sees a student type their PIN could reuse it. The defences are that the student is notified of every hand check-in, can undo it with one tap, and that admins can see who does many or disputed check-ins. A student with no PIN can only be checked in by an admin, with a reason. The PIN gate is enforced in the app; hand check-in itself is enforced in the database.
 - **Reminders are in-app only.** They appear in the notification bell and page, so someone who never opens the app won't see them. Phone push (Web Push) needs a service worker and a send function and isn't built yet. The reminders are ordinary rows in `notifications`, so a push sender can be added without changing how they are created.
 - **The class clock needs `pg_cron`.** If the extension is off, migration 45 prints a notice instead of scheduling the job. Check `select * from cron.job where jobname = 'iqa-class-clock'`.
 - **Staff accounts for new people:** coordinators can't yet register a student on their behalf; students create their own account (the invite QR makes that quick).

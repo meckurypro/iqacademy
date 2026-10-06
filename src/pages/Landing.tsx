@@ -2,6 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { Avatar } from "../components/ui";
+import { Stars } from "../components/Stars";
+import Icon from "../components/Icon";
+import { fmtWhen } from "../lib/time";
 
 // Set VITE_MOBILE_APP_URL to the store / download link. Until then the mobile button opens the web app.
 const APP_URL = (import.meta.env.VITE_MOBILE_APP_URL as string | undefined) || "/login";
@@ -95,9 +99,56 @@ function CountStat({ target, label, run, format = String }: { target: number; la
   return <Stat value={format(useCountUp(target, run))} label={label} />;
 }
 
+type Review = { id: string; rating: number; comment: string; student_name: string; student_avatar: string | null; created_at: string; course_title: string | null };
+
+// Reviews the admins picked (up to ten). Swipe sideways on a phone; arrows and dots for a mouse.
+function Reviews({ items }: { items: Review[] }) {
+  const track = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(0); const [open, setOpen] = useState<string | null>(null);
+  const step = () => { const c = track.current?.children[0] as HTMLElement | undefined; return c ? c.offsetWidth + 16 : 0; };
+  const onScroll = () => { const w = step(); if (w && track.current) setAt(Math.min(items.length - 1, Math.max(0, Math.round(track.current.scrollLeft / w)))); };
+  const go = (i: number) => track.current?.scrollTo({ left: Math.max(0, Math.min(items.length - 1, i)) * step(), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  return (
+    <section aria-label="What students say" className="border-t border-line py-20 sm:py-28">
+      <div className="flex items-end justify-between gap-4">
+        <div><h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">What students say</h2>
+          <p className="mt-2 text-muted">Honest reviews from people who took a class.</p></div>
+        {items.length > 1 && <div className="hidden gap-2 sm:flex">
+          {([-1, 1] as const).map((d) => <button key={d} onClick={() => go(at + d)} disabled={d < 0 ? at === 0 : at === items.length - 1} aria-label={d < 0 ? "Previous review" : "Next review"}
+            className="grid h-11 w-11 place-items-center rounded-full border border-line text-ink transition hover:bg-sunken active:scale-95 disabled:opacity-30"><Icon name={d < 0 ? "chevronLeft" : "chevronRight"} size={20} /></button>)}
+        </div>}
+      </div>
+      <div ref={track} onScroll={onScroll} tabIndex={0} aria-roledescription="carousel"
+        className="-mx-6 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-6 pb-4 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {items.map((r, i) => {
+          const long = r.comment.length > 210; const full = open === r.id;
+          return (
+            <figure key={r.id} aria-roledescription="slide" aria-label={`${i + 1} of ${items.length}`}
+              className="flex w-[84%] shrink-0 snap-center scroll-mx-6 flex-col justify-between gap-5 rounded-3xl bg-surface p-6 shadow-card ring-1 ring-line sm:w-[22rem]">
+              <div className="space-y-3.5">
+                <Stars value={r.rating} size={18} />
+                <blockquote className={`whitespace-pre-wrap break-words text-[15.5px] leading-relaxed ${full ? "" : "line-clamp-6"}`}>{r.comment}</blockquote>
+                {long && <button onClick={() => setOpen(full ? null : r.id)} className="text-sm font-medium text-accent">{full ? "Show less" : "Read more"}</button>}
+              </div>
+              <figcaption className="flex items-center gap-3 border-t border-line pt-4">
+                <Avatar name={r.student_name} url={r.student_avatar} size={32} />
+                <span className="min-w-0 flex-1 leading-tight"><span className="block truncate text-sm font-semibold">{r.student_name}</span>
+                  <span className="block truncate text-xs text-muted">{r.course_title ? `${r.course_title} · ` : ""}{fmtWhen(r.created_at, { day: "numeric", month: "short", year: "numeric" })}</span></span>
+              </figcaption>
+            </figure>);
+        })}
+      </div>
+      {items.length > 1 && <div className="mt-2 flex justify-center gap-1.5" aria-hidden>
+        {items.map((r, i) => <button key={r.id} tabIndex={-1} onClick={() => go(i)} className={`h-1.5 rounded-full transition-all ${i === at ? "w-5 bg-accent" : "w-1.5 bg-line"}`} />)}
+      </div>}
+    </section>
+  );
+}
+
 export default function Landing() {
   const nav = useNavigate();
   const [stats, setStats] = useState<Stats | null | "failed">(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [gridRef, inView] = useInView<HTMLDivElement>();
 
   // A failed email-confirmation link redirects to the site root with the error in the hash.
@@ -107,6 +158,7 @@ export default function Landing() {
 
   useEffect(() => {
     supabase.rpc("public_landing_stats").then((r) => setStats(r.error || !r.data ? "failed" : (r.data as Stats)));
+    supabase.rpc("public_featured_reviews").then((r) => setReviews(r.error ? [] : ((r.data as Review[]) ?? []).filter((x) => x.comment)));
   }, []);
 
   const ready = stats !== null;
@@ -151,6 +203,8 @@ export default function Landing() {
             <Stat value="2024" label="Building since" />
           </div>
         </section>
+
+        {reviews.length > 0 && <Reviews items={reviews} />}
 
         <footer className="border-t border-line py-8 text-sm text-muted">© {new Date().getFullYear()} IQ Academy</footer>
       </div>

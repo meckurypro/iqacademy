@@ -5,7 +5,8 @@ import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { useFeedback } from "../components/feedback";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Err, PageHeader, Section, Sheet, Skeleton, Main, Rail, Split } from "../components/ui";
+import { Badge, Button, Card, Err, IconTile, PageHeader, Section, Sheet, Skeleton, Main, Rail, Split } from "../components/ui";
+import ReviewSheet, { type ReviewTarget } from "../components/ReviewSheet";
 import { startPayment } from "./Enrol";
 import QrScanner from "../components/QrScanner";
 import CourseOutline from "../components/CourseOutline";
@@ -32,11 +33,13 @@ export default function StudentHome() {
   const [refunds, setRefunds] = useState<Ref[]>([]); const [enr, setEnr] = useState<Enr[]>(); const [prog, setProg] = useState<Prog[]>([]); const [lessons, setLessons] = useState<Lesson[]>([]); const [openCourse, setOpenCourse] = useState("");
   const [claims, setClaims] = useState<MyOffline[]>([]); const nav = useNavigate();
   const [open, setOpen] = useState(false); const [code, setCode] = useState("");
+  const [pendingReview, setPendingReview] = useState<ReviewTarget | null>(null); const [reviewing, setReviewing] = useState<ReviewTarget | null>(null);
   const [scan, setScan] = useState(false); const [err, setErr] = useState(""); const [verdict, setVerdict] = useState<Verdict | null>(null);
 
   const load = useCallback(async () => {
     supabase.from("refunds").select("id,amount,status,created_at").order("created_at", { ascending: false }).limit(5).then((r) => setRefunds((r.data as Ref[]) ?? []));
     supabase.rpc("my_offline_payments").then((r) => setClaims((r.data as MyOffline[]) ?? []));
+    supabase.rpc("my_pending_review").then((r) => setPendingReview(((r.data as ReviewTarget[] | null) ?? [])[0] ?? null));
     const [e, p, ls] = await Promise.all([
       supabase.from("enrolments").select("id,status,balance,total_amount,starts_on,packages(name),enrolment_courses(sequence_no,courses(title)),centres(name,city,address),enrolment_instalments(id,number,amount,status,label,due_date)").in("status", ["pending_payment", "active", "completed"]).order("created_at", { ascending: false }),
       supabase.from("v_student_progress").select("enrolment_id,course_id,course_title,sessions_attended,sessions_needed,course_status").eq("enrolment_status", "active"),
@@ -106,6 +109,14 @@ export default function StudentHome() {
     <div className="space-y-6">
       <PageHeader title={`Hi ${name.split(" ")[0]}`} />
       {centreLabel && <Link to="/profile" className="-mt-3 flex items-center gap-1.5 text-[15px] text-muted transition hover:text-ink"><Icon name="pin" size={15} /><span className="min-w-0 truncate">{centreLabel}</span></Link>}
+
+      {pendingReview && <Card className="glass anim-rise flex items-center gap-3">
+        <IconTile tone="accent"><Icon name="star" size={20} solid /></IconTile>
+        <div className="min-w-0 flex-1 leading-snug"><p className="font-medium">How was your last class?</p>
+          <p className="truncate text-sm text-muted">{[pendingReview.course_title, pendingReview.lesson_title].filter(Boolean).join(" · ")}</p></div>
+        <Button className="h-9 px-4 text-sm" onClick={() => setReviewing(pendingReview)}>Rate</Button>
+      </Card>}
+      <ReviewSheet target={reviewing} onClose={() => setReviewing(null)} onDone={load} />
 
       {enr.length === 0 && <CourseOutline />}
 

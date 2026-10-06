@@ -8,6 +8,9 @@ import App from "./App";
 import { AuthProvider } from "./lib/auth";
 import { FeedbackProvider } from "./components/feedback";
 import { supabaseConfigured } from "./lib/supabase";
+import { watchTheme } from "./lib/theme";
+
+watchTheme();
 
 const Missing = () => (
   <div style={{ padding: 24, fontFamily: "system-ui", maxWidth: 480, margin: "10vh auto" }}>

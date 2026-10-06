@@ -10,13 +10,18 @@ import { MatchHint, PasswordCreator, PasswordField } from "../components/Passwor
 
 import Icon, { type IconName } from "../components/Icon";
 import MyCentres from "../components/MyCentres";
+import { copyText } from "../lib/messages";
+import { ChangePinForm, PinSetup } from "../components/PinInput";
 export default function Profile() {
-  const { session, name, avatar, roles, refresh } = useAuth(); const { run } = useFeedback();
+  const { session, name, avatar, roles, refresh } = useAuth(); const { run, toast } = useFeedback();
   const uid = session!.user.id;
   const [full, setFull] = useState(name); const [phone, setPhone] = useState(""); const [phone0, setPhone0] = useState("");
   const [err, setErr] = useState("");
   const [pwOpen, setPwOpen] = useState(false);
   const [theme, setTheme] = useTheme();
+  const [regNo, setRegNo] = useState(""); const [hasPin, setHasPin] = useState<boolean | null>(null); const [pinOpen, setPinOpen] = useState(false);
+  useEffect(() => { supabase.from("students").select("student_number").eq("id", uid).maybeSingle().then((r) => setRegNo((r.data?.student_number as string | null) ?? "")); }, [uid]);
+  useEffect(() => { if (regNo) supabase.rpc("has_pin").then((r) => setHasPin(r.error ? null : r.data === true)); }, [regNo]);
   useEffect(() => { setFull(name); }, [name]);
   useEffect(() => { supabase.from("profiles").select("phone").eq("id", uid).maybeSingle().then((r) => { const p = (r.data?.phone as string | null) ?? ""; setPhone(p); setPhone0(p); }); }, [uid]);
 
@@ -52,6 +57,20 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} /></label>
         <p className="text-sm text-muted">{roleLabel[primaryRole(roles)]} · {session!.user.email}</p>
       </Card>
+      {regNo && <Card className="flex items-center gap-3">
+        <div className="min-w-0 flex-1 leading-snug"><p className="text-sm text-muted">Registration number</p><p className="num text-xl font-semibold tracking-wide">{regNo}</p>
+        </div>
+        <Button variant="secondary" className="h-9 px-4 text-sm" onClick={() => copyText(regNo).then(() => toast("Copied"))}>Copy</Button>
+      </Card>}
+      {regNo && hasPin !== null && <Card className="flex items-center gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><Icon name="lock" size={22} /></span>
+        <div className="min-w-0 flex-1 leading-snug"><p className="font-medium">Check-in PIN</p>
+          <p className="text-sm text-muted">{hasPin ? "Set. Needed if someone has to check you in by hand." : "Not set yet. Set one so you can be checked in by hand."}</p></div>
+        <Button variant="secondary" className="h-9 px-4 text-sm" onClick={() => setPinOpen(true)}>{hasPin ? "Change" : "Set PIN"}</Button>
+      </Card>}
+      <Sheet open={pinOpen} onClose={() => setPinOpen(false)} title={hasPin ? "Change your PIN" : "Set your PIN"}>
+        {hasPin ? <ChangePinForm onDone={() => setPinOpen(false)} /> : <PinSetup onDone={() => { setHasPin(true); setPinOpen(false); }} />}
+      </Sheet>
       <MyCentres />
       <Card className="space-y-4">
         <Field label="Full name" value={full} onChange={(e) => setFull(e.target.value)} />

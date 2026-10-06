@@ -43,6 +43,9 @@ import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
 import Notifications from "./pages/Notifications";
 import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
+import ClassReviews from "./pages/ClassReviews";
+import HandCheckIns from "./pages/HandCheckIns";
+import PinGate from "./components/PinGate";
 import { useUnreadMessages } from "./lib/messages";
 import { useNotificationCount } from "./lib/notifications";
 import { useDesktop } from "./lib/useMedia";
@@ -159,6 +162,7 @@ export default function App() {
   return (
     <>
     <VerifyRedirect />
+    {role === "student" && <PinGate />}
     <Routes>
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
@@ -173,6 +177,8 @@ export default function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/messages/:id?" element={<MessagesRoute role={role} />} />
         <Route path="/class-messages" element={role === "admin" || role === "super_admin" ? <ClassMessagesAdmin /> : <Navigate to="/" replace />} />
+        <Route path="/check-ins" element={role === "admin" || role === "super_admin" ? <HandCheckIns /> : <Navigate to="/" replace />} />
+        <Route path="/reviews" element={role === "admin" || role === "super_admin" ? <ClassReviews /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />
         <Route path="/centres" element={<Centres />} />
