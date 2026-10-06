@@ -42,7 +42,7 @@ export default function CustomClassCard({ onCheckIn, refreshKey }: { onCheckIn: 
         const opens = Date.parse(s.start_at) - CHECKIN_OPENS_MIN * 60000;
         const canCheckIn = tNow() >= opens && !s.checked_in;
         return (
-          <Card key={s.id} className="anim-rise space-y-2.5 border-l-4 border-l-info">
+          <Card key={s.id} className="anim-rise glass space-y-2.5">
             <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-info">Custom class</p>{s.checked_in ? <Badge tone="ok">You're in</Badge> : <Badge tone={s.status === "in_progress" ? "info" : "muted"}>{s.status === "in_progress" ? "Live" : "Coming up"}</Badge>}</div>
             <div><p className="text-lg font-semibold">{s.course_title}</p>{s.lesson_title && <p className="text-sm text-muted">{s.lesson_title}</p>}</div>
             <p className="text-sm text-muted">{fmtWhen(s.start_at, { weekday: "short", day: "numeric", month: "short" })} · {t(s.start_at)} – {t(s.end_at)} · <Place centre={{ name: s.centre_name, city: s.centre_city, address: s.centre_address }} />{s.instructor_first_name ? ` · with ${s.instructor_first_name}` : ""}</p>

@@ -1,77 +1,35 @@
-// src/pages/InstructorMessages.tsx — the instructor's Messages tab: message a class that is running, and see what you've sent.
+// src/pages/InstructorMessages.tsx — the instructor's Messages tab: one channel per class, open from the moment check-in opens.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Button, Card, Empty, Skeleton } from "../components/ui";
-import ClassComposer from "../components/ClassComposer";
-import MessageBubble from "../components/MessageBubble";
-import { mergeMessages, type ClassMessage } from "../lib/messages";
-import { dayOf, relativeDay } from "../lib/time";
-
-type Active = { id: string; course_title: string; centre_name: string; start_at: string; end_at: string; joined: number };
-const PAGE = 40;
-const dayLabel = (d: string) => relativeDay(d, { weekday: "long", day: "numeric", month: "long" });
+import { Card, Skeleton } from "../components/ui";
+import ChannelRow from "../components/ChannelRow";
+import type { Channel } from "../lib/channels";
 
 export default function InstructorMessages() {
   const { session } = useAuth(); const uid = session?.user.id;
-  const [active, setActive] = useState<Active[] | null>(null);
-  const [msgs, setMsgs] = useState<ClassMessage[] | null>(null);
-  const [more, setMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
-
-  const loadActive = useCallback(async () => { const { data } = await supabase.rpc("instructor_active_classes"); setActive((data as Active[]) ?? []); }, []);
-  const loadMsgs = useCallback(async () => {
-    const { data } = await supabase.rpc("instructor_message_feed", { p_limit: PAGE });
-    const rows = (data as ClassMessage[]) ?? [];
-    setMore((m) => (msgs === null ? rows.length === PAGE : m)); setMsgs((o) => mergeMessages(o ?? [], rows));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [rows, setRows] = useState<Channel[] | null>(null);
+  const load = useCallback(async () => { const { data } = await supabase.rpc("instructor_class_channels"); setRows((data as Channel[]) ?? []); }, []);
 
   useEffect(() => {
     if (!uid) return;
-    loadActive(); loadMsgs();
-    const ch = supabase.channel(`instructor-messages-${uid}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "class_sessions", filter: `instructor_id=eq.${uid}` }, loadActive)
-      .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, loadActive)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "class_messages" }, loadMsgs)
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "class_messages" }, () => {
-        supabase.rpc("instructor_message_feed", { p_limit: 100 }).then((r) => { const ids = new Set(((r.data as ClassMessage[]) ?? []).map((x) => x.id)); setMsgs((o) => (o ?? []).filter((x) => ids.has(x.id))); });
-      })
+    load();
+    const ch = supabase.channel(`instructor-channels-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_sessions", filter: `instructor_id=eq.${uid}` }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "class_messages" }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [uid, loadActive, loadMsgs]);
-
-  const older = async () => {
-    if (!msgs?.length) return; setLoadingMore(true);
-    const { data } = await supabase.rpc("instructor_message_feed", { p_limit: PAGE, p_before: msgs[0].created_at });
-    const rows = (data as ClassMessage[]) ?? []; setMore(rows.length === PAGE); setMsgs((o) => mergeMessages(o ?? [], rows)); setLoadingMore(false);
-  };
+  }, [uid, load]);
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-[26px] leading-tight">Messages</h1>
-
-      {active === null ? <Skeleton className="h-40" />
-        : active.length === 0 ? <Card className="space-y-1 py-6 text-center"><p className="font-medium">No class in progress</p>
-            <p className="text-sm text-muted">You can message a class once it has started. The centre opens check-in 30 minutes before. You can follow arrivals from <Link to="/" className="font-medium text-accent">Today</Link>.</p></Card>
-        : active.map((c) => (
-            <section key={c.id} className="space-y-2">
-              <div className="flex items-baseline justify-between gap-3 px-1"><h2 className="text-lg">{c.course_title}</h2><span className="text-xs text-muted">{c.centre_name}</span></div>
-              <ClassComposer sessionId={c.id} joined={c.joined} onSent={loadMsgs} />
-            </section>))}
-
-      <section className="space-y-4">
-        <h2 className="px-1 text-lg">Sent</h2>
-        {msgs === null ? <Skeleton className="h-24" />
-          : msgs.length === 0 ? <Empty icon="messages" title="No messages yet" />
-          : <>
-              {more && <Button variant="secondary" className="w-full" loading={loadingMore} onClick={older}>Show earlier messages</Button>}
-              {msgs.map((m, i) => {
-                const newDay = i === 0 || dayOf(m.created_at) !== dayOf(msgs[i - 1].created_at);
-                return <div key={m.id} className="space-y-4">{newDay && <p className="text-center text-xs font-medium text-muted">{dayLabel(m.created_at)}</p>}<MessageBubble m={m} context /></div>;
-              })}
-            </>}
-      </section>
+    <div className="space-y-4">
+      <div><h1 className="text-[26px] leading-tight">Messages</h1><p className="text-sm text-muted">A channel opens for each class when check-in opens, and stays open after the class ends. Students can't reply.</p></div>
+      {rows === null ? <Skeleton className="h-24" />
+        : rows.length === 0 ? <Card className="space-y-1 py-6 text-center"><p className="font-medium">No class channels yet</p>
+            <p className="text-sm text-muted">A class's channel appears when its check-in opens, 30 minutes before it starts. You can follow arrivals from <Link to="/" className="font-medium text-accent">Today</Link>.</p></Card>
+        : <div className="space-y-3">{rows.map((c) => <ChannelRow key={c.session_id} c={c} instructor />)}</div>}
     </div>
   );
 }

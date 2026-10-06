@@ -41,6 +41,7 @@ import Team from "./pages/Team";
 import Instructors from "./pages/Instructors";
 import Notifications from "./pages/Notifications";
 import Messages from "./pages/Messages";
+import ClassChannel from "./pages/ClassChannel";
 import InstructorMessages from "./pages/InstructorMessages";
 import ClassMessagesAdmin from "./pages/ClassMessagesAdmin";
 import { useUnreadMessages } from "./lib/messages";
@@ -160,6 +161,7 @@ export default function App() {
         <Route path="/announce" element={<Announce />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/messages" element={role === "student" ? <Messages /> : role === "instructor" ? <InstructorMessages /> : <Navigate to="/" replace />} />
+        <Route path="/messages/:id" element={role === "student" || role === "instructor" ? <ClassChannel /> : <Navigate to="/" replace />} />
         <Route path="/class-messages" element={role === "admin" || role === "super_admin" ? <ClassMessagesAdmin /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/manage" element={<Manage />} />

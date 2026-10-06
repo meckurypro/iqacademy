@@ -1,5 +1,5 @@
 // src/components/ClassComposer.tsx
-// Write a message (text and/or one image) to a class that is in progress. Used on the class screen and the instructor's Messages tab.
+// Write a message (text and/or one image) to a class's channel. Open from check-in onwards, including after the class. Used on the class screen and in the channel.
 import { useEffect, useState } from "react";
 import { supabase, friendly } from "../lib/supabase";
 import { Button, Card, Err } from "./ui";
@@ -51,7 +51,7 @@ export default function ClassComposer({ sessionId, joined, onSent }: { sessionId
         <span className="flex-1" />
         <Button disabled={!text.trim() && !file} onClick={send}>Send</Button>
       </div>
-      <p className="text-xs leading-relaxed text-muted">Goes to students who joined with the class code{joined !== undefined ? ` (${joined} so far)` : ""}. They can't reply, and only an admin can delete a message.</p>
+      <p className="text-xs leading-relaxed text-muted">Goes to students who joined with the class code{joined !== undefined ? ` (${joined} so far)` : ""}. They can't reply, and only an admin can delete a message. You can keep posting after the class ends.</p>
     </Card>
   );
 }

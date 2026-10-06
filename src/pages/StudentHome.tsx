@@ -51,7 +51,7 @@ export default function StudentHome() {
     let v: Verdict | null = null;
     const r = await run("Checking you in…", async () => {
       const { data, error } = await supabase.rpc("check_in", { p_token: c.trim() }); if (error) throw error;
-      v = data as Verdict; await load();
+      v = data as Verdict; await load(); dispatchEvent(new Event("checkin:done"));
     }, { quiet: true });
     if (!r.ok) return setErr(r.message);   // a wrong or expired code stays on the code screen
     setOpen(false); setVerdict(v);         // otherwise: a full-screen green or red answer
@@ -110,7 +110,7 @@ export default function StudentHome() {
       {enr.length === 0 && <CourseOutline />}
 
       {(enr ?? []).filter((e) => e.status === "active" && e.starts_on && e.starts_on > todayIso).map((e) => (
-        <Card key={e.id} className="anim-rise space-y-1 border-l-4 border-l-info">
+        <Card key={e.id} className="anim-rise glass space-y-1">
           <p className="text-sm font-medium text-info">Your first class</p>
           <p className="text-lg font-semibold">{d0(e.starts_on!, { weekday: "long", day: "numeric", month: "long" })}</p>
           <p className="text-sm text-muted">{e.enrolment_courses?.find((c) => c.sequence_no === 1)?.courses?.title}{e.centres && <> · <Place centre={e.centres} townOnly /></>}</p>

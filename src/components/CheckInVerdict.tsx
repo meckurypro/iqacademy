@@ -3,11 +3,12 @@
 // Colours are fixed (not theme tokens) so the answer reads the same in light and dark mode, from across a room.
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import Icon from "./Icon";
 import { deniedText, type Verdict } from "../lib/checkin";
 
 export default function CheckInVerdict({ v, onDone, onRetry }: { v: Verdict; onDone: () => void; onRetry: () => void }) {
-  const btn = useRef<HTMLButtonElement>(null);
+  const btn = useRef<HTMLButtonElement>(null); const nav = useNavigate();
   useEffect(() => {
     navigator.vibrate?.(v.ok ? 40 : [90, 60, 90]);
     btn.current?.focus();
@@ -31,6 +32,7 @@ export default function CheckInVerdict({ v, onDone, onRetry }: { v: Verdict; onD
       </div>
       <div className="w-full max-w-xs space-y-2">
         <button ref={btn} onClick={onDone} className="h-12 w-full rounded-xl bg-white font-semibold text-black transition active:scale-[.98]">{v.ok ? "Done" : "Close"}</button>
+        {v.ok && v.session_id && <button onClick={() => { onDone(); nav(`/messages/${v.session_id}`); }} className="h-10 w-full text-sm font-medium text-white/90 underline underline-offset-4">Open class messages</button>}
         {!v.ok && <button onClick={onRetry} className="h-10 w-full text-sm font-medium text-white/90 underline underline-offset-4">Try another code</button>}
       </div>
     </div>, document.body);

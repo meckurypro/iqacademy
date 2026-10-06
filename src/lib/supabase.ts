@@ -51,7 +51,7 @@ const MESSAGES: Record<string, string> = {
   solo_price_not_set: "This course can't be bought on its own yet.",
   course_not_available: "That course isn't available right now.",
   prices_invalid: "Something is wrong with those prices. Please check and try again.",
-  session_not_active: "You can message a class while it's in progress. The class starts when the centre opens check-in.",
+  session_not_active: "A class's channel opens when its check-in opens. You can message it from then on, including after the class.",
   message_empty: "Write a message or attach an image first.",
   message_too_long: "Keep the message under 4,000 characters.",
   invalid_media: "That image can't be sent. Use a JPG, PNG, WebP or GIF under 10 MB.",

@@ -4,9 +4,28 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Avatar, Button, Card, Empty, Skeleton, cx } from "../components/ui";
-import { addDays, dayOf, fmtClock, fmtWhen, now, today } from "../lib/time";
+import { addDays, dayOf, fmtClock, fmtWhen, now, relativeDay, today } from "../lib/time";
+import { useTicker } from "../lib/classClock";
 
-type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string };
+type Note = { id: string; title: string; body: string | null; read_at: string | null; created_at: string; sender_label: string | null; type: string; data: { start_at?: string } | null };
+
+/**
+ * A class reminder is written once, when it is sent, but it is read later. So its headline is worked out again from the
+ * class's own start time and the server-corrected clock: "Class in 4 minutes" is never still "Class in 1 hour".
+ */
+const reminderTitle = (n: Note, at: number) => {
+  const start = n.data?.start_at ? Date.parse(n.data.start_at) : NaN;
+  if (!n.type.startsWith("class_reminder") || Number.isNaN(start)) return n.title;
+  const tail = n.type === "class_reminder_staff" ? " at your centre" : "";
+  const mins = Math.ceil((start - at) / 60000);
+  if (mins > 62) return `Class in ${Math.round(mins / 60)} hours${tail}`;
+  if (mins >= 58) return `Class in 1 hour${tail}`;
+  if (mins > 1) return `Class in ${mins} minutes${tail}`;
+  if (mins === 1 || at < start) return `Class starts now${tail}`;
+  const ago = Math.floor((at - start) / 60000);
+  if (ago < 180) return ago < 1 ? `Class has started${tail}` : `Class started ${ago} min ago${tail}`;
+  return `${relativeDay(start, { weekday: "short", day: "numeric", month: "short" })}, ${fmtClock(start)} class${tail}`;
+};
 const PAGE = 30;
 
 const when = (d: string) => {
@@ -29,13 +48,13 @@ function Sender({ label }: { label: string | null }) {
 }
 
 export default function Notifications() {
-  const { session } = useAuth();
+  const { session } = useAuth(); const tick = useTicker(30000);
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set()); // unread when this page opened, kept highlighted until you leave
   const [more, setMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchPage = useCallback((before?: string) => {
-    let q = supabase.from("notifications").select("id,title,body,read_at,created_at,sender_label,type").order("created_at", { ascending: false }).limit(PAGE + 1);
+    let q = supabase.from("notifications").select("id,title,body,read_at,created_at,sender_label,type,data").order("created_at", { ascending: false }).limit(PAGE + 1);
     if (before) q = q.lt("created_at", before);
     return q.then((r) => (r.data as Note[]) ?? []);
   }, []);
@@ -72,12 +91,12 @@ export default function Notifications() {
         : notes.length === 0 ? <Empty icon="bell" title="You're all caught up" hint="New updates will show up here." />
         : <div className="space-y-3">
             {notes.map((n) => (
-              <Card key={n.id} className={cx("anim-fade space-y-2", fresh.has(n.id) && "border-l-4 border-l-accent")}>
+              <Card key={n.id} className={cx("anim-fade space-y-2", fresh.has(n.id) && "glass")}>
                 <div className="flex items-center justify-between gap-3">
                   <Sender label={n.sender_label} />
                   <span className="flex items-center gap-2 text-xs text-muted">{fresh.has(n.id) && <span className="h-2 w-2 rounded-full bg-accent" aria-label="New" />}{when(n.created_at)}</span>
                 </div>
-                <p className="font-medium leading-snug">{n.title}</p>
+                <p className="font-medium leading-snug">{reminderTitle(n, tick)}</p>
                 {n.type.startsWith("run_") && n.type !== "run_cancelled" && <Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link>}
                 {["class_assigned", "class_unassigned", "class_changed"].includes(n.type) && <Link to="/my-classes" className="text-sm font-medium text-accent">Open my classes</Link>}
                 {["emergency_class", "custom_class_invite", "custom_class_changed"].includes(n.type) && <Link to="/" className="text-sm font-medium text-accent">Go to check-in</Link>}

@@ -10,7 +10,7 @@ import Place from "./Place";
 import Icon from "./Icon";
 import { Card, Skeleton, cx } from "./ui";
 import { phaseOf, spoken, splitMs, useClassClock, type ClockClass } from "../lib/classClock";
-import { CHECKIN_OPENS_MIN } from "../lib/checkin";
+import { CHECKIN_OPENS_MIN, useCheckedIn } from "../lib/checkin";
 import { fmtClock, fmtWhen, relativeDay } from "../lib/time";
 
 const two = (n: number) => String(n).padStart(2, "0");
@@ -43,6 +43,7 @@ const roleCopy = {
 
 export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c: ClockClass) => void; student?: boolean }) {
   const { loading, current: c, next, now } = useClassClock(3, !!student);
+  const checkedIn = useCheckedIn(c?.id, c?.as_role === "student");
   if (loading) return <Skeleton className="h-48 rounded-2xl" />;
   if (!c) return null;   // nothing coming up: the rest of the dashboard speaks for itself
 
@@ -58,7 +59,12 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
   const sr = phase === "live" ? `Class in progress, ${spoken(toEnd)} left` : `Class starts in ${spoken(toStart)}`;
 
   const action = c.as_role === "student"
-    ? (doorOpen
+    ? (checkedIn
+      ? <div className="space-y-2">
+          <p className="flex items-center justify-center gap-2 rounded-xl bg-ok/10 px-3 py-3 text-sm font-medium text-ok"><Icon name="check" size={16} strokeWidth={2.5} />You're checked in</p>
+          <Link to={`/messages/${c.id}`} className="grid h-11 w-full place-items-center rounded-xl bg-sunken/80 text-sm font-medium text-ink transition active:scale-[.98]">Class messages</Link>
+        </div>
+      : doorOpen
         ? <button onClick={() => onCheckIn?.(c)} className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-ink transition active:scale-[.98]">Check in</button>
         : <p className="rounded-xl bg-sunken/80 px-3 py-3 text-center text-sm font-medium text-ink">{copy.early(c)}</p>)
     : (doorOpen
@@ -72,7 +78,7 @@ export default function ClassCountdown({ onCheckIn, student }: { onCheckIn?: (c:
           {phase === "live" && <span className="h-2 w-2 rounded-full bg-ok animate-pulse motion-reduce:animate-none" />}
           {label}{c.is_emergency && " · Custom"}
         </p>
-        {phase === "checkin" && <span className="inline-flex items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok"><span className="h-1.5 w-1.5 rounded-full bg-ok" />Door open</span>}
+        {phase === "checkin" && !checkedIn && <span className="inline-flex items-center gap-1.5 rounded-full bg-ok/10 px-2.5 py-1 text-xs font-medium text-ok"><span className="h-1.5 w-1.5 rounded-full bg-ok" />Door open</span>}
       </div>
 
       <div role="timer" className="space-y-2">

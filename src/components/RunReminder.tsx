@@ -13,7 +13,7 @@ export default function RunReminder() {
   if (!rows.length) return null;
   const d = (iso: string | null) => (iso ? fmtDay(iso, { day: "numeric", month: "short" }) : "");
   return (
-    <Link to="/schedule" className="block"><Card onClick={() => {}} className="anim-rise space-y-1 border-l-4 border-l-warn">
+    <Link to="/schedule" className="block"><Card onClick={() => {}} className="anim-rise glass space-y-1">
       <p className="font-medium">Set the next course dates</p>
       <p className="text-sm text-muted">{rows.map((r) => `${r.course_title} at ${r.centre_city || r.centre_name} ends ${d(r.last_session_date)}`).join(" · ")}</p>
     </Card></Link>

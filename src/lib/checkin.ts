@@ -1,12 +1,15 @@
 // src/lib/checkin.ts
 // Door check-in: the verdict check_in() returns, and the window in which door staff can open check-in.
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "./supabase";
+import { useAuth } from "./auth";
 import { fmtClock, now } from "./time";
 
 export type Verdict = {
   ok: boolean;
   reason?: "not_enrolled" | "not_invited" | "payment_required" | "makeup_not_open" | "not_a_missed_class" | "makeup_limit_reached";
   already_checked_in?: boolean; makeup?: boolean; emergency?: boolean;
-  first_name?: string | null; course_title?: string | null; lesson_title?: string | null; centre_name?: string | null;
+  session_id?: string; first_name?: string | null; course_title?: string | null; lesson_title?: string | null; centre_name?: string | null;
 };
 
 /** Red-screen wording per reason. */
@@ -34,3 +37,29 @@ export const REASON_LABEL: Record<string, string> = {
   not_enrolled: "Not registered", not_invited: "Not invited", payment_required: "Payment due", makeup_not_open: "Make-up not open",
   not_a_missed_class: "Not a missed class", makeup_limit_reached: "No make-ups left",
 };
+
+/**
+ * Is the signed-in student already marked present for this class? Re-reads when their attendance changes (realtime),
+ * when the tab comes back, and the moment a check-in finishes on this device (the "checkin:done" event), so the
+ * Check in button turns into "You're checked in" straight away and never offers itself twice.
+ */
+export function useCheckedIn(sessionId: string | undefined, enabled = true) {
+  const { session } = useAuth(); const uid = session?.user.id;
+  const [seen, setSeen] = useState<{ id: string; present: boolean } | null>(null);
+  const on = !!sessionId && !!uid && enabled;
+  const load = useCallback(async () => {
+    if (!sessionId || !uid) return;
+    const { data } = await supabase.from("attendance").select("status").eq("session_id", sessionId).eq("student_id", uid).maybeSingle();
+    setSeen({ id: sessionId, present: data?.status === "present" });
+  }, [sessionId, uid]);
+  useEffect(() => {
+    if (!on) return;
+    load();
+    const ch = supabase.channel(`my-attendance-${sessionId}-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "attendance", filter: `session_id=eq.${sessionId}` }, load).subscribe();
+    const vis = () => { if (document.visibilityState === "visible") load(); };
+    document.addEventListener("visibilitychange", vis); addEventListener("checkin:done", load);
+    return () => { supabase.removeChannel(ch); document.removeEventListener("visibilitychange", vis); removeEventListener("checkin:done", load); };
+  }, [on, sessionId, load]);
+  return on && seen?.id === sessionId ? seen.present : false;
+}

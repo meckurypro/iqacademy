@@ -1,3 +1,4 @@
+// src/pages/ClassScreen.tsx
 import { useCallback, useEffect, useState } from "react";
 import Place from "../components/Place";
 import { useNavigate, useParams } from "react-router-dom";
@@ -158,10 +159,11 @@ export default function ClassScreen() {
             <Avatar name={d.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{d.full_name}</p><p className="text-xs text-muted">{REASON_LABEL[d.reason] ?? "Not cleared"}{d.attempts > 1 ? ` · ${d.attempts} tries` : ""} · {t(d.last_at)}</p></div>
             <Badge tone="bad">Red</Badge></Card>))}
       </Section>}
-      {canSend && (s.status === "in_progress" || sent.length > 0 || s.status === "scheduled") && <section className="space-y-3">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Messages</h2>
-        {s.status === "in_progress" ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
-          : s.status === "scheduled" && <Card className="text-sm text-muted">You can message the class once it has started. It starts by itself at {t(s.start_at)}.</Card>}
+      {canSend && s.status !== "cancelled" && <section className="space-y-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">Class channel</h2>
+        {s.status === "in_progress" || s.status === "completed" || door === "open"
+          ? <ClassComposer sessionId={id!} joined={joined} onSent={loadSent} />
+          : <Card className="text-sm text-muted">This class's channel opens with check-in, at {opensAt(s.start_at)}. After the class ends you can still post to it.</Card>}
         {sent.length > 0 && <div className="space-y-4 pt-2"><p className="px-1 text-sm text-muted">Sent in this class</p>{sent.map((m) => <MessageBubble key={m.id} m={m} />)}</div>}
       </section>}
       {!closed && (isTeacher || roles.some((r) => r.role === "admin" || r.role === "super_admin")) && <Button variant="ghost" className="w-full text-bad" onClick={cancelClass}>Cancel this class</Button>}
