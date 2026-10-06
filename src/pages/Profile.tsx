@@ -10,13 +10,16 @@ import { MatchHint, PasswordCreator, PasswordField } from "../components/Passwor
 
 import Icon, { type IconName } from "../components/Icon";
 import MyCentres from "../components/MyCentres";
+import { copyText } from "../lib/messages";
 export default function Profile() {
-  const { session, name, avatar, roles, refresh } = useAuth(); const { run } = useFeedback();
+  const { session, name, avatar, roles, refresh } = useAuth(); const { run, toast } = useFeedback();
   const uid = session!.user.id;
   const [full, setFull] = useState(name); const [phone, setPhone] = useState(""); const [phone0, setPhone0] = useState("");
   const [err, setErr] = useState("");
   const [pwOpen, setPwOpen] = useState(false);
   const [theme, setTheme] = useTheme();
+  const [regNo, setRegNo] = useState("");
+  useEffect(() => { supabase.from("students").select("student_number").eq("id", uid).maybeSingle().then((r) => setRegNo((r.data?.student_number as string | null) ?? "")); }, [uid]);
   useEffect(() => { setFull(name); }, [name]);
   useEffect(() => { supabase.from("profiles").select("phone").eq("id", uid).maybeSingle().then((r) => { const p = (r.data?.phone as string | null) ?? ""; setPhone(p); setPhone0(p); }); }, [uid]);
 
@@ -52,6 +55,11 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} /></label>
         <p className="text-sm text-muted">{roleLabel[primaryRole(roles)]} · {session!.user.email}</p>
       </Card>
+      {regNo && <Card className="flex items-center gap-3">
+        <div className="min-w-0 flex-1 leading-snug"><p className="text-sm text-muted">Registration number</p><p className="num text-xl font-semibold tracking-wide">{regNo}</p>
+          <p className="mt-0.5 text-xs text-muted">If you can't scan the class code, give this to whoever checks you in.</p></div>
+        <Button variant="secondary" className="h-9 px-4 text-sm" onClick={() => copyText(regNo).then(() => toast("Copied"))}>Copy</Button>
+      </Card>}
       <MyCentres />
       <Card className="space-y-4">
         <Field label="Full name" value={full} onChange={(e) => setFull(e.target.value)} />

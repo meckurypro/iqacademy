@@ -183,6 +183,10 @@ const ICONS = {
   close: { line: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /> },
   check: { line: <path d="m5 12.5 4.6 4.6L19 7.5" /> },
   send: { line: <path d="M20.5 3.8 10.2 14m10.3-10.2-6.6 16.4-3.7-6.2-6.2-3.7z" /> },
+  star: { body: <path d="m12 3.9 2.4 5 5.5.8-4 3.9.9 5.5-4.8-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" /> },
+  lock: { body: r(5, 10.5, 14, 9.5, 2.5), line: <path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5" /> },
+  flag: { line: <path d="M6 20.5V4m0 1h11.2l-2.3 3.8 2.3 3.7H6" /> },
+  forward: { line: <path d="m14 5 6 6-6 6m6-6H9.5a5.5 5.5 0 0 0-5.5 5.5V19" /> },
 } satisfies Record<string, Layers>;
 
 export type IconName = keyof typeof ICONS;
