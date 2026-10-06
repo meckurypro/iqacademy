@@ -50,3 +50,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 @media (prefers-reduced-motion: reduce) { .busy-overlay .busy-icon { animation: busy-breathe 2.4s ease-in-out infinite !important; box-shadow: 0 0 28px 6px rgb(255 197 107 / .3); } }
 .caret { display: inline-block; width: .075em; height: .9em; margin-left: .08em; vertical-align: -.08em; background: rgb(var(--accent)); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0 } }
+
+/* Chat surface for class channels: a faint dot grain so the bubbles sit on something, in both themes */
+.chat-bg { background-color: rgb(var(--sunken) / .55); background-image: radial-gradient(rgb(var(--ink) / .05) 1px, transparent 1.2px); background-size: 18px 18px; }

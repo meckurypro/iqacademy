@@ -182,6 +182,7 @@ const ICONS = {
   arrowLeft: { line: <path d="M19 12H5.5m5.5-6-6 6 6 6" /> },
   close: { line: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /> },
   check: { line: <path d="m5 12.5 4.6 4.6L19 7.5" /> },
+  send: { line: <path d="M20.5 3.8 10.2 14m10.3-10.2-6.6 16.4-3.7-6.2-6.2-3.7z" /> },
 } satisfies Record<string, Layers>;
 
 export type IconName = keyof typeof ICONS;
