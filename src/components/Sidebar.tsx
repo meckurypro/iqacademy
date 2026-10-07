@@ -1,5 +1,6 @@
 // src/components/Sidebar.tsx — desktop navigation. Replaces the phone header, hamburger drawer and bottom tabs at >= 1024px.
-// Collapses to an icon rail (remembered; starts collapsed on small laptops). Press "[" to toggle.
+// Icon rail by default: hovering (or keyboard-focusing) it expands it over the page to show labels, leaving collapses it again.
+// The hamburger (or "[") pins it open so it stays expanded; the pin is remembered and starts off on small laptops.
 import { useCallback, useEffect, useState, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -75,7 +76,11 @@ const THEME_NEXT: Record<ThemePref, ThemePref> = { light: "dark", dark: "system"
 const THEME_ICON: Record<ThemePref, IconName> = { light: "sun", dark: "moon", system: "monitor" };
 const THEME_LABEL: Record<ThemePref, string> = { light: "Light", dark: "Dark", system: "System" };
 
-export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function Sidebar({ collapsed: pinnedCollapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  // `pinnedCollapsed` is the remembered state (what the page layout reserves room for). While the rail is hovered or
+  // keyboard-focused it expands on top of the page without pushing the content; `collapsed` is what is actually drawn.
+  const [peek, setPeek] = useState(false);
+  const collapsed = pinnedCollapsed && !peek;
   const { name, avatar, roles } = useAuth();
   const role = primaryRole(roles);
   const sections = SIDEBAR[role] ?? SIDEBAR.student;
@@ -107,12 +112,21 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     to === "/messages" && role === "student" ? { n: unread, tone: "bad" } : to === "/offline-payments" ? { n: offline, tone: "warn" } : undefined;
 
   return (
-    <aside aria-label="Sidebar" style={{ width: "var(--sbw)" }}
-      className="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-line bg-surface/75 backdrop-blur-xl transition-[width] duration-200 ease-out">
-      <Link to="/" aria-label="IQ Academy home" className={cx("flex h-16 shrink-0 items-center gap-2.5 font-semibold tracking-tight", collapsed ? "justify-center" : "px-5")}>
-        <img src="/icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-[10px]" />
-        {!collapsed && <span className="text-xl leading-none">Academy</span>}
-      </Link>
+    <aside aria-label="Sidebar" style={{ width: collapsed ? SIDEBAR_RAIL : SIDEBAR_OPEN }}
+      onMouseEnter={() => setPeek(true)} onMouseLeave={() => setPeek(false)}
+      onFocus={(e) => { if (e.target.matches(":focus-visible")) setPeek(true); }}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(false); }}
+      className={cx("fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden border-r border-line bg-surface/75 backdrop-blur-xl transition-[width,box-shadow] duration-200 ease-out", pinnedCollapsed && !collapsed && "shadow-lift")}>
+      <div className={cx("flex h-16 shrink-0 items-center", collapsed ? "justify-center" : "gap-1 px-3")}>
+        <button onClick={onToggle} aria-label={pinnedCollapsed ? "Keep sidebar open" : "Let sidebar collapse"} aria-pressed={!pinnedCollapsed} title="[" className={cx(iconBtn, !pinnedCollapsed && "text-accent")}>
+          <Icon name="menu" size={22} />
+        </button>
+        {!collapsed && (
+          <Link to="/" aria-label="IQ Academy home" className="flex min-w-0 items-center gap-2.5 pl-1 font-semibold tracking-tight">
+            <img src="/icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-[10px]" />
+            <span className="text-xl leading-none">Academy</span>
+          </Link>)}
+      </div>
 
       <nav aria-label="Main" className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-2">
         {sections.map((s, i) => (
@@ -136,7 +150,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           </NavLink>
           <IconButton label={`Theme: ${THEME_LABEL[theme]}. Switch to ${THEME_LABEL[THEME_NEXT[theme]]}`} icon={THEME_ICON[theme]} onClick={() => setTheme(THEME_NEXT[theme])} tip={tip} />
           <IconButton label="Sign out" icon="arrowLeft" danger tip={tip} onClick={() => run("Signing out…", () => supabase.auth.signOut())} />
-          <IconButton label={collapsed ? "Expand sidebar" : "Collapse sidebar"} hint="[" icon={collapsed ? "chevronRight" : "chevronLeft"} onClick={onToggle} tip={tip} />
         </div>
       </div>
 

@@ -181,6 +181,7 @@ const ICONS = {
   chevronDown: { line: <path d="m5.5 9 6.5 6.5L18.5 9" /> },
   arrowLeft: { line: <path d="M19 12H5.5m5.5-6-6 6 6 6" /> },
   close: { line: <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /> },
+  menu: { line: <path d="M4.5 7h15M4.5 12h15M4.5 17h15" /> },
   check: { line: <path d="m5 12.5 4.6 4.6L19 7.5" /> },
   send: { line: <path d="M20.5 3.8 10.2 14m10.3-10.2-6.6 16.4-3.7-6.2-6.2-3.7z" /> },
   star: { body: <path d="m12 3.9 2.4 5 5.5.8-4 3.9.9 5.5-4.8-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" /> },
