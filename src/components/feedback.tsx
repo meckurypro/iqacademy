@@ -8,6 +8,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { createPortal } from "react-dom";
 import { Button, cx } from "./ui";
 import { friendly } from "../lib/supabase";
+import { useOnline } from "../lib/online";
 
 import Icon from "./Icon";
 const MIN_VISIBLE_MS = 650; // even a very fast save stays on screen long enough to be seen
@@ -75,6 +76,17 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const seq = useRef(0); const shownAt = useRef(0);
   const pending = useRef<((v: boolean) => void) | null>(null);
 
+  // No internet: a notice that stays until the connection is back (it can't be dismissed, because the pages beneath it can't load).
+  // When the connection returns, a short "back online" note offers a refresh for anything that failed to load meanwhile.
+  const online = useOnline(); const wasOffline = useRef(false); const [back, setBack] = useState(false);
+  useEffect(() => {
+    if (!online) { wasOffline.current = true; setBack(false); return; }
+    if (!wasOffline.current) return;
+    wasOffline.current = false; setBack(true);
+    const t = setTimeout(() => setBack(false), 9000);
+    return () => clearTimeout(t);
+  }, [online]);
+
   const toast = useCallback((msg: string, tone: Tone = "ok") => {
     const id = ++seq.current;
     setToasts((t) => [...t.slice(-2), { id, msg, tone }]);
@@ -122,8 +134,20 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {children}
       {ask && <ConfirmDialog o={ask.o} done={ask.done} />}
       {label !== null && <BusyOverlay label={label} />}
-      {toasts.length > 0 && createPortal(
+      {(toasts.length > 0 || !online || back) && createPortal(
         <div data-live="1" aria-live="polite" className="pointer-events-none fixed inset-x-0 top-0 z-[110] flex flex-col items-center gap-2 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+          {!online && (
+            <div key="offline" role="status" className="anim-drop pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl bg-ink px-4 py-3 text-bg shadow-2xl">
+              <Icon name="wifiOff" size={20} className="mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1 leading-snug"><p className="text-sm font-semibold">You're offline</p>
+                <p className="text-sm opacity-80">Pages that need data won't load, and changes can't be saved, until you're back online.</p></div>
+            </div>)}
+          {online && back && (
+            <div key="back" role="status" className="anim-drop pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-ink shadow-2xl ring-1 ring-line">
+              <Icon name="check" size={18} className="shrink-0 text-ok" />
+              <p className="min-w-0 flex-1 text-sm font-medium">Back online</p>
+              <button onClick={() => location.reload()} className="rounded-lg px-2.5 py-1 text-sm font-semibold text-accent transition active:scale-95">Refresh</button>
+            </div>)}
           {toasts.map((t) => (
             <div key={t.id} role="status" className={cx("anim-drop pointer-events-auto max-w-sm rounded-2xl px-4 py-3 text-sm font-medium shadow-2xl ring-1",
               t.tone === "bad" ? "bg-bad text-white ring-bad" : "bg-surface text-ink ring-line")}>
