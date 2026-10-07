@@ -1,5 +1,5 @@
 // src/components/DoorToday.tsx
-// Today's classes at the centre(s) a coordinator or director looks after, with a way into each class's check-in screen.
+// Today's classes at the centre(s) a coordinator looks after, with a way into each class's check-in screen.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";

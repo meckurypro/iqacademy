@@ -132,6 +132,7 @@ const MESSAGES: Record<string, string> = {
   pin_already_set: "You already have a PIN. Use Change PIN instead.",
   pin_required: "Enter the student's 4-digit PIN.",
   pin_incorrect: "That PIN is wrong. Try again.",
+  already_present: "That student is already checked in.",
   pin_locked: "Too many wrong PINs. Hand check-in for this student is paused for 15 minutes.",
   pin_not_set: "This student hasn't set a PIN yet. Ask them to set one on their Profile, or ask an admin.",
   password_mismatch: "The two passwords don't match.",

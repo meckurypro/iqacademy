@@ -1,5 +1,5 @@
 // src/components/ClassCountdown.tsx
-// The "next class" card for students, instructors, coordinators and directors.
+// The "next class" card for students, instructors and coordinators.
 //   * more than a day away: days and hours (seconds would only be noise)
 //   * under a day: hours, minutes, seconds
 //   * check-in open: the same countdown to the start, with the door shown as open

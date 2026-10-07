@@ -59,7 +59,7 @@ export function useTicker(intervalMs = 1000) {
 }
 
 /**
- * The caller's live and upcoming classes (as a student, instructor or the centre's coordinator/director), soonest
+ * The caller's live and upcoming classes (as a student, instructor or the centre's coordinator), soonest
  * first, from the server. Re-reads on realtime changes, when the tab comes back, and shortly after a class
  * crosses a boundary (door opens, starts, ends) so the server's own state catches up with what the clock shows.
  */

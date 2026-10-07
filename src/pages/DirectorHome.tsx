@@ -3,13 +3,8 @@ import { place } from "../lib/centre";
 import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Link } from "react-router-dom";
-import { Badge, Button, Card, List, NavRow, PageHeader, Section, Skeleton, Stat, cx, Main, Rail, Split } from "../components/ui";
+import { Badge, Button, Card, List, NavRow, Section, Skeleton, Stat, cx } from "../components/ui";
 import { useFeedback } from "../components/feedback";
-import DoorToday from "../components/DoorToday";
-import ClassCountdown from "../components/ClassCountdown";
-
-import Icon from "../components/Icon";
 import { fmtDay, fmtWhen } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -76,12 +71,7 @@ export default function DirectorHome() {
           <button key={m} onClick={() => setMonth(m)} className={cx("shrink-0 rounded-full px-4 py-2 text-sm font-medium transition active:scale-95", month === m ? "bg-accent text-accent-ink" : "bg-sunken")}>
             {m === thisMonth ? "This month" : monthLabel(m)}</button>))}</div>}
 
-      <Split><Rail>
-      <ClassCountdown />
-
-      <DoorToday centreIds={sel === "all" ? ids : [sel]} showCentre={ids.length > 1 && sel === "all"} />
-      </Rail><Main>
-
+      <div className="space-y-6">
       {!ds || !inc ? <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-24" /></div> : <>
         <div className="grid grid-cols-2 gap-3">
           <Stat tone="ok" label={month === thisMonth ? "Earned this month" : `Earned in ${month ? monthLabel(month).split(" ")[0] : ""}`} value={naira(earned)} />
@@ -144,7 +134,7 @@ export default function DirectorHome() {
               <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></Card>))}
           {view.every((d) => (d.recent_payouts ?? []).length === 0) && <p className="text-muted">No payouts yet.</p>}</Section>
       </>}
-      </Main></Split>
+      </div>
     </div>
   );
 }

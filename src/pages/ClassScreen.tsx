@@ -65,9 +65,9 @@ export default function ClassScreen() {
     return () => { supabase.removeChannel(ch); };
   }, [id, load, loadSent]);
 
-  // Door staff (this centre's coordinator or director, or an admin) open check-in and see who was turned away.
+  // Door staff (this centre's coordinator, or an admin) open check-in and see who was turned away. Directors do not: they only see income and student numbers.
   // The instructor teaching a custom class opens its check-in too: there may be no staff at the centre for a short-notice class.
-  const isDoor = !!s && (roles.some((r) => r.role === "admin" || r.role === "super_admin" || ((r.role === "coordinator" || r.role === "centre_director") && r.centre_id === s.centre_id)) || (s.is_emergency && !!teacher && teacher === session?.user.id));
+  const isDoor = !!s && (roles.some((r) => r.role === "admin" || r.role === "super_admin" || (r.role === "coordinator" && r.centre_id === s.centre_id)) || (s.is_emergency && !!teacher && teacher === session?.user.id));
   const loadDenied = useCallback(async () => {
     const { data } = await supabase.rpc("session_denied_attempts", { p_session_id: id });
     setDenied((data as Denied[]) ?? []);
@@ -135,6 +135,7 @@ export default function ClassScreen() {
     }, { success: `${first} checked in`, quiet: true });
     if (r.ok) return setPinFor(null);
     setPinVal("");
+    if (code === "already_present") { setPinFor(null); setPinErr(""); await load(); return; }   // nothing was changed; the list now shows them present
     if (code === "pin_not_set" && isAdmin) { setOverride(true); setPinErr(`${first} hasn't set a PIN. You can check them in with a reason. They'll be told, and can dispute it.`); }
     else setPinErr(r.message);
   };
@@ -162,6 +163,8 @@ export default function ClassScreen() {
   const closed = s.status === "completed" || s.status === "cancelled";
   const door = doorState(s.start_at, s.end_at, now);
   const t = (d: string) => fmtClock(d);
+  // Checking someone in by hand works only while the class code is live: 30 minutes before the start until the class ends.
+  const handOpen = !closed && door === "open";
 
   return (
     <div className="space-y-5">
@@ -201,12 +204,14 @@ export default function ClassScreen() {
       <Err>{err}</Err>
 
       <Section title="Students">
-        {canMark && !closed && roster.some((r) => !r.status) && <p className="px-1 text-sm text-muted">Tap Check in for anyone who can't scan the code. Tap a name to mark absent or excused.</p>}
+        {canMark && !closed && (handOpen
+          ? roster.some((r) => !r.status) && <p className="px-1 text-sm text-muted">Tap Check in for anyone who can't scan the code. Tap a name to mark absent or excused.</p>
+          : door === "early" && <p className="px-1 text-sm text-muted">Checking students in by hand opens at {opensAt(s.start_at)}, when the class code does.</p>)}
         {roster.length === 0 && <Empty title="No students are enrolled in this class yet." />}
         {roster.map((r) => (
           <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
             <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
-            {canMark && !closed && !r.status
+            {canMark && handOpen && !r.status
               ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); askPin(r); }}>Check in</Button>
               : <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge>}</Card>))}
       </Section>
@@ -257,8 +262,8 @@ export default function ClassScreen() {
       </Sheet>
 
       <Sheet open={!!pick} onClose={() => setPick(null)} title={pick?.full_name}>
-        <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Marking someone present needs the student to enter their own PIN.</p>
-          {(["present", "absent", "excused"] as const).map((st) => (
+        <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Marking someone present needs the student to enter their own PIN, and only works while check-in is open.</p>
+          {(["present", "absent", "excused"] as const).filter((st) => st !== "present" || (handOpen && pick?.status !== "present")).map((st) => (
             <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize"
               onClick={() => st === "present" ? askPin(pick!) : act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
         </div>
