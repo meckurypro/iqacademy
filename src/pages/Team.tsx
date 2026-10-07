@@ -5,7 +5,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { supabase, friendly } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { useFeedback } from "../components/feedback";
-import { Avatar, Badge, Button, Card, Empty, Err, Skeleton, cx } from "../components/ui";
+import { Avatar, Badge, Button, Card, Empty, Err, List, Skeleton, cx } from "../components/ui";
 
 import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -66,17 +66,15 @@ function TeamPage({ centreId, isAdmin }: { centreId?: string; isAdmin: boolean }
       {!isAdmin && myCentres.length > 1 && <select value={cid} onChange={(e) => setCid(e.target.value)} className="h-12 w-full rounded-xl bg-surface ring-1 ring-line px-4 outline-none transition focus:ring-2 focus:ring-accent/60">{(centres ?? []).map((c) => <option key={c.id} value={c.id}>{placeLabel(c)}</option>)}</select>}
       {!cid ? <Empty title="You're not assigned to a centre yet." /> : <>
         <Err>{loadErr}</Err>
-        <section className="space-y-2">
-          {!team ? <Skeleton className="h-16" /> : team.length === 0 ? <Empty title="No team members yet." /> : team.map((m) => (
-            <Card key={m.user_id + m.role} className="flex items-center gap-3 py-3"><Avatar name={m.full_name} url={m.avatar_url} size={40} />
-              <div className="min-w-0 flex-1"><p className="truncate font-medium">{m.full_name}</p><Badge tone={m.role === "centre_director" ? "ok" : "muted"}>{label[m.role as keyof typeof label]}</Badge></div>
-              {(m.role === "coordinator" || isAdmin) && <Button variant="ghost" className="h-9 px-3 text-sm text-bad" onClick={() => remove(m)}>Remove</Button>}</Card>))}
-        </section>
-        <Card className="space-y-3">
+        {!team ? <Skeleton className="h-16" /> : team.length === 0 ? <Empty title="No team members yet." /> : <List>{team.map((m) => (
+          <div key={m.user_id + m.role} className="flex items-center gap-3 px-4 py-2.5"><Avatar name={m.full_name} url={m.avatar_url} size={36} />
+            <div className="min-w-0 flex-1 space-y-0.5"><p className="truncate font-medium leading-tight">{m.full_name}</p><Badge tone={m.role === "centre_director" ? "ok" : "muted"}>{label[m.role as keyof typeof label]}</Badge></div>
+            {(m.role === "coordinator" || isAdmin) && <Button variant="ghost" className="h-9 shrink-0 px-3 text-sm text-bad" onClick={() => remove(m)}>Remove</Button>}</div>))}</List>}
+        <Card className="space-y-3 p-3.5">
           <p className="font-medium">Add someone who already has an account</p>
           {isAdmin && <div className="grid grid-cols-2 gap-2">{([["coordinator", "Coordinator"], ["centre_director", "Director"]] as const).map(([r, l]) => (
             <button key={r} onClick={() => setRole(r)} className={cx("h-10 rounded-xl text-sm font-medium transition", role === r ? "bg-accent text-accent-ink" : "bg-sunken")}>{l}</button>))}</div>}
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email (3+ letters)" className="h-12 w-full rounded-xl bg-surface ring-1 ring-line px-4 outline-none transition focus:ring-2 focus:ring-accent/60" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or email (3+ letters)" className="h-10 w-full rounded-xl bg-surface ring-1 ring-line px-3.5 text-[15px] outline-none transition focus:ring-2 focus:ring-accent/60" />
           {hits.map((h) => <button key={h.id} onClick={() => add(h)} className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-sunken active:scale-[.99]">
             <Avatar name={h.full_name} url={h.avatar_url} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{h.full_name}</p><p className="truncate text-sm text-muted">{h.email_hint}</p></div><span className="text-sm text-accent">Add</span></button>)}
           {q.trim().length >= 3 && hits.length === 0 && <p className="text-sm text-muted">No one found. They need to create an account in the app first.</p>}

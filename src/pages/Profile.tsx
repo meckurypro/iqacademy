@@ -12,6 +12,7 @@ import Icon, { type IconName } from "../components/Icon";
 import MyCentres from "../components/MyCentres";
 import { copyText } from "../lib/messages";
 import { ChangePinForm, PinSetup } from "../components/PinInput";
+import { needsDoorPin } from "../lib/doorLock";
 export default function Profile() {
   const { session, name, avatar, roles, refresh } = useAuth(); const { run, toast } = useFeedback();
   const uid = session!.user.id;
@@ -20,8 +21,12 @@ export default function Profile() {
   const [pwOpen, setPwOpen] = useState(false);
   const [theme, setTheme] = useTheme();
   const [regNo, setRegNo] = useState(""); const [hasPin, setHasPin] = useState<boolean | null>(null); const [pinOpen, setPinOpen] = useState(false);
-  useEffect(() => { supabase.from("students").select("student_number").eq("id", uid).maybeSingle().then((r) => setRegNo((r.data?.student_number as string | null) ?? "")); }, [uid]);
-  useEffect(() => { if (regNo) supabase.rpc("has_pin").then((r) => setHasPin(r.error ? null : r.data === true)); }, [regNo]);
+  // A registration number and check-in PIN belong to students. Staff have a separate door PIN (instructors and coordinators only).
+  const isStudent = primaryRole(roles) === "student"; const doorStaff = needsDoorPin(roles);
+  const [hasDoorPin, setHasDoorPin] = useState<boolean | null>(null); const [doorOpen, setDoorOpen] = useState(false);
+  useEffect(() => { if (isStudent) supabase.from("students").select("student_number").eq("id", uid).maybeSingle().then((r) => setRegNo((r.data?.student_number as string | null) ?? "")); }, [uid, isStudent]);
+  useEffect(() => { if (isStudent && regNo) supabase.rpc("has_pin").then((r) => setHasPin(r.error ? null : r.data === true)); }, [regNo, isStudent]);
+  useEffect(() => { if (doorStaff) supabase.rpc("has_staff_pin").then((r) => setHasDoorPin(r.error ? null : r.data === true)); }, [doorStaff]);
   useEffect(() => { setFull(name); }, [name]);
   useEffect(() => { supabase.from("profiles").select("phone").eq("id", uid).maybeSingle().then((r) => { const p = (r.data?.phone as string | null) ?? ""; setPhone(p); setPhone0(p); }); }, [uid]);
 
@@ -57,12 +62,12 @@ export default function Profile() {
           <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; if (file) upload(file); }} /></label>
         <p className="text-sm text-muted">{roleLabel[primaryRole(roles)]} · {session!.user.email}</p>
       </Card>
-      {regNo && <Card className="flex items-center gap-3">
+      {isStudent && regNo && <Card className="flex items-center gap-3">
         <div className="min-w-0 flex-1 leading-snug"><p className="text-sm text-muted">Registration number</p><p className="num text-xl font-semibold tracking-wide">{regNo}</p>
         </div>
         <Button variant="secondary" className="h-9 px-4 text-sm" onClick={() => copyText(regNo).then(() => toast("Copied"))}>Copy</Button>
       </Card>}
-      {regNo && hasPin !== null && <Card className="flex items-center gap-3">
+      {isStudent && regNo && hasPin !== null && <Card className="flex items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><Icon name="lock" size={22} /></span>
         <div className="min-w-0 flex-1 leading-snug"><p className="font-medium">Check-in PIN</p>
           <p className="text-sm text-muted">{hasPin ? "Set. Needed if someone has to check you in by hand." : "Not set yet. Set one so you can be checked in by hand."}</p></div>
@@ -70,6 +75,15 @@ export default function Profile() {
       </Card>}
       <Sheet open={pinOpen} onClose={() => setPinOpen(false)} title={hasPin ? "Change your PIN" : "Set your PIN"}>
         {hasPin ? <ChangePinForm onDone={() => setPinOpen(false)} /> : <PinSetup onDone={() => { setHasPin(true); setPinOpen(false); }} />}
+      </Sheet>
+      {doorStaff && hasDoorPin !== null && <Card className="flex items-center gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent/10 text-accent"><Icon name="lock" size={22} /></span>
+        <div className="min-w-0 flex-1 leading-snug"><p className="font-medium">Door PIN</p>
+          <p className="text-sm text-muted">{hasDoorPin ? "Set. Asked before the class code is shown or a student is checked in by hand." : "Not set yet. You'll be asked to choose one when you first open check-in."}</p></div>
+        <Button variant="secondary" className="h-9 px-4 text-sm" onClick={() => setDoorOpen(true)}>{hasDoorPin ? "Change" : "Set PIN"}</Button>
+      </Card>}
+      <Sheet open={doorOpen} onClose={() => setDoorOpen(false)} title={hasDoorPin ? "Change your door PIN" : "Set your door PIN"}>
+        {hasDoorPin ? <ChangePinForm staff onDone={() => setDoorOpen(false)} /> : <PinSetup staff onDone={() => { setHasDoorPin(true); setDoorOpen(false); }} />}
       </Sheet>
       <MyCentres />
       <Card className="space-y-4">

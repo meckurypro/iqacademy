@@ -1,8 +1,10 @@
 // src/pages/ClassScreen.tsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Place from "../components/Place";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PinInput, PIN_LENGTH } from "../components/PinInput";
+import DoorPinSheet from "../components/DoorPinSheet";
+import { needsDoorPin, useDoorUnlocked } from "../lib/doorLock";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase, friendly } from "../lib/supabase";
 import { Avatar, Badge, Button, Card, cx, Empty, Err, Field, NavRow, Sheet, Skeleton, Section } from "../components/ui";
@@ -37,6 +39,10 @@ export default function ClassScreen() {
   const [ended, setEnded] = useState<{ reason: string; at: string } | null>(null);
   const [denied, setDenied] = useState<Denied[]>([]); const [now, setNow] = useState(tNow());
   useEffect(() => { const i = setInterval(() => setNow(tNow()), 30000); return () => clearInterval(i); }, []);
+  // Instructors and coordinators type their own door PIN before the class code is shown or anyone is checked in by hand (admins are not asked).
+  const unlocked = useDoorUnlocked(session?.user.id); const locked = needsDoorPin(roles) && !unlocked;
+  const [gateOpen, setGateOpen] = useState(false); const afterUnlock = useRef<(() => void) | null>(null);
+  const requireDoor = (then?: () => void) => { if (!locked) return then?.(); afterUnlock.current = then ?? null; setGateOpen(true); };
 
   const loadSent = useCallback(async () => {
     const { data } = await supabase.from("class_messages").select("id,session_id,sender_label,body,media_path,media_name,media_mime,media_size,created_at").eq("session_id", id!).order("created_at");
@@ -84,7 +90,7 @@ export default function ClassScreen() {
   const door0 = s ? doorState(s.start_at, s.end_at, now) : "early";
   const status0 = s?.status;
   useEffect(() => {
-    if (!isDoor || door0 !== "open" || status0 === "completed" || status0 === "cancelled") { setCode(""); return; }
+    if (!isDoor || locked || door0 !== "open" || status0 === "completed" || status0 === "cancelled") { setCode(""); setShowCode(false); return; }
     let alive = true;
     (async () => {
       const { data } = await supabase.from("session_checkin_tokens").select("token").eq("session_id", id!).maybeSingle();
@@ -93,12 +99,13 @@ export default function ClassScreen() {
       if (alive && !r.error) setCode(r.data as string);
     })();
     return () => { alive = false; };
-  }, [isDoor, door0, status0, id]);
+  }, [isDoor, locked, door0, status0, id]);
 
   // "Reveal code" on the dashboard lands here with ?reveal=1: show the QR full screen as soon as the code is ready
   useEffect(() => {
     if (params.get("reveal") && code) { setShowCode(true); setParams({}, { replace: true }); }
   }, [params, code, setParams]);
+  useEffect(() => { if (params.get("reveal") && isDoor && locked && door0 === "open") setGateOpen(true); }, [params, isDoor, locked, door0]);
 
   const act = async (label: string, fn: () => PromiseLike<{ error: unknown }>, after?: () => void, success?: string) => {
     setErr("");
@@ -193,7 +200,10 @@ export default function ClassScreen() {
         <div className="flex items-center justify-between gap-3"><p className="font-medium">Check-in</p><Badge tone={door === "open" ? "ok" : "muted"}>{door === "open" ? "Open" : door === "early" ? "Not yet" : "Ended"}</Badge></div>
         {door === "early" && <p className="text-sm text-muted">The class code is created automatically at {opensAt(s.start_at)}, 30 minutes before the class. Nothing to press.</p>}
         {door === "ended" && <p className="text-sm text-muted">This class has ended, so check-in is closed. The class closes by itself and absentees are logged.</p>}
-        {door === "open" && (code ? <>
+        {door === "open" && (locked ? <>
+          <p className="text-sm text-muted">Enter your PIN to show the class code.</p>
+          <Button className="w-full" onClick={() => requireDoor()}><span className="inline-flex items-center gap-2"><Icon name="lock" size={18} />Enter PIN</span></Button>
+        </> : code ? <>
           <button onClick={() => setShowCode(true)} className="mx-auto block w-fit rounded-2xl bg-white p-3 transition active:scale-[.98]" aria-label="Show the class code full screen"><QRCodeSVG value={code} size={176} /></button>
           <p className="num text-center text-3xl font-semibold tracking-[.25em]">{code}</p>
           <p className="text-center text-sm text-muted">Students scan the QR or type this code. It stops working when the class ends.</p>
@@ -212,7 +222,7 @@ export default function ClassScreen() {
           <Card key={r.student_id} onClick={!canMark || s.status === "cancelled" ? undefined : () => setPick(r)} className="flex items-center gap-3 py-3">
             <Avatar name={r.full_name} size={36} /><div className="min-w-0 flex-1"><p className="truncate font-medium">{r.full_name}</p>{r.status === "present" && r.method && HOW[r.method] && <p className="text-xs text-muted">{HOW[r.method]}</p>}</div>
             {canMark && handOpen && !r.status
-              ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); askPin(r); }}>Check in</Button>
+              ? <Button className="h-9 px-4 text-sm" onClick={(e) => { e.stopPropagation(); requireDoor(() => askPin(r)); }}>Check in</Button>
               : <Badge tone={r.status ? tone[r.status] : "muted"}>{r.status ?? "Not yet"}</Badge>}</Card>))}
       </Section>
       {isDoor && denied.length > 0 && <Section title="Turned away" aside={<span className="num">{denied.length}</span>}>
@@ -261,11 +271,14 @@ export default function ClassScreen() {
         </div>
       </Sheet>
 
+      <DoorPinSheet open={gateOpen} onClose={() => { setGateOpen(false); afterUnlock.current = null; if (params.get("reveal")) setParams({}, { replace: true }); }}
+        onUnlocked={() => { setGateOpen(false); const f = afterUnlock.current; afterUnlock.current = null; f?.(); }} />
+
       <Sheet open={!!pick} onClose={() => setPick(null)} title={pick?.full_name}>
         <div className="space-y-2"><p className="text-sm text-muted">Set attendance by hand (for example if a phone died). Marking someone present needs the student to enter their own PIN, and only works while check-in is open.</p>
           {(["present", "absent", "excused"] as const).filter((st) => st !== "present" || (handOpen && pick?.status !== "present")).map((st) => (
             <Button key={st} variant={pick?.status === st ? "primary" : "secondary"} className="w-full capitalize"
-              onClick={() => st === "present" ? askPin(pick!) : act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
+              onClick={() => st === "present" ? (() => { const r = pick!; setPick(null); requireDoor(() => askPin(r)); })() : act("Updating attendance…", () => supabase.rpc("mark_attendance", { p_session_id: id, p_student_id: pick!.student_id, p_status: st }), () => setPick(null), "Attendance updated")}>{st}</Button>))}
         </div>
       </Sheet>
 

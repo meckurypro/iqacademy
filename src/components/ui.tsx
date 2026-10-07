@@ -122,12 +122,30 @@ export const Empty = ({ icon = "inbox", title, hint }: { icon?: IconName; title:
   </div>
 );
 
-export const Stat = ({ label, value, sub, tone }: { label: string; value: string | number; sub?: string; tone?: Tone }) => (
-  <div className="rounded-2xl bg-surface p-4 shadow-card ring-1 ring-line">
-    <p className="flex items-center gap-1.5 text-[13px] text-muted">{tone && <span className={cx("h-1.5 w-1.5 rounded-full", TONE_DOT[tone])} />}{label}</p>
-    <p className="num mt-1.5 text-2xl font-semibold tracking-tight">{value}</p>
-    {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+// `compact` is for dense dashboards: tighter padding, a smaller figure that cannot push a naira amount out of a half-width tile.
+export const Stat = ({ label, value, sub, tone, compact }: { label: string; value: string | number; sub?: string; tone?: Tone; compact?: boolean }) => (
+  <div className={cx("min-w-0 rounded-2xl bg-surface shadow-card ring-1 ring-line", compact ? "p-3" : "p-4")}>
+    <p className={cx("flex items-center gap-1.5 text-muted", compact ? "text-xs" : "text-[13px]")}>{tone && <span className={cx("h-1.5 w-1.5 shrink-0 rounded-full", TONE_DOT[tone])} />}<span className="truncate">{label}</span></p>
+    <p className={cx("num whitespace-nowrap font-semibold tracking-tight", compact ? cx("mt-1", String(value).length > 12 ? "text-sm" : String(value).length > 10 ? "text-base" : String(value).length > 8 ? "text-lg" : "text-xl") : "mt-1.5 text-2xl")}>{value}</p>
+    {sub && <p className={cx("text-muted", compact ? "mt-0.5 truncate text-[11px]" : "mt-0.5 text-xs")}>{sub}</p>}
   </div>
+);
+
+// Several small counts in one card, side by side (for plain numbers, not money).
+export const StatStrip = ({ items }: { items: { label: string; value: string | number; tone?: Tone }[] }) => (
+  <div style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }} className="grid divide-x divide-line rounded-2xl bg-surface py-3 shadow-card ring-1 ring-line">
+    {items.map((i) => (
+      <div key={i.label} className="min-w-0 px-2 text-center">
+        <p className="num truncate text-lg font-semibold leading-tight">{i.value}</p>
+        <p className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-muted">{i.tone && <span className={cx("h-1.5 w-1.5 shrink-0 rounded-full", TONE_DOT[i.tone])} />}<span className="truncate">{i.label}</span></p>
+      </div>))}
+  </div>
+);
+
+// Filter chips: one scrolling row, small and quiet. Chip is one pill; ChipRow holds them.
+export const ChipRow = ({ children }: { children: ReactNode }) => <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{children}</div>;
+export const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) => (
+  <button onClick={onClick} aria-pressed={on} className={cx("h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition active:scale-95", on ? "bg-accent text-accent-ink" : "bg-sunken text-ink/80")}>{children}</button>
 );
 
 export const Err = ({ children }: { children?: ReactNode }) => children ? <p role="alert" className="rounded-xl bg-bad/10 px-3.5 py-2.5 text-sm text-bad">{children}</p> : null;

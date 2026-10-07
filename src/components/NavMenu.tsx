@@ -2,30 +2,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "react-router-dom";
-import { Avatar, cx } from "./ui";
+import { cx } from "./ui";
 import Icon, { type IconName } from "./Icon";
-import { primaryRole, roleLabel, useAuth } from "../lib/auth";
-import { supabase } from "../lib/supabase";
-import { useFeedback } from "./feedback";
+import { primaryRole, useAuth } from "../lib/auth";
+import { MENU_EXTRA } from "../lib/nav";
 
 export type NavItem = [to: string, label: string, icon: IconName];
 
-// Menu shown to everyone, plus role-specific shortcuts.
-const EXTRA: Record<string, NavItem[]> = {
-  student: [["/enrol", "Enrol in a course", "enrol"]],
-  centre_director: [["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/team", "My team", "userPlus"]],
-  coordinator: [["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"]],
-  instructor: [["/custom", "Custom class", "calendarPlus"]],
-};
-
-export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
-  const { name, avatar, roles } = useAuth();
+export default function NavMenu() {
+  const { roles } = useAuth();
   const role = primaryRole(roles);
   const [open, setOpen] = useState(false); const [closing, setClosing] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
-  // The bottom tab bar already lists the tabs, so the menu only adds what the bar doesn't have. Roles without a tab bar get Home here.
-  const items: NavItem[] = [...(tabs ? [] : [["/", "Home", "home"] as NavItem]), ...(EXTRA[role] ?? [])];
-  const { run } = useFeedback();
+  // The bottom bar lists the tabs and the avatar opens Profile (theme, password, sign out), so the drawer only holds what is left over.
+  const items = MENU_EXTRA[role] ?? [];
 
   const close = useCallback(() => { setClosing(true); setTimeout(() => { setOpen(false); setClosing(false); }, 200); }, []);
 
@@ -36,6 +26,7 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
     return () => { removeEventListener("keydown", k); document.body.style.overflow = ""; };
   }, [open, close]);
 
+  if (items.length === 0) return null;
   return (
     <>
       <button onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open} className="group grid h-10 w-10 place-items-center rounded-full transition hover:bg-sunken active:scale-95">
@@ -56,11 +47,6 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
                 <Icon name="close" size={18} />
               </button>
             </div>
-            <NavLink to="/profile" onClick={close} className="mb-3 flex items-center gap-3 rounded-2xl bg-sunken/70 p-3 ring-1 ring-line transition active:scale-[.98]">
-              <Avatar name={name || "?"} url={avatar} size={44} />
-              <div className="min-w-0 flex-1 leading-tight"><p className="truncate font-medium">{name}</p><p className="text-xs text-muted">{roleLabel[role]}</p></div>
-              <Icon name="chevronRight" size={18} className="text-muted" />
-            </NavLink>
             <nav className="space-y-1 overflow-y-auto">
               {items.map(([to, label, icon]) => (
                 <NavLink key={to} to={to} end onClick={close}
@@ -69,9 +55,6 @@ export default function NavMenu({ tabs }: { tabs: NavItem[] | undefined }) {
                 </NavLink>))}
             </nav>
             <div className="flex-1" />
-            <button onClick={() => { close(); run("Signing out…", () => supabase.auth.signOut()); }} className="mb-3 flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-muted transition hover:bg-sunken hover:text-bad active:scale-[.98]">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-sunken"><Icon name="arrowLeft" size={18} /></span>Sign out
-            </button>
             <p className="px-1 text-xs leading-relaxed text-muted/80">
               IQ Academy is{" "}
               <a href="https://promptiq.com.ng?utm_source=academy_app&utm_medium=menu" target="_blank" rel="noopener noreferrer" className="underline decoration-line underline-offset-2 transition hover:text-ink">PromptIQ</a>

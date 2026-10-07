@@ -4,7 +4,7 @@ import { Navigate, NavLink, Route, Routes, Link, useLocation, useNavigate } from
 import { useAuth, primaryRole } from "./lib/auth";
 import { getPending, clearPending } from "./lib/verify";
 import { supabase } from "./lib/supabase";
-import { Skeleton } from "./components/ui";
+import { Avatar, Skeleton } from "./components/ui";
 import NavMenu from "./components/NavMenu";
 import Sidebar, { SIDEBAR_OPEN, SIDEBAR_RAIL, useSidebar } from "./components/Sidebar";
 import MessagesRoute from "./components/MessagesRoute";
@@ -68,6 +68,16 @@ function Bell() {
   );
 }
 
+// Your photo (or initials): opens Profile, where theme, password and sign out live.
+function ProfileButton() {
+  const { name, avatar } = useAuth();
+  return (
+    <NavLink to="/profile" aria-label="Profile" className={({ isActive }) => `grid h-10 w-10 place-items-center rounded-full transition active:scale-95 ${isActive ? "ring-2 ring-accent" : "hover:bg-sunken"}`}>
+      <Avatar name={name || "?"} url={avatar} size={30} />
+    </NavLink>
+  );
+}
+
 function UnreadDot() {
   const n = useUnreadMessages();
   return n > 0 ? <span className="anim-pop absolute right-1 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-bad px-1 text-[10px] font-semibold text-white">{n > 99 ? "99+" : n}</span> : null;
@@ -106,7 +116,8 @@ function MobileShell({ children, skew }: { children: React.ReactNode; skew: numb
         <Link to="/" className="flex items-center gap-2.5 font-semibold tracking-tight"><img src="/icon-192.png" alt="" className="h-9 w-9 rounded-[10px]" /><span className="text-xl leading-none">Academy</span></Link>
         <div className="flex-1" />
         <Bell />
-        <NavMenu tabs={TABS[primaryRole(roles)]} />
+        <ProfileButton />
+        <NavMenu />
       </header>
       <ClockNotice skew={skew} />
       <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
