@@ -24,8 +24,8 @@ const ADMIN: NavSection[] = [
 export const SIDEBAR: Record<string, NavSection[]> = {
   student: [{ items: [["/", "Home", "home"], ["/messages", "Messages", "messages"], ["/enrol", "Enrol in a course", "enrol"]] }],
   instructor: [{ items: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"], ["/custom", "Custom class", "calendarPlus"]] }],
-  coordinator: [{ items: [["/", "Home", "home"]] }],
-  centre_director: [{ items: [["/", "Home", "home"], ["/team", "My team", "userPlus"]] }],
+  coordinator: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"]] }],
+  centre_director: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/team", "My team", "userPlus"]] }],
   admin: ADMIN,
   super_admin: ADMIN,
 };

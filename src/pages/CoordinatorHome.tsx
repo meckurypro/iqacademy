@@ -1,3 +1,4 @@
+// src/pages/CoordinatorHome.tsx
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
@@ -14,7 +15,7 @@ export default function CoordinatorHome() {
   useEffect(() => {
     if (!centreId) return;
     supabase.from("centres").select("name,address").eq("id", centreId).single().then((r) => setCentre(r.data));
-    supabase.from("enrolments").select("id,status,students(profiles(full_name,avatar_url))").eq("centre_id", centreId).in("status", ["active", "pending_payment"]).order("created_at", { ascending: false }).limit(100).then((r) => setRoster(r.data ?? []));
+    supabase.rpc("centre_students", { p_centre_id: centreId }).then((r) => setRoster(((r.data as any[]) ?? []).filter((e) => e.status !== "completed")));
   }, [centreId]);
   if (!centre || !roster) return <div className="space-y-3"><Skeleton className="h-8 w-2/3" /><Skeleton className="h-40" /><Skeleton className="h-24" /></div>;
   return (
@@ -27,10 +28,10 @@ export default function CoordinatorHome() {
       <DoorToday centreIds={[centreId!]} />
       </Rail><Main>
       <Section title="Students" aside={<span className="num">{roster.length}</span>}>
-        <div className="grid gap-3 xl:grid-cols-2">{roster.map((e) => { const p = e.students?.profiles; return (
-          <Card key={e.id} className="flex items-center gap-3 py-3"><Avatar name={p?.full_name ?? "?"} url={p?.avatar_url} size={36} />
-            <div className="min-w-0 flex-1"><p className="truncate font-medium">{p?.full_name}</p></div>
-            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>); })}</div></Section>
+        <div className="grid gap-3 xl:grid-cols-2">{roster.map((e) => (
+          <Card key={e.enrolment_id} className="flex items-center gap-3 py-3"><Avatar name={e.full_name ?? "?"} url={e.avatar_url} size={36} />
+            <div className="min-w-0 flex-1"><p className="truncate font-medium">{e.full_name}</p><p className="truncate text-sm text-muted">{e.pack}{e.duration_weeks ? ` · ${e.duration_weeks} weeks` : ""}</p></div>
+            <Badge tone={e.status === "active" ? "ok" : "warn"}>{e.status === "active" ? "Active" : "Unpaid"}</Badge></Card>))}</div></Section>
       </Main></Split>
     </div>
   );

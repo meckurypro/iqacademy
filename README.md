@@ -73,14 +73,20 @@ A person can hold more than one role. The highest one decides their home screen 
 
 ### Coordinator
 - Their centre's classes today, each opening a check-in screen where they show the class code and QR, see who was turned away and mark attendance by hand. The student list shows Active/Unpaid status. The "next class" countdown and the class-start reminders are theirs. **Door work (the class code, checking students in) belongs to the coordinator, not the centre director.**
+- A student list (name, photo, bundle, Active/Unpaid, no amounts) and a read-only Classes & staff page.
 - An "Invite students" QR that opens the app so students can sign up and enrol themselves.
 
 ### Centre director
 - One account can cover several branches. Switch between them or see all together.
-- Dashboard: students by weekday and by course, plus income by month (earned, refunds deducted, adjustments).
+- **Home:** income by month (earned, refunds deducted, adjustments), active students, students by course, average attendance by weekday (last 8 weeks, from classes actually held), recent refund deductions and payouts.
 - **Income and withdrawals:** a director sees the current and previous month, and older months only while money is still unwithdrawn. Future months are never shown. Each month has an optional withdrawal that opens on its last day. Directors request, and admins approve.
+- **Students:** name, registration number, photo, bundle (6 or 10 weeks), courses, Active/Unpaid/Completed, classes attended out of total, and amount paid against the bundle price. Search and filter by bundle and status.
+- **Classes & staff:** who teaches which class at the centre (past two weeks and next three), plus the instructors, coordinators and directors on site. Read-only.
+- **Statements:** every ledger line behind a month's balance (payment reference, share % and base amount, never student names). Each closed month is frozen automatically on the 1st with a checksum.
+- **Alerts:** a notification for every payment, every refund that affects the share, and every new enrolment (name and bundle).
 - **Team page:** add and remove coordinators for their centres.
-- **Overview only:** a director sees income and student numbers for their centre. No class countdown, no "classes today", no class code and no check-in, and no class-start reminders: those are for the coordinator. The database enforces this too (a director cannot mark attendance).
+- **No contact details.** Directors never receive email, phone, birth date, address, emergency contact or notes. The database enforces this: centre staff have no direct read access to `profiles`, `students` or `enrolments`; they get students only through the `centre_students` function, which returns the fields above. Money columns are returned to directors and admins, not coordinators.
+- Door work (the class code, checking students in) belongs to the coordinator, not the director. The database enforces this too (a director cannot mark attendance).
 
 ### Admin and super admin
 - **Overview:** revenue this month, outstanding balances, student counts (active and unpaid), money owed to centres, classes today, and a prompt when offline payments need review.
@@ -172,6 +178,8 @@ Each class has a channel. It exists for every student who was **checked in, howe
 After a class ends, a student who attended can review it once: 1 to 5 stars, an optional comment, and an optional report about the instructor (with a reason). Reviews can't be edited. Admins see all of them under Manage → Class reviews; instructors don't. Admins choose up to **10** to show on the landing page as swipeable cards (name, photo, stars, words, date). A review that reports an instructor, or has no written comment, can't be featured. The review form tells students their name and photo may be shown.
 
 ### Money going out
+- The centre's share is calculated on the full payment (Paystack fees are not deducted) at the rate in force when the payment was made, and that rate is stored on the ledger line. Changing a centre's percentage affects only future payments; refunds reverse at the original rate.
+- The ledger is append-only (updates and deletes are blocked by trigger). `private.close_month_statements()` runs from `pg_cron` (job `iqa-close-month-statements`, 00:10 UTC on the 1st) and stores one frozen row per centre per month in `centre_statements`.
 - Each payment books the centre's revenue share.
 - A director's available balance per month is earned minus refunds plus adjustments.
 - A withdrawal request creates a payout for admin approval. Admins process payouts through the `process-payouts` Edge Function, and bank accounts are verified with `paystack-create-recipient`.

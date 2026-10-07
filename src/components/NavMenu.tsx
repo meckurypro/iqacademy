@@ -13,7 +13,8 @@ export type NavItem = [to: string, label: string, icon: IconName];
 // Menu shown to everyone, plus role-specific shortcuts.
 const EXTRA: Record<string, NavItem[]> = {
   student: [["/enrol", "Enrol in a course", "enrol"]],
-  centre_director: [["/team", "My team", "userPlus"]],
+  centre_director: [["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/team", "My team", "userPlus"]],
+  coordinator: [["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"]],
   instructor: [["/custom", "Custom class", "calendarPlus"]],
 };
 

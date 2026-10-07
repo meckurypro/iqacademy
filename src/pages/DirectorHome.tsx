@@ -1,3 +1,4 @@
+// src/pages/DirectorHome.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { place } from "../lib/centre";
 import Place from "../components/Place";
@@ -112,10 +113,12 @@ export default function DirectorHome() {
             <div className="text-right"><p className="num font-semibold">{naira(netOf(d.centre?.id))}</p><p className="text-xs text-muted">{month === thisMonth ? "net this month" : "net"}</p></div></Card>)}</Section>}
 
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-        <Section title={"Students by day"}>
+        <Section title={"Average attendance by day"}>
           <Card className="flex h-36 items-end gap-2">{days.map((v, i) => (
             <div key={i} className="flex flex-1 flex-col items-center gap-1"><span className="num text-xs text-muted">{v || ""}</span>
-              <div className="w-full rounded-t-lg bg-accent/80 transition-all duration-700" style={{ height: `${(v / maxDay) * 80}px`, minHeight: v ? 6 : 2, opacity: v ? 1 : .2 }} /><span className="text-xs text-muted">{DAYS[i + 1]}</span></div>))}</Card></Section>
+              <div className="w-full rounded-t-lg bg-accent/80 transition-all duration-700" style={{ height: `${(v / maxDay) * 80}px`, minHeight: v ? 6 : 2, opacity: v ? 1 : .2 }} /><span className="text-xs text-muted">{DAYS[i + 1]}</span></div>))}</Card>
+          <p className="text-xs text-muted">Average students present per class, last 8 weeks.{days.every((v) => !v) ? " No classes held yet." : ""}</p>
+        </Section>
 
         <Section title={"Students by course"}>
           {courses.length === 0 ? <p className="text-muted">No active students yet.</p> : courses.map((c) => <Card key={c.course_id} className="flex justify-between py-3"><p>{c.title}</p><p className="num font-semibold">{c.students}</p></Card>)}</Section>
@@ -126,7 +129,12 @@ export default function DirectorHome() {
           {view.flatMap((d) => d.recent_refunds ?? []).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 5).map((r: any, i: number) => (
             <Card key={i} className="flex items-center justify-between py-3"><p className="text-sm text-muted">{fmtWhen(r.created_at, { dateStyle: "short" })} · student refund</p><p className="num font-semibold text-bad">−{naira(r.share_deducted)}</p></Card>))}</Section>}
 
-        <List><NavRow to="/team" icon="userPlus" title="My team" hint="Add or remove your centre's coordinators" /></List>
+        <List>
+          <NavRow to="/students" icon="users" title="Students" hint="Names, bundles, payments and attendance" />
+          <NavRow to="/centre-classes" icon="classes" title="Classes & staff" hint="Who teaches what, and when" />
+          <NavRow to="/statement" icon="receipt" title="Statements" hint="Every payment behind your balance" />
+          <NavRow to="/team" icon="userPlus" title="My team" hint="Add or remove your centre's coordinators" />
+        </List>
 
         <Section title={"Payouts"}>
           {view.flatMap((d) => (d.recent_payouts ?? []).map((p: any) => ({ ...p, centre: d.centre ? place(d.centre) : "" }))).sort((a, b) => String(b.paid_at ?? "").localeCompare(String(a.paid_at ?? ""))).slice(0, 8).map((p: any) => (
