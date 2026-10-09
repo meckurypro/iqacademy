@@ -47,7 +47,7 @@ const MESSAGES: Record<string, string> = {
   makeup_not_open: "Make-up classes open once your classes have ended, and last two months.",
   not_a_missed_class: "That's not a class you missed, so there's nothing to make up.",
   makeup_limit_reached: "You've used all your make-up classes.",
-  not_eligible_for_solo: "You can buy a single course once you've fully paid for a course pack.",
+  not_eligible_for_solo: "Single courses are open once you've registered and paid for a course pack (2 courses over 6 weeks, or 3 courses over 10 weeks). Please choose a pack first.",
   solo_price_not_set: "This course can't be bought on its own yet.",
   course_not_available: "That course isn't available right now.",
   prices_invalid: "Something is wrong with those prices. Please check and try again.",

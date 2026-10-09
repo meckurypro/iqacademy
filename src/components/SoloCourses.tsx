@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase, naira } from "../lib/supabase";
 import { sleep } from "../lib/db";
 import { startPayment } from "../lib/payment";
@@ -9,8 +10,10 @@ import { Button, Card, Err, Sheet, Skeleton, cx } from "./ui";
 
 import Icon from "./Icon";
 import { fmtDay, today } from "../lib/time";
-// Any student can buy a course on its own. The price is set by admin per course (a second price applies when the
-// prerequisite isn't completed) and is worked out by the database, never here.
+// Anyone can look at the single courses, but only a student who has already paid for a course pack can register for
+// one (the database enforces it in create_solo_enrolment; the sheet just says so politely before they go further).
+// The price is set by admin per course (a second price applies when the prerequisite isn't completed) and is worked
+// out by the database, never here.
 export type Offer = { course_id: string; title: string; summary: string | null; price: number | null; prereq_met: boolean; has_prereq: boolean; taken: boolean; needs: string | null; blocked: string | null };
 type Centre = { id: string; name: string; city: string | null; address: string | null };
 type Start = { centre_id: string; starts_on: string };
@@ -30,15 +33,21 @@ export function useSoloOffers() {
 
 export function SoloSheet({ open, onClose, offers }: { open: boolean; onClose: () => void; offers?: Offer[] }) {
   const { run } = useFeedback();
+  const nav = useNavigate();
+  const [needPack, setNeedPack] = useState(false);
   const [pick, setPick] = useState<Offer | null>(null);
   const [centres, setCentres] = useState<Centre[]>();
   const [starts, setStarts] = useState<Map<string, string>>(new Map());
   const [centre, setCentre] = useState("");
   const [err, setErr] = useState("");
 
-  useEffect(() => { if (!open) { setPick(null); setCentre(""); setErr(""); } }, [open]);
+  useEffect(() => { if (!open) { setPick(null); setCentre(""); setErr(""); setNeedPack(false); } }, [open]);
 
   const choose = async (o: Offer) => {
+    // Going on to register needs a paid course pack. Checked fresh each time; the database checks again at payment.
+    setNeedPack(false);
+    const ok = await supabase.rpc("can_buy_solo");
+    if (ok.data === false) { setNeedPack(true); return; }
     setPick(o); setCentre(""); setErr(""); setCentres(undefined);
     const [c, s] = await Promise.all([
       supabase.from("centres").select("id,name,city,address").eq("is_active", true),
@@ -84,6 +93,12 @@ export function SoloSheet({ open, onClose, offers }: { open: boolean; onClose: (
                 {o.price != null && !busy && <span className="num pt-0.5 text-[17px] font-semibold">{naira(o.price)}</span>}
               </button>);
           })}
+          {needPack && (
+            <div className="rounded-2xl bg-sunken p-4 text-sm">
+              <p className="font-medium">Single courses come after a course pack</p>
+              <p className="mt-1 text-muted">To keep things fair and the learning path in order, single courses are open once you have registered and paid for a course pack (2 courses over 6 weeks, or 3 courses over 10 weeks). After that you can add any single course here.</p>
+              <Button variant="secondary" className="mt-3 h-10" onClick={() => { onClose(); nav("/enrol"); }}>See course packs</Button>
+            </div>)}
           {offers && !offers.length && <p className="py-6 text-center text-muted">No single courses are open yet.</p>}
         </div>
       ) : (

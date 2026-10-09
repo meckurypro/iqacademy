@@ -154,7 +154,7 @@ Students scan or type it. The server decides if they are entitled to that class:
 
 ### Make-up classes and single-course purchases
 - When a student's last class ends, a **make-up window** opens for two months. They may attend up to six make-up classes, and only for classes they missed. Both numbers are stored in `app_settings` (`makeup_window_months`, `makeup_max_classes`).
-- Any student can buy one course on its own. Admin sets each course's price, plus a second price for students who haven't completed its prerequisite. The database works out the price, never the browser.
+- A student can buy one course on its own only after paying for a course pack (`private.has_paid_pack`: an activated, fully paid non-SOLO enrolment). Anyone can browse single courses; when a student without a paid pack taps one, the sheet quietly explains and points to the packs (`can_buy_solo()`), and `create_solo_enrolment` refuses with `not_eligible_for_solo` (migration 56). Admin sets each course's price, plus a second price for students who haven't completed its prerequisite. The database works out the price, never the browser.
 
 ### Custom classes
 A custom class is a one-off class that isn't part of any course run (a make-up, revision, practical or weekend class, and so on). **Instructors** create one for themselves from the menu (Custom class) and **admins** create one and choose the instructor (Manage → Custom classes). It is deliberately not on the instructor's dashboard. The centre (where it is held), course, topic (one of the course's classes) and start time come from dropdowns.
