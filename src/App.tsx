@@ -17,6 +17,7 @@ import Enrol from "./pages/Enrol";
 import StudentHome from "./pages/StudentHome";
 import StaffHome from "./pages/StaffHome";
 import PayCallback from "./pages/PayCallback";
+import PayReturn from "./pages/PayReturn";
 import InstructorHome from "./pages/InstructorHome";
 import InstructorHistory from "./pages/InstructorHistory";
 import ClassScreen from "./pages/ClassScreen";
@@ -180,7 +181,7 @@ export default function App() {
   const { session, loading, roles } = useAuth();
   const { ready: clockReady, skew } = useClockSync(!!session);
   if (loading || (session && !clockReady)) return <div className="mx-auto max-w-3xl space-y-3 p-6"><Skeleton className="h-10" /><Skeleton className="h-40" /></div>;
-  if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="/login" element={<Login />} /><Route path="/" element={<Landing />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></>;
+  if (!session) return <><SignedOutReset /><Routes><Route path="/reset-password" element={<ResetPassword />} /><Route path="/verify-email" element={<VerifyEmail />} /><Route path="/pay/return" element={<PayReturn />} /><Route path="/login" element={<Login />} /><Route path="/" element={<Landing />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></>;
   const role = primaryRole(roles);
   const home = role === "student" ? <StudentHome /> : role === "instructor" ? <InstructorHome /> : role === "admin" || role === "super_admin" ? <AdminHome /> : role === "coordinator" ? <CoordinatorHome /> : role === "centre_director" ? <DirectorHome /> : <StaffHome />;
   return (
@@ -191,6 +192,7 @@ export default function App() {
     <Routes>
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/pay/return" element={<PayReturn />} />
       <Route path="*" element={
     <Shell skew={skew}>
       <Routes>
