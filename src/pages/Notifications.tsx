@@ -106,6 +106,7 @@ export default function Notifications() {
                 {n.type.startsWith("run_") && n.type !== "run_cancelled" && <Link to="/schedule" className="text-sm font-medium text-accent">Open schedule</Link>}
                 {["class_assigned", "class_unassigned", "class_changed"].includes(n.type) && <Link to="/my-classes" className="text-sm font-medium text-accent">Open my classes</Link>}
                 {["emergency_class", "custom_class_invite", "custom_class_changed"].includes(n.type) && <Link to="/" className="text-sm font-medium text-accent">Go to check-in</Link>}
+                {n.type.startsWith("cash_") && <Link to="/cash" className="text-sm font-medium text-accent">Open cash</Link>}
                 {n.type === "hand_check_in" && n.data?.log_id && (n.data.disputed || reported.has(n.id)
                   ? <p className="text-sm font-medium text-muted">You said this wasn't you. The check-in was undone and the admins were told.</p>
                   : <Button variant="secondary" className="h-9 px-4 text-sm text-bad" onClick={() => dispute(n)}>That wasn't me</Button>)}

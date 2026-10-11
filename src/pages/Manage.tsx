@@ -15,7 +15,8 @@ const GROUPS: [title: string, items: Item[]][] = [
   ]],
   ["Money", [
     ["/prices", "Prices & instalments", "prices", "Package prices and instalment amounts", "ok"],
-    ["/offline-payments", "Offline payments", "cash", "Cash and transfers waiting to be confirmed", "ok"],
+    ["/offline-payments", "Offline payments", "cash", "Bank transfers students sent, waiting to be confirmed", "ok"],
+    ["/cash", "Cash from centres", "cash", "Cash paid at centres, hand-overs and transfers to confirm", "ok"],
     ["/payments", "Payments & refunds", "receipt", "Student payments and refunds", "ok"],
     ["/payouts", "Payouts", "payout", "Monthly payments to centres", "ok"],
   ]],
@@ -29,8 +30,9 @@ const GROUPS: [title: string, items: Item[]][] = [
 ];
 
 export default function Manage() {
-  const [open, setOpen] = useState(0); const [reports, setReports] = useState(0); const [disputes, setDisputes] = useState(0);
+  const [open, setOpen] = useState(0); const [cashReview, setCashReview] = useState(0); const [reports, setReports] = useState(0); const [disputes, setDisputes] = useState(0);
   useEffect(() => {
+    supabase.rpc("admin_cash_counts").then((r) => setCashReview((r.data as { to_review?: number } | null)?.to_review ?? 0));
     supabase.rpc("offline_payment_counts").then((r) => setOpen((r.data as { open?: number } | null)?.open ?? 0));
     supabase.from("class_reviews").select("id", { count: "exact", head: true }).eq("report_instructor", true).then((r) => setReports(r.count ?? 0));
     supabase.from("hand_check_ins").select("id", { count: "exact", head: true }).not("disputed_at", "is", null).then((r) => setDisputes(r.count ?? 0));
@@ -42,7 +44,7 @@ export default function Manage() {
         <Section key={title} title={title}>
           <List>{items.map(([to, t, icon, hint, tone]) => (
             <NavRow key={to} to={to} icon={icon} title={t} hint={hint} tone={tone}
-              badge={to === "/offline-payments" && open > 0 ? <Badge tone="warn">{open} waiting</Badge> : to === "/reviews" && reports > 0 ? <Badge tone="bad">{reports} reported</Badge> : to === "/check-ins" && disputes > 0 ? <Badge tone="bad">{disputes} disputed</Badge> : undefined} />))}
+              badge={to === "/offline-payments" && open > 0 ? <Badge tone="warn">{open} waiting</Badge> : to === "/cash" && cashReview > 0 ? <Badge tone="warn">{cashReview} to review</Badge> : to === "/reviews" && reports > 0 ? <Badge tone="bad">{reports} reported</Badge> : to === "/check-ins" && disputes > 0 ? <Badge tone="bad">{disputes} disputed</Badge> : undefined} />))}
           </List>
         </Section>))}</div>
     </div>

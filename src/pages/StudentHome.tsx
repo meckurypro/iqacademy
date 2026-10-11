@@ -134,7 +134,7 @@ export default function StudentHome() {
           <Card key={i.id} className="anim-rise space-y-3">
             <div className="flex items-center justify-between gap-3"><p className="font-medium">Offline payment</p><Badge tone={claim.receipt ? "info" : "warn"}>{claim.receipt ? "Awaiting confirmation" : "Receipt needed"}</Badge></div>
             <p className="text-sm text-muted">{naira(claim.amount)} · {claim.instalment_label ?? "Payment"} · reference <span className="num font-medium text-ink">{claim.reference}</span></p>
-            <p className="text-sm text-muted">{claim.receipt ? "The team has your receipt and will confirm once the money arrives. You'll get a notification." : "Pay by cash or transfer, then send your receipt so we can confirm it."}</p>
+            <p className="text-sm text-muted">{claim.receipt ? "The team has your receipt and will confirm once the money arrives. You'll get a notification." : "Pay by bank transfer, then send your receipt so we can confirm it. Paying cash at your centre? Ask the coordinator to record it instead."}</p>
             <div className="grid grid-cols-2 gap-2">
               <Link to={`/pay/offline/${claim.id}`}><Button className="w-full">{claim.receipt ? "View details" : "Send receipt"}</Button></Link>
               <Button variant="secondary" onClick={() => payOnlineInstead(claim.id, i.id)}>Pay online</Button>

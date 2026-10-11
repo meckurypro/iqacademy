@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Avatar, Badge, Card, PageHeader, Section, Skeleton, Main, Rail, Split } from "../components/ui";
+import { Avatar, Badge, Card, List, NavRow, PageHeader, Section, Skeleton, Main, Rail, Split } from "../components/ui";
 import DoorToday from "../components/DoorToday";
 import ClassCountdown from "../components/ClassCountdown";
 
@@ -23,6 +23,7 @@ export default function CoordinatorHome() {
       <PageHeader title={`Hi ${name.split(" ")[0]}`} sub={centre.name} />
       <Split><Rail>
       <ClassCountdown />
+      <List><NavRow to="/cash" icon="cash" tone="ok" title="Cash payments" hint="Record cash a student paid, and send it to IQ Academy" /></List>
       <Card className="flex items-center gap-4"><div className="rounded-xl bg-white p-2"><QRCodeSVG value={location.origin} size={96} /></div>
         <div><p className="font-medium">Invite students</p><p className="text-sm text-muted">Let them scan this to open the app, create an account and enrol themselves.</p></div></Card>
       <DoorToday centreIds={[centreId!]} />

@@ -9,7 +9,7 @@ export type NavSection = { title?: string; items: NavItem[] };
 export const TABS: Record<string, NavItem[]> = {
   student: [["/", "Home", "home"], ["/messages", "Messages", "messages"], ["/enrol", "Enrol", "enrol"]],
   instructor: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"]],
-  coordinator: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes", "classes"]],
+  coordinator: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes", "classes"], ["/cash", "Cash", "cash"]],
   centre_director: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes", "classes"], ["/statement", "Statement", "receipt"], ["/team", "Team", "userPlus"]],
   admin: [["/", "Overview", "overview"], ["/users", "Users", "users"], ["/announce", "Announce", "announce"], ["/manage", "Manage", "manage"]],
 };
@@ -19,6 +19,7 @@ TABS.super_admin = TABS.admin;
 // Instructors: a custom class is deliberately not on their Today page, and their five tabs are full.
 export const MENU_EXTRA: Record<string, NavItem[]> = {
   instructor: [["/wallet", "Wallet", "cash"], ["/custom", "Custom class", "calendarPlus"]],
+  centre_director: [["/cash", "Cash", "cash"]],
 };
 
 // Desktop sidebar. There is room to show everything at once, so the admin's "Manage" hub is spread out into its groups
@@ -26,15 +27,15 @@ export const MENU_EXTRA: Record<string, NavItem[]> = {
 const ADMIN: NavSection[] = [
   { items: [["/", "Overview", "overview"], ["/users", "Users", "users"], ["/announce", "Announce", "announce"]] },
   { title: "Classes", items: [["/schedule", "Schedule", "schedule"], ["/roster", "Roster", "roster"], ["/custom", "Custom classes", "calendarPlus"], ["/courses", "Course builder", "courses"]] },
-  { title: "Money", items: [["/prices", "Prices & instalments", "prices"], ["/offline-payments", "Offline payments", "cash"], ["/payments", "Payments & refunds", "receipt"], ["/payouts", "Payouts", "payout"]] },
+  { title: "Money", items: [["/prices", "Prices & instalments", "prices"], ["/offline-payments", "Offline payments", "cash"], ["/cash", "Cash from centres", "cash"], ["/payments", "Payments & refunds", "receipt"], ["/payouts", "Payouts", "payout"]] },
   { title: "People & places", items: [["/centres", "Centres", "centres"], ["/instructors", "Instructors", "instructor"], ["/class-messages", "Class messages", "messages"], ["/reviews", "Class reviews", "star"], ["/check-ins", "Hand check-ins", "lock"]] },
 ];
 
 export const SIDEBAR: Record<string, NavSection[]> = {
   student: [{ items: [["/", "Home", "home"], ["/messages", "Messages", "messages"], ["/enrol", "Enrol in a course", "enrol"]] }],
   instructor: [{ items: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"], ["/wallet", "Wallet", "cash"], ["/custom", "Custom class", "calendarPlus"]] }],
-  coordinator: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"]] }],
-  centre_director: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/team", "My team", "userPlus"]] }],
+  coordinator: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/cash", "Cash", "cash"]] }],
+  centre_director: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/cash", "Cash", "cash"], ["/team", "My team", "userPlus"]] }],
   admin: ADMIN,
   super_admin: ADMIN,
 };

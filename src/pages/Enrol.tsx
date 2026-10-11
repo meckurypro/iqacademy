@@ -165,7 +165,7 @@ export default function Enrol() {
           {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={later(inst)} right={naira(inst[0].amount)} />}
           <p className="pt-2 text-sm font-medium text-muted">How will you pay?</p>
           <Option on={method === "online"} onClick={() => setMethod("online")} title="Pay online" sub="Card or bank transfer through Paystack. Confirmed straight away." />
-          <Option on={method === "offline"} onClick={() => setMethod("offline")} title="Pay offline" sub="Cash or bank transfer. Send your receipt and the team confirms it once the money arrives." />
+          <Option on={method === "offline"} onClick={() => setMethod("offline")} title="Pay offline" sub="Bank transfer. Send your receipt and the team confirms it once the money arrives. Paying cash? Pay at your centre: the coordinator records it and your classes unlock at once." />
           <Card className="space-y-1 text-sm"><p className="font-medium">{pack.name}</p><p className="text-muted">{sel.courses.map(title).join(" + ")}</p></Card>
           <Err>{err}</Err>
         </>}

@@ -21,7 +21,7 @@ export default function Payments() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from("payments").select("id,reference,amount,refunded_amount,status,paid_at,provider,centres(name,city,address),students(profiles(full_name))").in("status", ["succeeded", "partially_refunded", "refunded"]).order("paid_at", { ascending: false }).limit(100),
+      supabase.from("payments").select("id,reference,amount,refunded_amount,status,paid_at,provider,channel,centres(name,city,address),students(profiles(full_name))").in("status", ["succeeded", "partially_refunded", "refunded"]).order("paid_at", { ascending: false }).limit(100),
       supabase.from("refunds").select("id,amount,status,method,reason,failure_reason,created_at,account_name,account_last4,bank_name,centres(name,city,address),students(profiles(full_name))").order("created_at", { ascending: false }).limit(50),
     ]);
     setRows(a.data ?? []); setRefs(b.data ?? []);
@@ -79,7 +79,7 @@ export default function Payments() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by student, centre or reference" className="h-12 w-full rounded-2xl bg-surface px-4 shadow-card outline-none ring-1 ring-line focus:ring-2 focus:ring-accent/50" />
         {!rows ? <Skeleton className="h-20" /> : shown.length === 0 ? <Empty title="No payments found." /> : shown.map((x) => (
           <Card key={x.id} onClick={() => open(x)} className="anim-fade flex items-center justify-between gap-3 py-3">
-            <div className="min-w-0"><p className="truncate font-medium">{name(x)}</p><p className="truncate text-sm text-muted">{x.centres && <Place centre={x.centres} nameOnly />} · {x.paid_at ? fmtWhen(x.paid_at, { dateStyle: "short" }) : ""} · {x.provider}</p></div>
+            <div className="min-w-0"><p className="truncate font-medium">{name(x)}</p><p className="truncate text-sm text-muted">{x.centres && <Place centre={x.centres} nameOnly />} · {x.paid_at ? fmtWhen(x.paid_at, { dateStyle: "short" }) : ""} · {x.channel === "cash" ? "cash" : x.provider}</p></div>
             <div className="text-right"><p className="num font-semibold">{naira(x.amount)}</p>{x.refunded_amount > 0 ? <Badge tone="info">−{naira(x.refunded_amount)} refunded</Badge> : <Badge tone={tone(x.status)}>{x.status}</Badge>}</div></Card>))}</>}
 
       {tab === "refunds" && (!refs ? <Skeleton className="h-20" /> : refs.length === 0 ? <Empty title="No refunds yet." /> : refs.map((r) => (

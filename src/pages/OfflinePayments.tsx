@@ -91,7 +91,7 @@ export default function OfflinePayments() {
   return (
     <div className="space-y-4">
       <div><h1 className="text-[26px] leading-tight">Offline payments</h1>
-        <p className="text-sm text-muted">Students who chose to pay by cash or transfer. Leave a payment here until the money arrives: nothing changes for the student until you approve or decline it.</p></div>
+        <p className="text-sm text-muted">Students who chose to pay by bank transfer. (Cash paid at a centre is recorded by the centre and handled on the Cash page.) Leave a payment here until the money arrives: nothing changes for the student until you approve or decline it.</p></div>
 
       <Card className="space-y-2">
         <div className="flex items-center justify-between gap-3"><p className="font-medium">Where students pay</p><button onClick={() => setEditBank({ ...bank })} className="text-sm text-accent">Edit</button></div>

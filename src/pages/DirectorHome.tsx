@@ -4,7 +4,7 @@ import { place } from "../lib/centre";
 import Place from "../components/Place";
 import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Chip, ChipRow, List, Section, Skeleton, Stat } from "../components/ui";
+import { Badge, Button, Card, Chip, ChipRow, List, NavRow, Section, Skeleton, Stat } from "../components/ui";
 import { useFeedback } from "../components/feedback";
 import BankAccountSheet from "../components/BankAccountSheet";
 import { fmtDay, fmtWhen } from "../lib/time";
@@ -68,6 +68,8 @@ export default function DirectorHome() {
       {ids.length > 1 && <ChipRow>
         {[{ id: "all", name: "All branches" }, ...(ds ?? []).map((d) => ({ id: d.centre?.id, name: d.centre ? place(d.centre) : "" }))].map((c) => (
           <Chip key={c.id} on={sel === c.id} onClick={() => setSel(c.id)}>{c.name}</Chip>))}</ChipRow>}
+
+      <List><NavRow to="/cash" icon="cash" tone="ok" title="Cash payments" hint="Record cash a student paid, and send it to IQ Academy" /></List>
 
       {months.length > 1 && <ChipRow>
         {months.map((m) => <Chip key={m} on={month === m} onClick={() => setMonth(m)}>{m === thisMonth ? "This month" : monthLabel(m)}</Chip>)}</ChipRow>}

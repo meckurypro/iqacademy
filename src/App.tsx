@@ -38,6 +38,7 @@ import Payouts from "./pages/Payouts";
 import Prices from "./pages/Prices";
 import OfflinePayments from "./pages/OfflinePayments";
 import OfflinePay from "./pages/OfflinePay";
+import Cash from "./pages/Cash";
 import CourseBuilder from "./pages/CourseBuilder";
 import Payments from "./pages/Payments";
 import Team from "./pages/Team";
@@ -222,6 +223,7 @@ export default function App() {
         <Route path="/payments" element={<Payments />} />
         <Route path="/offline-payments" element={<OfflinePayments />} />
         <Route path="/pay/offline/:id" element={<OfflinePay />} />
+        <Route path="/cash" element={role === "admin" || role === "super_admin" || role === "coordinator" || role === "centre_director" ? <Cash /> : <Navigate to="/" replace />} />
         <Route path="/students" element={role === "centre_director" || role === "coordinator" ? <Students /> : <Navigate to="/" replace />} />
         <Route path="/centre-classes" element={role === "centre_director" || role === "coordinator" ? <CentreClasses /> : <Navigate to="/" replace />} />
         <Route path="/wallet" element={role === "instructor" ? <Wallet /> : <Navigate to="/" replace />} />

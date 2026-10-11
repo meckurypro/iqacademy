@@ -130,7 +130,7 @@ export default function OfflinePay() {
           </div>
         ) : <Button variant={sent ? "secondary" : "primary"} className="w-full" onClick={() => pick.current?.click()}>{sent ? "Replace receipt" : "Choose photo or PDF"}</Button>}
         <Err>{err}</Err>
-        {!sent && <p className="text-sm text-muted">Paid in cash with no receipt? Just wait: the team can confirm it without one.</p>}
+        {!sent && <p className="text-sm text-muted">Paying cash? Give it to your centre's coordinator or director: they record it and your classes unlock at once, with no receipt needed.</p>}
       </Card>
 
       <Card className="space-y-1 text-sm">
