@@ -18,7 +18,7 @@ TABS.super_admin = TABS.admin;
 // The hamburger drawer. It lists only what the bottom bar and the role's own pages don't reach; a role with nothing here has no hamburger.
 // Instructors: a custom class is deliberately not on their Today page, and their five tabs are full.
 export const MENU_EXTRA: Record<string, NavItem[]> = {
-  instructor: [["/custom", "Custom class", "calendarPlus"]],
+  instructor: [["/wallet", "Wallet", "cash"], ["/custom", "Custom class", "calendarPlus"]],
 };
 
 // Desktop sidebar. There is room to show everything at once, so the admin's "Manage" hub is spread out into its groups
@@ -32,7 +32,7 @@ const ADMIN: NavSection[] = [
 
 export const SIDEBAR: Record<string, NavSection[]> = {
   student: [{ items: [["/", "Home", "home"], ["/messages", "Messages", "messages"], ["/enrol", "Enrol in a course", "enrol"]] }],
-  instructor: [{ items: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"], ["/custom", "Custom class", "calendarPlus"]] }],
+  instructor: [{ items: [["/", "Today", "today"], ["/my-classes", "My classes", "classes"], ["/schedule", "Schedule", "schedule"], ["/history", "History", "history"], ["/messages", "Messages", "messages"], ["/wallet", "Wallet", "cash"], ["/custom", "Custom class", "calendarPlus"]] }],
   coordinator: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"]] }],
   centre_director: [{ items: [["/", "Home", "home"], ["/students", "Students", "users"], ["/centre-classes", "Classes & staff", "classes"], ["/statement", "Statements", "receipt"], ["/team", "My team", "userPlus"]] }],
   admin: ADMIN,

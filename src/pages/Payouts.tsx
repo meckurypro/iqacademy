@@ -3,12 +3,14 @@ import Place from "../components/Place";
 import { placeLabel } from "../lib/centre";
 import { supabase, naira, UserMessage } from "../lib/supabase";
 import { useFeedback } from "../components/feedback";
-import { Badge, Button, Card, Empty, Err, Skeleton } from "../components/ui";
+import { Badge, Button, Card, Empty, Err, Skeleton, cx } from "../components/ui";
+import InstructorPayouts from "./InstructorPayouts";
 import { fmtDay } from "../lib/time";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function Payouts() {
   const { run, confirm } = useFeedback();
+  const [tab, setTab] = useState<"centres" | "instructors">("centres");
   const [rows, setRows] = useState<any[]>(); const [msg, setMsg] = useState(""); const [err, setErr] = useState("");
   const load = useCallback(async () => { const { data } = await supabase.from("payouts").select("id,amount,status,reference,period_start,period_end,period_month,paid_at,failure_reason,centres(name,city,address)").order("created_at", { ascending: false }).limit(50); setRows(data ?? []); }, []);
   useEffect(() => { load(); }, [load]);
@@ -30,6 +32,9 @@ export default function Payouts() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between"><h1 className="text-[26px] leading-tight">Payouts</h1></div>
+      <div className="flex gap-1 rounded-xl bg-sunken p-1">{([["centres", "Centres"], ["instructors", "Instructors"]] as const).map(([t, l]) => (
+        <button key={t} onClick={() => setTab(t)} className={cx("h-10 flex-1 rounded-lg text-sm font-medium transition", tab === t ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink")}>{l}</button>))}</div>
+      {tab === "instructors" ? <InstructorPayouts /> : <>
       <p className="text-sm text-muted">Directors ask to withdraw a month at a time. Review each request, then send it to the centre's bank account.</p>
       {msg && <p className="rounded-xl bg-ok/10 px-3 py-2 text-sm text-ok">{msg}</p>}<Err>{err}</Err>
       {!rows ? <Skeleton className="h-24" /> : rows.length === 0 ? <Empty title="No payouts yet." /> : <div className="grid gap-3 lg:grid-cols-2">{rows.map((p) => (
@@ -37,6 +42,7 @@ export default function Payouts() {
           {p.failure_reason && <p className="text-sm text-bad">{p.failure_reason}</p>}
           {p.status === "draft" && <div className="flex gap-2"><Button className="h-10 flex-1" onClick={() => send(p)}>Send {naira(p.amount)}</Button>
             <Button variant="secondary" className="h-10" onClick={() => cancel(p)}>Cancel</Button></div>}</Card>))}</div>}
+      </>}
     </div>
   );
 }

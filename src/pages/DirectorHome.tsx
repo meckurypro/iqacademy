@@ -6,6 +6,7 @@ import { supabase, naira } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Chip, ChipRow, List, Section, Skeleton, Stat } from "../components/ui";
 import { useFeedback } from "../components/feedback";
+import BankAccountSheet from "../components/BankAccountSheet";
 import { fmtDay, fmtWhen } from "../lib/time";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const DAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -20,6 +21,7 @@ export default function DirectorHome() {
   const [ds, setDs] = useState<any[]>();
   const [inc, setInc] = useState<any[]>();
   const [month, setMonth] = useState("");
+  const [bankFor, setBankFor] = useState<{ id: string; label: string } | null>(null);
   const load = useCallback(async () => {
     if (!ids.length) return;
     const [d, i] = await Promise.all([
@@ -97,7 +99,7 @@ export default function DirectorHome() {
                       <Button className="h-10 w-full text-sm" disabled={!m.can_withdraw} onClick={() => withdraw(c.centre_id, label, m)}>Withdraw {m.available > 0 ? naira(m.available) : ""}</Button>
                       <p className="text-[13px] text-muted">
                         {m.available <= 0 ? "Nothing to withdraw yet."
-                          : !c.account?.ready ? "Add your bank details with an admin first."
+                          : !c.account?.ready ? <>Add your bank account to withdraw. <button className="font-medium text-accent" onClick={() => setBankFor({ id: c.centre_id, label })}>Add account</button></>
                           : !m.can_withdraw ? `Opens ${niceDay(m.opens_on)}, when the month ends.`
                           : "You can also leave it here and withdraw later."}</p>
                     </>}
@@ -136,6 +138,7 @@ export default function DirectorHome() {
                 <Badge tone={p.status === "paid" ? "ok" : p.status === "failed" ? "bad" : "warn"}>{p.status}</Badge></div>))}</List>}</Section>
       </>}
       </div>
+      {bankFor && <BankAccountSheet open onClose={() => setBankFor(null)} target={{ kind: "centre", centreId: bankFor.id, label: bankFor.label }} onSaved={load} />}
     </div>
   );
 }

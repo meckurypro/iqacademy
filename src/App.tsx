@@ -49,6 +49,7 @@ import HandCheckIns from "./pages/HandCheckIns";
 import Students from "./pages/Students";
 import CentreClasses from "./pages/CentreClasses";
 import Statement from "./pages/Statement";
+import Wallet from "./pages/Wallet";
 import PinGate from "./components/PinGate";
 import { useUnreadMessages } from "./lib/messages";
 import { useNotificationCount } from "./lib/notifications";
@@ -223,6 +224,7 @@ export default function App() {
         <Route path="/pay/offline/:id" element={<OfflinePay />} />
         <Route path="/students" element={role === "centre_director" || role === "coordinator" ? <Students /> : <Navigate to="/" replace />} />
         <Route path="/centre-classes" element={role === "centre_director" || role === "coordinator" ? <CentreClasses /> : <Navigate to="/" replace />} />
+        <Route path="/wallet" element={role === "instructor" ? <Wallet /> : <Navigate to="/" replace />} />
         <Route path="/statement" element={role === "centre_director" ? <Statement /> : <Navigate to="/" replace />} />
         <Route path="/team" element={<Team />} />
         <Route path="/team/:centreId" element={<Team />} />
