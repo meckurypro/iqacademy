@@ -15,6 +15,7 @@ export default function Payments() {
   const { run, confirm } = useFeedback();
   const [tab, setTab] = useState<"payments" | "refunds">("payments");
   const [rows, setRows] = useState<any[]>(); const [refs, setRefs] = useState<any[]>(); const [q, setQ] = useState("");
+  const [info, setInfo] = useState<any>(null);
   const [p, setP] = useState<any>(null); const [banks, setBanks] = useState<{ name: string; code: string }[]>([]);
   const [f, setF] = useState({ amt: "", why: "", cancel: false, method: "paystack", bank: "", acct: "", note: "", accName: "" });
   const [err, setErr] = useState(""); const [done, setDone] = useState("");
@@ -29,10 +30,11 @@ export default function Payments() {
   useEffect(() => { load(); }, [load]);
   const name = (x: any) => x.students?.profiles?.full_name ?? "Unknown";
   const shown = (rows ?? []).filter((x) => !q.trim() || (name(x) + x.reference + (x.centres ? placeLabel(x.centres) : "")).toLowerCase().includes(q.trim().toLowerCase()));
-  const left = p ? p.amount - p.refunded_amount : 0;
+  const left = p ? (info ? Number(info.max_refund) : p.amount - p.refunded_amount) : 0; // never more than the unused classes are worth
   const kobo = Math.round(Number(f.amt || 0) * 100);
 
   const open = async (x: any) => {
+    setInfo(null); supabase.rpc("payment_refund_info", { p_payment_id: x.id }).then(({ data }) => { if (data) { setInfo(data); setF((prev: any) => ({ ...prev, amt: String(Number(data.max_refund) / 100) })); } });
     setP(x); setErr(""); setDone(""); setF({ amt: String((x.amount - x.refunded_amount) / 100), why: "", cancel: x.refunded_amount === 0, method: "paystack", bank: "", acct: "", note: "", accName: "" });
     if (!banks.length) { const r = await supabase.functions.invoke("paystack-create-recipient", { body: { action: "list_banks" } }); setBanks(r.data?.banks ?? []); }
   };
@@ -54,13 +56,13 @@ export default function Payments() {
     const r = await run(paystack ? "Sending refund…" : "Recording refund…", async () => {
       if (paystack) {
         const { data, error } = await supabase.functions.invoke("process-refund", { body: { payment_id: p.id, amount: kobo, reason: f.why || null, cancel_enrolment: f.cancel, bank_code: f.bank, account_number: f.acct } });
-        if (error || data?.error) throw new UserMessage(data?.detail ?? (data?.error?.includes?.("invalid_refund_amount") ? "That's more than can still be refunded." : data?.error) ?? "Something went wrong.");
+        if (error || data?.error) throw new UserMessage(data?.detail ?? (data?.error?.includes?.("invalid_refund_amount") ? "That's more than can still be refunded." : data?.error?.includes?.("refund_exceeds_unused_classes") ? "Classes the student already attended can't be refunded." : data?.error) ?? "Something went wrong.");
         await load();
         return data.message as string;
       }
       const bankName = banks.find((b) => b.code === f.bank)?.name ?? null;
       const { error } = await supabase.rpc("record_manual_refund", { p_payment_id: p.id, p_amount: kobo, p_reason: f.why || null, p_cancel_enrolment: f.cancel, p_note: f.note || null, p_bank_name: bankName, p_account_name: f.accName || null, p_account_last4: f.acct ? f.acct.slice(-4) : null });
-      if (error) throw error.message.includes("invalid_refund_amount") ? new UserMessage("That's more than can still be refunded.") : error;
+      if (error) throw error.message.includes("invalid_refund_amount") ? new UserMessage("That's more than can still be refunded.") : error.message.includes("refund_exceeds_unused_classes") ? new UserMessage("Classes the student already attended can't be refunded.") : error;
       await load();
       return "Refund recorded. The student and the centre have been updated.";
     }, { quiet: true });
@@ -92,7 +94,8 @@ export default function Payments() {
         {p && (done ? <div className="space-y-4 py-4 text-center"><div className="anim-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-ok/15 text-ok"><Icon name="check" size={32} strokeWidth={2.25} /></div><p>{done}</p><Button className="w-full" onClick={() => setP(null)}>Done</Button></div> :
           <div className="max-h-[75vh] space-y-4 overflow-y-auto">
             <div><p className="font-medium">{name(p)}</p><p className="text-sm text-muted">Paid {naira(p.amount)} · {p.centres && <Place centre={p.centres} nameOnly />}</p></div>
-            {left <= 0 ? <p className="text-muted">This payment has already been fully refunded.</p> : <>
+            {info && info.attended > 0 && <p className="rounded-xl bg-sunken px-3 py-2 text-sm text-muted">This student attended {info.attended} of {info.total_classes} classes. Attended classes can't be refunded, so you can refund up to {naira(Math.max(0, left))}.</p>}
+            {left <= 0 ? <p className="text-muted">{p.amount - p.refunded_amount > 0 ? "Nothing can be refunded: the classes attended are worth what was paid." : "This payment has already been fully refunded."}</p> : <>
               <Field label={`Amount to refund (₦, up to ${left / 100})`} type="number" inputMode="decimal" min="1" max={left / 100} value={f.amt} onChange={(e) => setF({ ...f, amt: e.target.value })} />
               <Field label="Reason" value={f.why} onChange={(e) => setF({ ...f, why: e.target.value })} placeholder="Optional" />
               <label className="flex items-center gap-3 rounded-xl bg-sunken p-3 text-sm"><input type="checkbox" checked={f.cancel} onChange={(e) => setF({ ...f, cancel: e.target.checked })} className="h-5 w-5 accent-[rgb(var(--accent))]" />Also cancel their enrolment (removes access to classes)</label>

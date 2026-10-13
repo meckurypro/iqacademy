@@ -70,7 +70,7 @@ export default function InstructorPayouts() {
       <Section title="Withdrawal requests">
         {!wds ? <Skeleton className="h-24" /> : wds.length === 0 ? <Empty title="No instructor withdrawals yet." /> : <div className="grid gap-3 lg:grid-cols-2">{wds.map((x) => (
           <Card key={x.id} className="space-y-2">
-            <div className="flex items-start justify-between gap-3"><div><p className="num text-xl font-semibold">{naira(x.amount)}</p><p className="text-sm text-muted">{x.instructor} · {fmtWhen(x.created_at, { dateStyle: "medium" })} · through {fmtDay(x.eligible_through, { month: "long", year: "numeric" })}</p></div><Badge tone={tone(x.status)}>{LABEL[x.status] ?? x.status}</Badge></div>
+            <div className="flex items-start justify-between gap-3"><div><p className="num text-xl font-semibold">{naira(x.amount)}</p><p className="text-sm text-muted">{x.instructor} · {fmtWhen(x.created_at, { dateStyle: "medium" })} · for {fmtDay(x.eligible_through, { month: "long", year: "numeric" })}</p></div><Badge tone={tone(x.status)}>{LABEL[x.status] ?? x.status}</Badge></div>
             <p className="text-sm text-muted">{x.bank_name} ••{x.account_last4} · {x.account_name} {x.name_match === false && <Badge tone="bad">Name differs from profile</Badge>}</p>
             {x.reference && <p className="text-xs text-muted">Reference {x.reference}{x.paid_at ? ` · paid ${fmtWhen(x.paid_at, { dateStyle: "medium" })}` : ""}</p>}
             {x.reject_reason && <p className="text-sm text-bad">{x.reject_reason}</p>}{x.failure_reason && <p className="text-sm text-bad">{x.failure_reason}</p>}

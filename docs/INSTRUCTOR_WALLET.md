@@ -1,65 +1,41 @@
 # Instructor wallet, earnings ledger and withdrawals
 
-Status legend used below: **built** (in the repo and live in Supabase), **tested** (actually executed), **needs config** (waits for a secret).
+## The rules, in plain words
+1. **Class price** = the pack's full price ÷ **all the classes of all the courses in the pack**. (STANDARD: ₦50,000 ÷ 16 classes = ₦3,125 per class.) The instalment premium is IQ Academy's and is never part of the price.
+2. **The instructor earns 20%** of that class price for every student who attended the class (₦625 per student per class in the example). The 20% is `app_settings.instructor_share_bp = 2000` and is copied onto each earning, so changing it later never rewrites old earnings. Rounding is exact: over the whole pack the shares add up to exactly 20% of the price.
+3. **A class pays when the student was allowed into it.** Course 1 is open after instalment 1, later courses after the instalment that unlocks them (the existing instalment gates). Cash recorded by a coordinator counts as paid. If somehow a student attended a course whose instalment is unpaid, the earning waits and is paid automatically the moment the instalment is paid. Nothing is lost and nothing is paid twice.
+4. **Custom (one-off) classes never earn.**
+5. **Withdrawals are identical for instructors and centre directors**: one record per month; the month's Withdraw button turns on on the month's last day (`withdraw_opens_days_before_month_end`, Africa/Lagos); older months stay withdrawable; one open request per month; "Requested" → "On its way" → "Paid"; cancel allowed until it is approved. For instructors the money is set aside the moment they ask.
+6. **Attended classes can't be refunded.** Refund ≤ amount paid − (class price × classes attended). Enforced in the database for both Paystack and manual refunds; the refund screen shows the maximum.
+7. **Bank accounts**: instructors and directors enter their own (bank list and account name come live from Paystack).
 
-## What it does
-Student pays → the course gets a slice of the base tuition → a class is finished and attendance is final → each attended student earns the instructor 20% of that class's slice → the amount lands in the instructor's ledger → after the month ends the instructor withdraws → an admin approves → Paystack pays → the webhook confirms.
+## Worked example (STANDARD, 2 courses: AI Foundations 6 classes + Accounting 10 classes)
+Price ₦50,000, 16 classes → ₦3,125 per class → instructor ₦625 per attending student. A student paid ₦30,000 + ₦25,000 (instalment premium ₦5,000 is IQ's): course 1 is open after the first instalment, course 2 after the second. If the student attended 2 classes and asks for a refund, the most that can be refunded is what they paid minus ₦6,250.
 
-## Rules (and where they came from)
-| Rule | Source |
-|---|---|
-| Instructor share 20% (`app_settings.instructor_share_bp = 2000`), copied onto every earning so later changes never rewrite history | stated |
-| Centre share is per centre and untouched | stated |
-| Pack courses are equal-priced: base ÷ number of courses, spare kobo to the earliest courses | stated |
-| Instalment premium (plan total − `packages.price_full`) belongs to IQ Academy: instructors are paid from the base only | stated |
-| Cash recorded by a coordinator lets the student attend, so it counts as paid for instructors | stated |
-| One-off/custom classes (`is_emergency`) never earn | stated |
-| Attended classes are not refundable | stated (**not yet enforced in the refund screens**, see Limitations) |
-| Instructors and directors save their own bank account (bank list and account name come live from Paystack) | stated |
-| A class's tuition share = course slice ÷ `courses.total_sessions`. The count comes from the course, not from rows in `class_sessions`, because sessions are generated about 4 weeks ahead | inferred |
-| Earn only when the class is `completed` **and** its check-in grace (`checkin_grace_minutes_after_end`, 30 min) has passed, because students can still scan in after the instructor ends the class | inferred |
-| Funding guard: net earnings of an enrolment can never exceed 20% × min(base, net collected). The premium counts as the last money paid. Anything above waits in `instructor_pending_earnings` and moves into the ledger when more is collected | inferred |
-| A lesson is paid once per enrolment even if attended in a make-up run | inferred |
-| Withdrawals open on the last day of the month (existing `withdraw_opens_days_before_month_end`, Africa/Lagos). One wallet: the whole eligible balance (all closed months) is withdrawn at once; older months stay withdrawable | inferred |
-| Classes completed before the feature went live never earn (`instructor_earnings_since`) | requirement |
+## Data model (migrations 61–64)
+`instructor_ledger_entries` (append-only: `earning`, `earning_reversal`, `earning_restore`, `adjustment`, `withdrawal`, `withdrawal_release`), `instructor_pending_earnings` (waiting for an instalment), `instructor_session_posts` (a class is posted exactly once), `instructor_earning_errors`, `instructor_withdrawals`, `instructor_payout_accounts`.
+Month of an entry: an earning belongs to the month of its class; a reversal, restore or adjustment belongs to the month it happens in (so a withdrawn month never changes), exactly like centre refunds.
 
-## Worked example
-STANDARD pack, paid in full ₦50,000, 2 courses → each course slice ₦25,000. AI Foundations has 6 classes → ₦4,166.67 per class → 20% = ₦833.33 per attending student. Shares are cumulative floors so the 6 add up to exactly ₦5,000 (83,333 · 83,333 · 83,334 · 83,333 · 83,333 · 83,334 kobo). 12 students present at class 3 → 12 earnings rows.
-Instalments, 30,000 + 25,000 = 55,000 for the same pack: base is still 50,000 (premium 5,000 is IQ's). After only the first instalment 30,000 is collected, so the cap is 6,000; course 1 can earn at most 5,000, which fits.
-
-## Data model (migrations 61–63)
-- `instructor_ledger_entries` — append-only (update/delete/truncate blocked). Types: `earning`, `earning_reversal`, `earning_restore`, `adjustment`, `withdrawal` (reserve, negative), `withdrawal_release` (positive). Unique: one earning per (session, enrolment); each entry can be reversed once; one reserve and one release per withdrawal.
-- `instructor_pending_earnings` — earned but not yet funded.
-- `instructor_session_posts` — one row per finished class once posted (exactly-once marker).
-- `instructor_earning_errors` — anything that failed, visible to admins, retried by the sweep.
-- `instructor_withdrawals` — `draft → processing → paid`, or `rejected / cancelled / failed`. One open request per instructor (partial unique index).
-- `instructor_payout_accounts` — Paystack recipient code, bank, account name, last 4 digits, `name_match`.
-
-Definitions: **balance** = sum of all ledger entries. **Available** = sum of entries whose `period_month` ≤ the latest open month. **Reserved** = amount of withdrawals in `draft`/`processing`. **Paid out** = withdrawals in `paid`. **Lifetime** = earnings + reversals + restores + adjustments. **Unfunded** = pending earnings.
-
-## Flow in the database
-- `private.post_due_session_earnings()` runs every 10 minutes (cron `iqa-post-instructor-earnings`) and posts every finished class past its grace. It covers all three completion paths (`complete_session`, `end_class_early`, `auto_close_overdue_sessions`) because they all end in `status = 'completed'`. It does not change those functions.
-- Trigger `trg_attendance_earnings`: attendance changed after posting (dispute, correction, delete) → a reversal or restore entry, never an edit.
-- Trigger `trg_payments_instructor_release`: a payment or refund changes → pending earnings are released as far as the collected money allows.
-- Both triggers log failures to `instructor_earning_errors` instead of blocking attendance or payments.
-- `request_instructor_withdrawal()` locks the instructor, reserves the money in the same transaction and notifies admins. `reject/cancel/fail` release it exactly once. `handle_transfer_event` (the webhook's router) now also settles instructor references; a repeated event does nothing, and `transfer.reversed` after `paid` returns the money.
+## Flow
+- `private.post_due_session_earnings()` runs every 10 minutes (cron `iqa-post-instructor-earnings`) and posts classes that are `completed` **and** past their check-in grace (30 min). It covers all three completion paths without touching them.
+- Triggers: attendance changed after posting → reversal/restore entry; a payment or instalment changes → waiting earnings are released. Failures are logged to `instructor_earning_errors` and never block attendance or payments.
+- `request_instructor_withdrawal(month)` → admin approves/rejects in Payouts → Instructors → `process-payouts` sends via Paystack → the webhook (`handle_transfer_event`) marks it paid; failed/rejected/cancelled/reversed all give the money back exactly once.
+- A `transfer.reversed` that arrives after a payout was marked paid now returns the money to the balance, for **instructors and centres** (`private.reverse_paid_payout`). Repeated events do nothing.
 
 ## Paystack
-Edge Functions (source in `supabase/functions/`): `paystack-create-recipient` (v2) and `process-payouts` (v2). Both read the secret **`PAYSTACK_SECRET_KEY`** (the same name `paystack-webhook` and `paystack-init-payment` already use).
-Until it exists: `process-payouts` answers `payouts_not_configured` **before** approving or reserving anything, the admin Instructors tab shows a banner and disables Send, and the bank sheet explains that setup is not on yet. Nothing is ever marked sent without Paystack's confirmation.
-Set it with: Supabase dashboard → Edge Functions → Secrets → add `PAYSTACK_SECRET_KEY` (or `supabase secrets set PAYSTACK_SECRET_KEY=…` from your own terminal). Never put it in code or chat. Then, in order: set the webhook URL in Paystack to the `paystack-webhook` function, turn transfer OTP off, fund the Paystack balance, send one small instructor withdrawal and watch it go `processing → paid`.
+Edge Functions in `supabase/functions/`: `paystack-create-recipient` (v2), `process-payouts` (v2), `process-refund` (v2). Secret name: **`PAYSTACK_SECRET_KEY`**. Until it exists: sending is blocked before anything is approved or reserved, the admin Instructors tab shows a banner, and the bank sheet says setup is not on yet. Set it in Supabase dashboard → Edge Functions → Secrets (never in code or chat). Then: point the Paystack webhook at `paystack-webhook`, turn transfer OTP off, fund the balance, send one small withdrawal and watch it go to Paid.
 
 ## Security
-Clients can only read their own rows (RLS) and call RPCs; there is no insert/update on any of these tables from the app. Amounts, rates and instructors are always derived in the database. Admin RPCs check `private.is_admin()`; an admin cannot approve or reject their own withdrawal; centre directors have no access to instructor wallets. Private helper functions are not executable by app roles. A bank account cannot be changed while a withdrawal is open; every change notifies the owner and the admins and is audited.
+Clients read only their own rows (RLS) and call RPCs; no direct writes. Admin RPCs check `private.is_admin()`; admins cannot approve their own withdrawal; directors cannot see instructor wallets; private helpers are not executable by app roles; a bank account cannot change while a withdrawal is open; every change is audited and notifies the owner and admins.
 
-## Admin operations
-Payouts → Instructors: review requests (Send / Reject with reason), "Check with Paystack" (reconcile by reference) and "Retry send" (only if Paystack has no record), search wallets, filter earnings by date and instructor, record an adjustment (reason ≥ 5 characters, signed with the admin's name), and a "Needs attention" list: finished classes not posted (with a Post now button), classes with no instructor, unfunded earnings, posting errors, withdrawals stuck in processing over 2 hours, negative balances, and bank names that differ from the profile.
+## Admin
+Payouts → Instructors: requests (Send / Reject with reason / Check with Paystack / Retry only if Paystack has no record), wallets with search, earnings list, signed adjustments (reason ≥ 5 characters), and "Needs attention" (finished classes not posted, classes with no instructor, earnings waiting for an instalment, posting errors, withdrawals stuck over 2 hours, negative balances, bank names that differ from the profile).
 
-## Tested
-Run inside rolled-back transactions on the live database with real rows (nothing persisted): exact 6-class rounding; idempotent posting; unfunded earning after a refund then released by the payments trigger; reversal / restore / re-reversal through the attendance trigger; withdrawal request, second request refused, self-approval refused, approve, success event twice, reversal after paid (money returned once), reject, cancel; a student, a non-admin and a direct table insert are all refused. `npm run build` (tsc + vite) passes. **Not tested:** anything that calls Paystack (no secret), the new screens in a browser, and a real concurrent double-submit.
+## Tested (executed on the live database inside rolled-back transactions)
+Pack-wide class price and exact rounding (16 classes add up to ₦10,000 = 20% of ₦50,000); earning waits while its instalment is unpaid and pays when it is; per-month request rules (future month, empty month, same month twice refused); reserve, approve, paid, reversed-after-paid returns money once; reject and cancel release once; refund ceiling (attended 2 of 16 → max ₦43,750 of ₦50,000; a bigger refund is refused; the maximum is accepted); centre payout reversed after paid returns the money once with repeated events; non-admin, student and direct-insert access refused. `npm run build` (web) and `npm run verify` (native) pass.
+**Not tested:** any real Paystack call (no secret yet), the screens in a browser or on a device, and a true concurrent double-submit.
 
-## Known limitations / decisions for the owner
-1. Refund screens do not yet block refunding money for classes already attended (`record_manual_refund`, `process-refund`). Rule is stated; enforcement is the next backend change.
-2. Instalment funding uses the money-collected cap above, not "first payment unlocks half the classes": access to classes is still gated per course by the existing instalment rules, which this feature does not change.
-3. `fail_payout` (centres) ignores a `reversed` event after `paid`; instructors handle it. Worth fixing for centres.
-4. Deleting an instructor account who has ledger entries is blocked by design (financial records).
+## Known limitations
+- A month that goes negative (deductions larger than earnings) is not offset automatically against another month; this matches centres.
+- Refunds of money returned by the bank *after* a refund was marked paid are not reversed (centres and instructors are).
+- Deleting an instructor account that has ledger entries is blocked (financial records).
