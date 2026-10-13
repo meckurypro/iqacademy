@@ -13,7 +13,7 @@ import Icon from "../components/Icon";
 import { fmtDay, today } from "../lib/time";
 type Centre = { id: string; name: string; address: string | null; city: string | null };
 type Start = { centre_id: string; starts_on: string };
-type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; package_instalments: { number: number; label: string; amount: number; due_rule: string }[] };
+type Pack = { id: string; name: string; description: string | null; course_count: number; price_full: number; instalment_fee: number; package_instalments: { number: number; label: string; amount: number; due_rule: string }[] };
 type Course = { id: string; title: string; summary: string | null; sort_order: number };
 type Pre = { course_id: string; prerequisite_id: string; group_no: number };
 const STEPS = ["Pack", "Courses", "Centre", "Payment"];
@@ -61,7 +61,7 @@ export default function Enrol() {
   useEffect(() => { supabase.rpc("my_offline_payments").then((r) => setClaims(((r.data as MyOffline[]) ?? []).filter((c) => c.enrolment_status === "pending_payment"))); }, []);
   useEffect(() => {
     supabase.from("centres").select("id,name,address,city").eq("is_active", true).order("name").then((r) => setCentres((r.data as Centre[]) ?? []));
-    supabase.from("packages").select("id,name,description,course_count,price_full,package_instalments(number,label,amount,due_rule)").eq("is_active", true).order("sort_order").then((r) => setPacks((r.data as Pack[]) ?? []));
+    supabase.from("packages").select("id,name,description,course_count,price_full,instalment_fee,package_instalments(number,label,amount,due_rule)").eq("is_active", true).order("sort_order").then((r) => setPacks((r.data as Pack[]) ?? []));
     supabase.from("courses").select("id,title,summary,sort_order").eq("is_active", true).order("sort_order").then((r) => setCourses((r.data as Course[]) ?? []));
     supabase.from("course_prerequisites").select("course_id,prerequisite_id,group_no").then((r) => setPres((r.data as Pre[]) ?? []));
     supabase.from("v_student_progress").select("course_id").eq("course_status", "completed").then((r) => setDone(new Set((r.data ?? []).map((x: { course_id: string }) => x.course_id))));
@@ -162,7 +162,7 @@ export default function Enrol() {
         </>)}
         {step === 3 && pack && <>
           <Option on={sel.plan === "full"} onClick={() => setSel({ ...sel, plan: "full" })} title="Pay in full" sub="One payment, all set" right={naira(pack.price_full)} />
-          {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={later(inst)} right={naira(inst[0].amount)} />}
+          {inst.length > 0 && <Option on={sel.plan === "instalment"} onClick={() => setSel({ ...sel, plan: "instalment" })} title="Pay in instalments" sub={[later(inst), pack.instalment_fee > 0 ? `Includes a ${naira(pack.instalment_fee)} instalment fee` : ""].filter(Boolean).join(" · ")} right={naira(inst[0].amount)} />}
           <p className="pt-2 text-sm font-medium text-muted">How will you pay?</p>
           <Option on={method === "online"} onClick={() => setMethod("online")} title="Pay online" sub="Card or bank transfer through Paystack. Confirmed straight away." />
           <Option on={method === "offline"} onClick={() => setMethod("offline")} title="Pay offline" sub="Bank transfer. Send your receipt and the team confirms it once the money arrives. Paying cash? Pay at your centre: the coordinator records it and your classes unlock at once." />

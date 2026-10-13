@@ -9,9 +9,11 @@ import SoloPrices from "../components/SoloPrices";
 import Icon from "../components/Icon";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Admin: package prices, how many instalments are allowed, and what each instalment costs.
+// Instalments are the PARTS of the full price (they must add up to it). The "extra fee" for paying in parts is added to the LAST instalment and belongs to
+// IQ Academy only: instructors and centres do not earn from it.
 // Everything is saved in one call (save_package) so a package is never left with half a plan.
 type Row = { label: string; amount: string; rule: string };
-type Form = { id: string; code: string; name: string; description: string; courses: string; weeks: string; price: string; active: boolean; instOn: boolean; inst: Row[] };
+type Form = { id: string; code: string; name: string; description: string; courses: string; weeks: string; price: string; fee: string; active: boolean; instOn: boolean; inst: Row[] };
 
 const sel = "h-12 w-full rounded-xl bg-sunken px-4 outline-none";
 const MAX_INST = 6;
@@ -21,7 +23,7 @@ const toKobo = (n: string | number) => Math.round(Number(n || 0) * 100);
 const ruleNo = (r: string) => (r.startsWith("before_course_") ? Number(r.slice(14)) : 0);
 const ruleText = (r: string) => (r === "before_start" ? "Before classes start" : r === "custom" ? "Reminder only (doesn't lock classes)" : `Before course ${ruleNo(r)} starts`);
 
-const blank: Form = { id: "", code: "", name: "", description: "", courses: "2", weeks: "", price: "", active: true, instOn: false, inst: [] };
+const blank: Form = { id: "", code: "", name: "", description: "", courses: "2", weeks: "", price: "", fee: "", active: true, instOn: false, inst: [] };
 
 // Split a whole-naira price over n instalments; the first one takes any remainder.
 const split = (price: number, n: number) => {
@@ -52,7 +54,7 @@ export default function Prices() {
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from("packages")
-      .select("id,code,name,description,course_count,duration_weeks,price_full,is_active,sort_order,package_instalments(number,label,amount,due_rule)")
+      .select("id,code,name,description,course_count,duration_weeks,price_full,instalment_fee,is_active,sort_order,package_instalments(number,label,amount,due_rule)")
       .neq("code", "SOLO").order("sort_order");
     if (error) { setLoadErr(friendly(error)); return setRows([]); }
     setLoadErr(""); setRows(data ?? []);
@@ -70,13 +72,15 @@ export default function Prices() {
   const edit = (p: any) => {
     const inst = [...(p.package_instalments ?? [])].sort((a: any, b: any) => a.number - b.number);
     open({ id: p.id, code: p.code, name: p.name, description: p.description ?? "", courses: String(p.course_count), weeks: p.duration_weeks ? String(p.duration_weeks) : "",
-      price: String(p.price_full / 100), active: p.is_active, instOn: inst.length > 0, inst: inst.map((i: any) => ({ label: i.label, amount: String(i.amount / 100), rule: i.due_rule })) });
+      price: String(p.price_full / 100), fee: p.instalment_fee ? String(p.instalment_fee / 100) : "", active: p.is_active, instOn: inst.length > 0,
+      inst: inst.map((i: any, k: number) => ({ label: i.label, amount: String((i.amount - (k === inst.length - 1 ? p.instalment_fee ?? 0 : 0)) / 100), rule: i.due_rule })) });
   };
 
   // ---- live checks (the database enforces the same rules) ----
   const courseN = f ? Number(f.courses) : 0;
   const priceN = f ? Number(f.price) : 0;
   const instTotal = f ? f.inst.reduce((s, r) => s + (Number(r.amount) || 0), 0) : 0;
+  const feeN = f && f.instOn ? Number(f.fee || 0) : 0;
   const problems: string[] = [];
   if (f) {
     if (!f.name.trim()) problems.push("Give the package a name.");
@@ -85,6 +89,8 @@ export default function Prices() {
     if (!(courseN >= 1 && courseN <= courseMax)) problems.push(`Courses must be between 1 and ${courseMax}.`);
     if (f.weeks && Number(f.weeks) < 1) problems.push("Weeks must be at least 1.");
     if (f.instOn) {
+      if (instTotal > 0 && priceN > 0 && instTotal !== priceN) problems.push(`The instalments must add up to the full price (${naira(priceN * 100)}). They add up to ${naira(instTotal * 100)}.`);
+      if (f.fee && !(Number(f.fee) >= 0)) problems.push("The extra fee must be ₦0 or more.");
       let prev = 0;
       f.inst.forEach((r, i) => {
         const n = i + 1; const k = ruleNo(r.rule);
@@ -99,7 +105,7 @@ export default function Prices() {
     }
   }
 
-  const toggleInst = (on: boolean) => { if (f) set({ instOn: on, inst: on && f.inst.length === 0 ? defaultRows(f.price, courseN || 2) : f.inst }); };
+  const toggleInst = (on: boolean) => { if (f) set({ instOn: on, fee: on ? f.fee : "", inst: on && f.inst.length === 0 ? defaultRows(f.price, courseN || 2) : f.inst }); };
   const addRow = () => { if (f && f.inst.length < MAX_INST) set({ inst: [...f.inst, { label: `Instalment ${f.inst.length + 1}`, amount: "", rule: nextRule(f.inst, courseN) }] }); };
   const removeRow = (i: number) => { if (f) set({ inst: f.inst.filter((_, j) => j !== i) }); };
   const splitEvenly = () => { if (f && priceN > 0 && f.inst.length) { const a = split(priceN, f.inst.length); set({ inst: f.inst.map((r, i) => ({ ...r, amount: a[i] })) }); } };
@@ -107,17 +113,13 @@ export default function Prices() {
   const save = async () => {
     if (!f) return;
     setShow(true); if (problems.length) return;
-    if (f.instOn && instTotal !== priceN && !(await confirm({
-      title: "Instalments don't add up to the full price",
-      message: `The instalments add up to ${naira(instTotal * 100)} but the full price is ${naira(priceN * 100)}. Students paying by instalments will pay ${naira(instTotal * 100)} in total.`,
-      confirmLabel: "Save anyway",
-    }))) return;
     setErr("");
     const r = await run(f.id ? "Saving package…" : "Creating package…", async () => {
       const { error } = await supabase.rpc("save_package", {
         p_package_id: f.id || null, p_code: f.code.trim(), p_name: f.name.trim(), p_description: f.description.trim() || null,
         p_course_count: courseN, p_duration_weeks: f.weeks ? Number(f.weeks) : null, p_price_full: toKobo(f.price), p_is_active: f.active,
         p_instalments: f.instOn ? f.inst.map((r, i) => ({ label: r.label.trim(), amount: toKobo(r.amount), due_rule: i === 0 ? "before_start" : r.rule })) : [],
+        p_instalment_fee: f.instOn ? toKobo(f.fee) : 0,
       });
       if (error) throw error;
       await load();
@@ -161,8 +163,8 @@ export default function Prices() {
             </div>
             {inst.length === 0 ? <p className="text-sm text-muted">Pay in full only</p> : (
               <div className="space-y-1 text-sm">
-                {inst.map((i: any) => <div key={i.number} className="flex justify-between gap-3"><span className="min-w-0 truncate text-muted">{i.number}. {i.label}</span><span className="num">{naira(i.amount)}</span></div>)}
-                {total !== p.price_full && <p className="text-warn">Instalments total {naira(total)}, {total > p.price_full ? "more" : "less"} than paying in full.</p>}
+                {inst.map((i: any, k: number) => <div key={i.number} className="flex justify-between gap-3"><span className="min-w-0 truncate text-muted">{i.number}. {i.label}{k === inst.length - 1 && p.instalment_fee > 0 ? ` (includes ${naira(p.instalment_fee)} extra fee)` : ""}</span><span className="num">{naira(i.amount)}</span></div>)}
+                <p className={total - (p.instalment_fee ?? 0) === p.price_full ? "text-muted" : "text-warn"}>{total - (p.instalment_fee ?? 0) === p.price_full ? `Students pay ${naira(total)} in instalments: ${naira(p.price_full)} + ${naira(p.instalment_fee ?? 0)} extra fee for IQ Academy.` : `Instalments (without the fee) total ${naira(total - (p.instalment_fee ?? 0))}, not the full price. Edit and fix it.`}</p>
               </div>)}
             <Button variant="secondary" className="h-10 w-full" onClick={() => edit(p)}>Edit</Button>
           </Card>);
@@ -203,7 +205,10 @@ export default function Prices() {
                 <Button type="button" variant="secondary" className="h-10 flex-1 text-sm" disabled={!(priceN > 0)} onClick={splitEvenly}>Split evenly</Button>
               </div>
               {instTotal > 0 && priceN > 0 && <p className={cx("text-sm", diff === 0 ? "text-ok" : "text-warn")}>
-                {diff === 0 ? <span className="inline-flex items-center gap-1.5"><Icon name="check" size={16} />The instalments add up to the full price.</span> : `Instalments total ${naira(instTotal * 100)}, ${naira(Math.abs(diff) * 100)} ${diff > 0 ? "more" : "less"} than the full price. Students paying by instalments will pay ${naira(instTotal * 100)} in total.`}</p>}
+                {diff === 0 ? <span className="inline-flex items-center gap-1.5"><Icon name="check" size={16} />The instalments add up to the full price.</span> : `The instalments total ${naira(instTotal * 100)}, ${naira(Math.abs(diff) * 100)} ${diff > 0 ? "more" : "less"} than the full price. They must add up to ${naira(priceN * 100)}.`}</p>}
+              <Field label="Extra fee for paying in instalments (₦, optional)" inputMode="numeric" value={f.fee} onChange={(e) => set({ fee: digits(e.target.value).slice(0, 9) })} />
+              <p className="text-sm text-muted">Charged together with the last instalment. It goes to IQ Academy only: instructors and centres don't earn from it.</p>
+              {f.inst.length > 0 && diff === 0 && <p className="rounded-xl bg-surface p-3 text-sm ring-1 ring-line">A student paying in instalments pays {f.inst.map((r, i) => naira((Number(r.amount) + (i === f.inst.length - 1 ? feeN : 0)) * 100)).join(", then ")}. Total {naira((instTotal + feeN) * 100)}.</p>}
             </>}
           </div>
 
